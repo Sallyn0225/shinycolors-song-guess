@@ -1,0 +1,18 @@
+# 素材
+songs/
+
+# AI agent 工具目录
+.agents/
+.claude/
+.pi/
+.cursor/
+.codex/
+.gemini/
+.windsurf/
+.continue/
+.roo/
+.cline/
+.aider*
+.specstory/
+CLAUDE.local.md
+AGENTS.local.md
