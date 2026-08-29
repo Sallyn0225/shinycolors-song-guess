@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'tools/*'
+allowBuilds:
+  # tsx 依赖 esbuild，其 postinstall 需要下载对应平台的二进制
+  esbuild: true

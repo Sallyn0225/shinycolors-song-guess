@@ -1,0 +1,57 @@
+{
+  "_comment": "album → unit 的决议规则。这是修复 artist 字段的核心：234 首里有 96 首的 ID3 artist 填的是作曲/编曲者而非演唱者（判据：artist 与 lrc 的『作曲 :』行重合）。CANVAS 与 ECHOES 都是角色歌 CD 系列，每卷对应一个组合，两个系列的卷号→组合编号完全一致（已对照本地 album tag 逐条验证）。",
+
+  "seriesVolumeMap": {
+    "_comment": "匹配 album 中的系列名 + 两位卷号。CANVAS 已核验 03/04/08，ECHOES 已核验 02。",
+    "CANVAS": {
+      "01": ["illumination-stars"],
+      "02": ["lantica"],
+      "03": ["houkago-climax-girls"],
+      "04": ["alstroemeria"],
+      "05": ["straylight"],
+      "06": ["noctchill"],
+      "07": ["shhis"],
+      "08": ["cometik"]
+    },
+    "ECHOES": {
+      "01": ["illumination-stars"],
+      "02": ["lantica"],
+      "03": ["houkago-climax-girls"],
+      "04": ["alstroemeria"],
+      "05": ["straylight"],
+      "06": ["noctchill"],
+      "07": ["shhis"],
+      "08": ["cometik"],
+      "09": ["shinycolors"]
+    }
+  },
+
+  "patterns": [
+    {
+      "_removed": "曾经有一条『album 名含 (XXX盤) → 该组合』的规则，已删除，不要加回来。",
+      "_why": "「XXX盤」是**发行版本**（哪个组合的封面/特典），不是演唱者。一张 Song for Prism 单曲收录两个组合各一首歌、出两个盤，所以这条规则对其中一首必然判错——实测 8 首里错了 4 首。这些曲目改为在 overrides.json 里逐首显式指定。"
+    },
+    {
+      "_comment": "COLORFUL FE@THERS 系列，组合名写在 -XXX- 里。",
+      "regex": "COLORFUL FE@THERS\\s*-\\s*([A-Za-z@]+)\\s*-",
+      "captureIsUnitName": true
+    },
+    {
+      "_comment": "円環 -Halo around- 是跨组合合作，artist 里本来就有两个组合名（用 / 连接），交给 artist 拆分规则处理即可，这里不需要额外映射。",
+      "regex": "円環 -Halo around-",
+      "units": []
+    }
+  ],
+
+  "exact": {
+    "_comment": "PANOR@MA WING 也是按组合分卷的系列，但编号与 CANVAS/ECHOES 不同（它是 2022 年的，早于コメティック出道），所以不放进 seriesVolumeMap，只登记曲库里实际用到的那一卷。",
+    "THE IDOLM@STER SHINY COLORS Synthe-Side 01": ["lantica", "straylight"],
+    "THE IDOLM@STER SHINY COLORS PANOR@MA WING 08": ["shhis"],
+    "THE IDOLM@STER SHINY COLORS Song for Prism 星の声": ["shinycolors"]
+  },
+
+  "needsReview": {
+    "_comment": "全部 234 首的演唱者均已决议，此处为空。若将来加入新素材导致 unresolved，scan 阶段会把它们打印出来。",
+    "albums": []
+  }
+}

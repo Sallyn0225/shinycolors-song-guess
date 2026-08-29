@@ -1,0 +1,142 @@
+{
+  "_comment": "常设组合 + 全 28 名偶像。color 来源：https://imas-db.jp/misc/color.html（该页标注组合色取自 ASOBISTAGE 的アソビライト，个人色取自公式サイト偶像介绍图外框色）。aliases 用于 artist 字段匹配，比较前会做 normalizeName()（NFKC + 去空格 + 全角括号转半角）。",
+  "units": [
+    {
+      "id": "illumination-stars",
+      "name": "イルミネーションスターズ",
+      "nameEn": "illumination STARS",
+      "color": "#fff68d",
+      "kind": "permanent",
+      "aliases": ["イルミネーションスターズ", "illumination STARS", "イルミネ"],
+      "members": [
+        { "character": "櫻木真乃", "cv": "関根瞳", "color": "#ffbad6" },
+        { "character": "風野灯織", "cv": "近藤玲奈", "color": "#144384" },
+        { "character": "八宮めぐる", "cv": "峯田茉優", "color": "#ffe012" }
+      ]
+    },
+    {
+      "id": "lantica",
+      "name": "アンティーカ",
+      "nameEn": "L'Antica",
+      "color": "#853998",
+      "kind": "permanent",
+      "aliases": ["アンティーカ", "L'Antica", "LAntica"],
+      "members": [
+        { "character": "月岡恋鐘", "cv": "礒部花凜", "color": "#f84cad" },
+        { "character": "田中摩美々", "cv": "菅沼千紗", "color": "#a846fb" },
+        { "character": "白瀬咲耶", "cv": "八巻アンナ", "color": "#006047" },
+        { "character": "三峰結華", "cv": "希水しお", "color": "#3b91c4" },
+        { "character": "幽谷霧子", "cv": "結名美月", "color": "#d9f2ff" }
+      ]
+    },
+    {
+      "id": "houkago-climax-girls",
+      "name": "放課後クライマックスガールズ",
+      "nameEn": "Houkago Climax Girls",
+      "color": "#fa8333",
+      "kind": "permanent",
+      "aliases": ["放課後クライマックスガールズ", "Houkago Climax Girls", "放クラ"],
+      "members": [
+        { "character": "小宮果穂", "cv": "河野ひより", "color": "#e5461c" },
+        { "character": "園田智代子", "cv": "白石晴香", "color": "#f93b90" },
+        { "character": "西城樹里", "cv": "永井真里子", "color": "#ffc602" },
+        { "character": "杜野凛世", "cv": "丸岡和佳奈", "color": "#89c3eb" },
+        { "character": "有栖川夏葉", "cv": "涼本あきほ", "color": "#90e667" }
+      ]
+    },
+    {
+      "id": "alstroemeria",
+      "name": "アルストロメリア",
+      "nameEn": "ALSTROEMERIA",
+      "color": "#ff699e",
+      "kind": "permanent",
+      "aliases": ["アルストロメリア", "ALSTROEMERIA", "アルスト"],
+      "members": [
+        { "character": "大崎甘奈", "cv": "黒木ほの香", "color": "#f54275" },
+        { "character": "大崎甜花", "cv": "前川涼子", "color": "#e75bec" },
+        { "character": "桑山千雪", "cv": "芝崎典子", "color": "#fafafa" }
+      ]
+    },
+    {
+      "id": "straylight",
+      "name": "ストレイライト",
+      "nameEn": "Straylight",
+      "color": "#af011c",
+      "kind": "permanent",
+      "aliases": ["ストレイライト", "Straylight", "ストレイ"],
+      "members": [
+        { "character": "芹沢あさひ", "cv": "田中有紀", "color": "#f30100" },
+        { "character": "黛冬優子", "cv": "幸村恵理", "color": "#5aff19" },
+        { "character": "和泉愛依", "cv": "北原沙弥香", "color": "#ff00ff" }
+      ]
+    },
+    {
+      "id": "noctchill",
+      "name": "ノクチル",
+      "nameEn": "noctchill",
+      "color": "#384d98",
+      "kind": "permanent",
+      "aliases": ["ノクチル", "noctchill"],
+      "members": [
+        { "character": "浅倉透", "cv": "和久井優", "color": "#50d0d0" },
+        { "character": "樋口円香", "cv": "土屋李央", "color": "#be1e3e" },
+        { "character": "福丸小糸", "cv": "田嶌紗蘭", "color": "#7967c3" },
+        { "character": "市川雛菜", "cv": "岡咲美保", "color": "#ffc639" }
+      ]
+    },
+    {
+      "id": "shhis",
+      "name": "シーズ",
+      "nameEn": "SHHis",
+      "color": "#008e74",
+      "kind": "permanent",
+      "aliases": ["シーズ", "SHHis"],
+      "members": [
+        { "character": "七草にちか", "cv": "紫月杏朱彩", "color": "#a6cdb6" },
+        { "character": "緋田美琴", "cv": "山根綺", "color": "#760f10" }
+      ]
+    },
+    {
+      "id": "cometik",
+      "name": "コメティック",
+      "nameEn": "CoMETIK",
+      "color": "#333333",
+      "kind": "permanent",
+      "aliases": ["コメティック", "CoMETIK", "コメ"],
+      "members": [
+        { "character": "斑鳩ルカ", "cv": "川口莉奈", "color": "#35281f" },
+        { "character": "鈴木羽那", "cv": "三川華月", "color": "#e0b5d3" },
+        { "character": "郁田はるき", "cv": "小澤麗那", "color": "#ead7a4" }
+      ]
+    },
+    {
+      "id": "shinycolors",
+      "name": "シャイニーカラーズ",
+      "nameEn": "Shiny Colors",
+      "color": "#prism",
+      "kind": "whole",
+      "_aliasNote": "不要把 'THE IDOLM@STER' 当别名——那是通用品牌署名，不等于全体曲。PANOR@MA WING 08 的 Bouncy Girl / Fashionable 就是这么署名的，实际演唱者未确证，应落到 unresolved 而不是被误判成全体曲。",
+      "aliases": ["シャイニーカラーズ", "Shiny Colors"],
+      "members": []
+    },
+
+    {
+      "_comment": "以下为活动 / 企划限定组合（shuffle unit）。它们是真实演唱单位，只是没有官方代表色，UI 上用中性灰。",
+      "id": "team-luna",
+      "name": "Team.Luna",
+      "color": null,
+      "kind": "shuffle",
+      "aliases": ["Team.Luna"],
+      "members": []
+    },
+    { "id": "team-stella", "name": "Team.Stella", "color": null, "kind": "shuffle", "aliases": ["Team.Stella"], "members": [] },
+    { "id": "team-sol", "name": "Team.Sol", "color": null, "kind": "shuffle", "aliases": ["Team.Sol"], "members": [] },
+    { "id": "higanryu", "name": "彼岸流", "color": null, "kind": "shuffle", "aliases": ["彼岸流"], "members": [] },
+    { "id": "no1-feel-alone", "name": "No 1 feel alone", "color": null, "kind": "shuffle", "aliases": ["No 1 feel alone"], "members": [] },
+    { "id": "sigma-desire", "name": "Σ Desire", "color": null, "kind": "shuffle", "aliases": ["Σ Desire", "Σ　Desire"], "members": [] },
+    { "id": "cutie-finder", "name": "I'm a Cutie Finder", "color": null, "kind": "shuffle", "aliases": ["I'm a Cutie Finder", "I’m a Cutie Finder"], "members": [] },
+    { "id": "sonic-heart", "name": "Sonic Heart (and Signal)", "color": null, "kind": "shuffle", "aliases": ["Sonic Heart (and Signal)", "Sonic Heart"], "members": [] },
+    { "id": "futari-traveler", "name": "ザ・ふたりトラベラー", "color": null, "kind": "shuffle", "aliases": ["ザ・ふたりトラベラー"], "members": [] },
+    { "id": "fumage", "name": "Fumage", "color": null, "kind": "shuffle", "aliases": ["Fumage"], "members": [] }
+  ]
+}

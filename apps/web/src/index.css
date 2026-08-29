@@ -1,0 +1,195 @@
+/*
+  Shippori Mincho B1 —— 日文明朝，编辑感，作标题
+  Zen Kaku Gothic New —— 日文黑体，扫读快，作正文与曲名选项
+  DM Mono —— 计时与数字
+  刻意避开 Inter / Roboto / 系统字体。
+*/
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+@import 'tailwindcss';
+
+/*
+  「暗室里的棱镜」
+  闪耀色彩的品牌内核是棱镜与光的折射。而 8 个组合的官方代表色本身就排成一道光谱——
+  所以棱镜不是装饰，棱镜就是这些组合。这道渐变贯穿全局。
+  深色还有个功能性理由：这是听觉游戏，压掉视觉噪音才能专注于听。
+*/
+@theme {
+  --color-void: #05060d;
+  --color-stage: #0a0d18;
+  --color-panel: #111628;
+  --color-panel-lit: #171d34;
+  --color-line: #1d2440;
+  --color-line-lit: #2e3a5e;
+  --color-text: #eef1f8;
+  --color-muted: #8590ad;
+  --color-faint: #5a6480;
+
+  /* 8 个组合的官方代表色（来源：アイマスDB，取自公式サイト与 ASOBISTAGE アソビライト） */
+  --color-illumination: #fff68d;
+  --color-houkago: #fa8333;
+  --color-straylight: #af011c;
+  --color-alstroemeria: #ff699e;
+  --color-lantica: #853998;
+  --color-noctchill: #384d98;
+  --color-shhis: #008e74;
+  --color-cometik: #333333;
+
+  --color-correct: #3ddc97;
+  --color-wrong: #ff4d5e;
+
+  --font-display: 'Shippori Mincho B1', 'Songti SC', serif;
+  --font-sans: 'Zen Kaku Gothic New', 'PingFang SC', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* 棱镜：8 个组合色排成的光谱 */
+    --prism: linear-gradient(
+      90deg,
+      #fff68d 0%,
+      #fa8333 14%,
+      #af011c 28%,
+      #ff699e 43%,
+      #853998 57%,
+      #384d98 71%,
+      #008e74 86%,
+      #6b7280 100%
+    );
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-void);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-feature-settings: 'palt' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 舞台：一束顶光 + 极淡的胶片颗粒 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(94, 118, 200, 0.16), transparent 60%),
+      radial-gradient(80% 50% at 50% 110%, rgba(133, 57, 152, 0.1), transparent 65%);
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.16;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    z-index: 0;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: rgba(133, 57, 152, 0.5);
+  }
+
+  :focus-visible {
+    outline: 2px solid #8ea2ff;
+    outline-offset: 3px;
+  }
+}
+
+@layer utilities {
+  .prism-bar {
+    background: var(--prism);
+  }
+  .prism-text {
+    background: var(--prism);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  /* 日文换行：在文节处断，不要把片假名拦腰截断 */
+  .jp-wrap {
+    word-break: normal;
+    overflow-wrap: anywhere;
+    line-break: strict;
+  }
+}
+
+/* ── 动效 ───────────────────────────────────────── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes prism-sweep {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+@keyframes shudder {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes halo {
+  0% { opacity: 0.5; transform: scale(0.94); }
+  70% { opacity: 0; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+.anim-rise {
+  animation: rise 0.5s var(--ease-out-expo) both;
+}
+.anim-shudder {
+  animation: shudder 0.42s ease-out;
+}
+.anim-halo {
+  animation: halo 0.9s ease-out forwards;
+}
+.prism-flow {
+  background: var(--prism);
+  background-size: 200% 100%;
+  animation: prism-sweep 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise,
+  .anim-shudder,
+  .anim-halo,
+  .prism-flow {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "_comment": "按规范曲名（ID3 title 去掉尾部 ' (Off Vocal)' 后）索引的人工修正。优先级最高，覆盖一切自动决议。unit 为单一组合时填 unit；跨组合选拔/合同曲填 performers（角色名数组），resolver 会在全部 performers 同属一个组合时自动补 unit。",
+  "byTitle": {
+    "輝きにかわる": {
+      "performers": [
+        "大崎甘奈",
+        "市川雛菜",
+        "田中摩美々"
+      ],
+      "note": "シャイニーPRオファー Vol.1。投票选拔的跨组合三人组（アルスト/ノクチル/アンティーカ）。artist 字段的『くじら』是作词作曲编曲者。"
+    },
+    "ONE STAR": {
+      "performers": [
+        "小宮果穂",
+        "黛冬優子",
+        "和泉愛依"
+      ],
+      "note": "シャイニーPRオファー Vol.2。跨组合三人组（放クラ/ストレイ×2）。artist 的『TAKE (FLOW)』是作曲编曲者。"
+    },
+    "GOTCHA": {
+      "performers": [
+        "芹沢あさひ",
+        "八宮めぐる",
+        "西城樹里"
+      ],
+      "note": "シャイニーPRオファー Vol.3。跨组合三人组（ストレイ/イルミネ/放クラ）。artist 的『FUMIYA』是作曲者，曲目由 RIP SLYME 词曲编。"
+    },
+    "Secret utopIA": {
+      "performers": [
+        "櫻木真乃",
+        "風野灯織",
+        "八宮めぐる",
+        "大崎甘奈",
+        "大崎甜花",
+        "桑山千雪",
+        "七草にちか",
+        "緋田美琴"
+      ],
+      "note": "Synthe-Side 03。イルミネ + アルスト + シーズ 的 8 人合同曲。artist 的『秋浦智裕』是作曲者。"
+    },
+    "Shiny Stories": {
+      "unit": "shinycolors",
+      "note": "主题曲，全体曲（各偶像有 solo Ver.）。artist 的『伊藤和馬 (Arte Refact)』是作曲者。"
+    },
+    "フェアリー・ガール": {
+      "unit": "shhis",
+      "performers": [
+        "七草にちか"
+      ],
+      "note": "在归属编辑器中人工确认"
+    },
+    "枕木の歌": {
+      "unit": "illumination-stars",
+      "note": "在归属编辑器中人工确认"
+    },
+    "明日もBeautiful Day": {
+      "unit": "alstroemeria",
+      "note": "在归属编辑器中人工确认"
+    },
+    "Killer×Mission": {
+      "performers": [
+        "月岡恋鐘",
+        "田中摩美々",
+        "白瀬咲耶",
+        "三峰結華",
+        "幽谷霧子",
+        "芹沢あさひ",
+        "黛冬優子",
+        "和泉愛依"
+      ],
+      "note": "在归属编辑器中人工确认"
+    },
+    "青空": {
+      "unit": "noctchill",
+      "note": "在归属编辑器中人工确认"
+    },
+    "Happier": {
+      "unit": "shhis",
+      "note": "Song for Prism 单曲。原判定来自已删除的『(XXX盤)』规则——盤名是发行版本不是演唱者，此条为人工确认后的显式指定。"
+    },
+    "ハナムケのハナタバ": {
+      "unit": "cometik",
+      "note": "Song for Prism 单曲。原判定来自已删除的『(XXX盤)』规则——盤名是发行版本不是演唱者，此条为人工确认后的显式指定。"
+    },
+    "裸足じゃイラレナイ": {
+      "unit": "houkago-climax-girls",
+      "note": "Song for Prism 单曲。原判定来自已删除的『(XXX盤)』规则——盤名是发行版本不是演唱者，此条为人工确认后的显式指定。"
+    },
+    "Look up to the sky": {
+      "unit": "shhis",
+      "note": "COLORFUL FE@THERS -SHHis-，人工确认。"
+    },
+    "Pioneer Impact": {
+      "performers": [
+        "月岡恋鐘",
+        "田中摩美々",
+        "白瀬咲耶",
+        "三峰結華",
+        "幽谷霧子",
+        "七草にちか",
+        "緋田美琴"
+      ],
+      "note": "在归属编辑器中人工确认"
+    },
+    "Sparkle": {
+      "performers": [
+        "櫻木真乃",
+        "風野灯織",
+        "八宮めぐる",
+        "浅倉透",
+        "樋口円香",
+        "福丸小糸",
+        "市川雛菜"
+      ],
+      "note": "在归属编辑器中人工确认"
+    },
+    "リフレインブレイン": {
+      "performers": [
+        "大崎甘奈",
+        "大崎甜花",
+        "桑山千雪",
+        "斑鳩ルカ",
+        "鈴木羽那",
+        "郁田はるき"
+      ],
+      "note": "在归属编辑器中人工确认"
+    },
+    "進路は超銀河": {
+      "unit": "houkago-climax-girls",
+      "note": "在归属编辑器中人工确认"
+    },
+    "迅雷鉄火": {
+      "performers": [
+        "小宮果穂",
+        "園田智代子",
+        "西城樹里",
+        "杜野凛世",
+        "有栖川夏葉",
+        "芹沢あさひ",
+        "黛冬優子",
+        "和泉愛依"
+      ],
+      "note": "在归属编辑器中人工确认"
+    }
+  },
+  "_resolvedViaAlbum": {
+    "_comment": "以下曲目的 artist 也是作曲者，但已通过 albums.json 的 exact 规则在 album 层解决，不需要逐曲覆盖。留档说明依据。",
+    "星の声": "Song for Prism 主题曲，シャイニーカラーズ 名义全体曲（Lantis LACM-24437）。artist 的『秋浦智裕』是词曲编。",
+    "Bouncy Girl / Fashionable": "PANOR@MA WING 08 整卷即シーズ（Tower Records / Lantis / HMV 商品页均标 'PANOR@MA WING 08 / シーズ'，dmusic 标 'Bouncy Girl / シーズ'）。artist 的『THE IDOLM@STER』是通用品牌署名，不可作为组合别名。"
+  },
+  "excludeSlicePositions": {
+    "_comment": "切片位置需要特殊处理的曲目。感謝のコントレイル 617.8 秒是全库唯一 >400s 的离群值，可能是 live / 长篇编成，默认的分数偏移可能落到结构差异很大的段落。跑完 audit 后按需填入手工偏移。",
+    "感謝のコントレイル": null
+  }
+}

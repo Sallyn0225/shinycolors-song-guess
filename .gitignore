@@ -1,5 +1,20 @@
-# 素材
+# 素材（源音源，1.7GB，不入库）
 songs/
+
+# 构建产物（切片 ~200MB + 封面 ~15MB，不入库）
+assets/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+.vite/
+coverage/
+
+# 调试产物：浏览器自动化的输出和随手截的图
+.playwright-mcp/
+/*.png
 
 # AI agent 工具目录
 .agents/
