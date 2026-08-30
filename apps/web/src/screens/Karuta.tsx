@@ -14,13 +14,17 @@ import { audio } from '../audio'
 import { socket } from '../net/ws'
 import { KarutaTile, type CardPick, type CardState } from '../components/KarutaTile'
 import { SlotMap } from '../features/karutaBoard'
+import { versusTier } from '../features/grade'
 import { computeKimariji } from '../features/kimariji'
 import { narrateRound } from '../features/narrate'
+import { buildVersusTicket } from '../features/shareCard'
 import { Button } from '../ui/Button'
 import { Countdown } from '../ui/Countdown'
+import { GradeBadge } from '../ui/GradeBadge'
 import { Icon } from '../ui/Icon'
 import { Overlay, OverlayMark } from '../ui/Overlay'
 import { PrismRail } from '../ui/PrismRail'
+import { ShareDialog } from '../ui/ShareDialog'
 
 interface Props {
   /** matchStart 的内容由 App 传下来 —— 本组件挂载时那条消息已经过去了 */
@@ -58,6 +62,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   /** 我这一回合点的牌。本地立刻标出来，不等服务端回包 */
   const [myPick, setMyPick] = useState<CardId | null>(null)
   const [rematchVotes, setRematchVotes] = useState<PlayerId[]>([])
+  // 开导出框的时刻，用来定住战报上的日期与条码种子。
+  // 纯本地状态：开关它不发任何 socket 消息，所以再战投票不受影响
+  const [shareAt, setShareAt] = useState<Date | null>(null)
   /** 送り札阶段：服务端先揭晓答案，再等人挑牌 */
   const [reveal, setReveal] = useState<RevealMsg | null>(null)
   const [okuriPicks, setOkuriPicks] = useState<CardId[]>([])
@@ -475,6 +482,38 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     return `${names[OTHER[winner]]} 未能在断线宽限内重连，判其负`
   }
   const narration = result ? narrateRound(result, names, me) : null
+
+  /**
+   * 结算用的两侧数据。段位、网页展示、导出战报都读它，
+   * 免得同一组数字在三处各拼一遍。
+   */
+  const sides = ended && {
+    mine: {
+      name: names[me],
+      left: left[me],
+      taken: ended.stats.taken[me],
+      otetsuki: ended.stats.otetsuki[me],
+      avgReactionMs: ended.stats.avgReactionMs[me],
+      clamped: ended.stats.clamped[me],
+    },
+    foe: {
+      name: names[foe],
+      left: left[foe],
+      taken: ended.stats.taken[foe],
+      otetsuki: ended.stats.otetsuki[foe],
+      avgReactionMs: ended.stats.avgReactionMs[foe],
+      clamped: ended.stats.clamped[foe],
+    },
+  }
+  const outcome = ended ? (ended.winner === me ? 'win' : ended.winner ? 'loss' : 'draw') : 'draw'
+  const endTier =
+    sides &&
+    versusTier({
+      outcome,
+      otetsuki: sides.mine.otetsuki,
+      // 剩余自陣差：同样是赢，碾过去和险胜不该拿一个称号
+      margin: Math.abs(sides.foe.left - sides.mine.left),
+    })
 
   /** 只有「这一刻真的能点」的牌才可点：其余一律禁用，避免误触和空点 */
   const cardDisabled = (id: CardId | null, enemy: boolean): boolean => {
@@ -958,6 +997,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 {ended.stats.rounds} 回合
               </p>
 
+              {/* 段位与导出战报读同一份 features/grade.ts，页面和图上说的是同一句话 */}
+              {endTier && <GradeBadge tier={endTier} size="sm" className="mt-4" />}
+
               <table className="mt-7 w-full text-sm">
                 <caption className="sr-only">赛后统计，逐项对比你与对手</caption>
                 <thead>
@@ -1029,6 +1071,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                       ? `${names[foe]} 已同意，等你点头`
                       : '需要双方都同意才会重开'}
                 </p>
+                <Button variant="glass" size="md" full onClick={() => setShareAt(new Date())}>
+                  导出战报
+                </Button>
                 <Button variant="ghost" size="md" full onClick={onExit}>
                   退出房间
                 </Button>
@@ -1036,6 +1081,30 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
             </div>
           </span>
         </div>
+      )}
+
+      {shareAt && ended && sides && (
+        <ShareDialog
+          label="导出战报图片"
+          kind="对战"
+          // 联机场景下 localStorage 若为空，用本局房间里填过的昵称兜底
+          defaultId={names[me]}
+          build={(playerId, m) =>
+            buildVersusTicket(
+              {
+                playerId,
+                outcome,
+                reason: winReason(ended.winner),
+                rounds: ended.stats.rounds,
+                mine: sides.mine,
+                foe: sides.foe,
+                date: shareAt,
+              },
+              m,
+            )
+          }
+          onClose={() => setShareAt(null)}
+        />
       )}
     </main>
   )

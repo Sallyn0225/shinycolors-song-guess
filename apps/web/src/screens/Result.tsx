@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react'
 import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
+import { soloTier } from '../features/grade'
+import { buildSoloTicket } from '../features/shareCard'
 import { Button } from '../ui/Button'
+import { GradeBadge } from '../ui/GradeBadge'
 import { Icon } from '../ui/Icon'
 import { SectionTitle } from '../ui/SectionTitle'
+import { ShareDialog } from '../ui/ShareDialog'
 import { Stat } from '../ui/Stat'
 
 interface Props {
@@ -13,20 +17,15 @@ interface Props {
   onHome: () => void
 }
 
-function verdictLine(rate: number): string {
-  if (rate >= 0.9) return '曲库在你脑子里'
-  if (rate >= 0.7) return '相当熟'
-  if (rate >= 0.45) return '还行'
-  if (rate > 0) return '再听听'
-  return '从头再来'
-}
-
 const SLANT = 'calc(28 * var(--u))'
 const ROW_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${SLANT}), calc(100% - ${SLANT}) 100%, 0 100%, 0 ${SLANT})`
 
 export function Result({ sessionId, onReplay, onHome }: Props) {
   const [data, setData] = useState<Summary | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // 开导出框的时刻。战报上的日期与条码种子都取这一刻，
+  // 于是改 ID 重画时它们不会跟着变
+  const [shareAt, setShareAt] = useState<Date | null>(null)
 
   useEffect(() => {
     api
@@ -54,6 +53,9 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
 
   const rate = data.total > 0 ? data.correct / data.total : 0
   const preset = DIFFICULTY_PRESETS[data.difficulty]
+  // 按得分率而不是正确率分段：得分里含了速度奖励与重听扣分，
+  // 同样答对 8/10，秒答的和磨到最后一秒的不该是同一个称号
+  const tier = soloTier(data.score, data.maxScore)
 
   return (
     <main
@@ -95,7 +97,12 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
           ))}
         </div>
 
-        <div className="mt-6 flex items-end gap-5">
+        {/*
+          必须 flex-wrap：分数是 sc-figure（96u），窄屏下它一个人就吃掉整行，
+          段位块被 ml-auto 挤到几十像素宽，称号会逐字竖排成「资/深/P」。
+          窄屏让它整行独占，桌面才回到分数右侧。
+        */}
+        <div className="mt-6 flex flex-wrap items-end gap-5">
           <span
             className="latin sc-figure font-bold text-primary"
             style={{ lineHeight: 0.9 }}
@@ -103,11 +110,11 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
             {data.score}
           </span>
           <span className="latin mb-3 text-2xl text-ink-faint">/ {data.maxScore}</span>
-          <span
-            className="sc-title jp-wrap mb-3 ml-auto font-bold text-ink" 
-          >
-            {verdictLine(rate)}
-          </span>
+          {/*
+            段位取代了原来那行裸判定文案。文案来自 features/grade.ts，
+            与导出战报读同一份 —— 页面和图上说的必须是同一句话。
+          */}
+          <GradeBadge tier={tier} className="w-full sm:mb-2 sm:ml-auto sm:w-auto" />
         </div>
 
         <dl
@@ -211,7 +218,12 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         代价是 lg 的 px-10（40px）在半行里放不下「再来一局 + 图标」（内容 91px，
         半行 155px），所以窄屏收到 px-4；桌面保持 px-10 与自然宽度不变。
       */}
-      <div className="mt-10 flex items-stretch gap-4 pb-12">
+      {/*
+        第三个按钮不能挤进那半行：上面那段算过，375 下整行只有 327px，
+        两条已经要 333px。所以「导出战报」在窄屏用 basis-full 单独占一行，
+        桌面回到自然宽度与另外两条并排。
+      */}
+      <div className="mt-10 flex flex-wrap items-stretch gap-4 pb-12">
         <div className="min-w-0 flex-1 sm:flex-none">
           <Button variant="primary" size="lg" full className="max-sm:px-4" onClick={onReplay}>
             再来一局
@@ -223,7 +235,22 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
             换个难度
           </Button>
         </div>
+        <div className="min-w-0 basis-full sm:basis-auto">
+          <Button variant="glass" size="lg" full className="max-sm:px-4" onClick={() => setShareAt(new Date())}>
+            导出战报
+          </Button>
+        </div>
       </div>
+
+      {shareAt && (
+        <ShareDialog
+          label="导出战报图片"
+          kind="单人"
+          defaultId=""
+          build={(playerId, m) => buildSoloTicket({ ...data, playerId, date: shareAt }, m)}
+          onClose={() => setShareAt(null)}
+        />
+      )}
     </main>
   )
 }
