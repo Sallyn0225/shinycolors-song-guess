@@ -267,6 +267,77 @@
   }
 
   /*
+    坑三：`inset box-shadow` 描的是**矩形**的边。画在被 clip-path 裁过的元素上，
+    描边不会跟着斜切走，而是被裁成三段：
+
+      · 斜边上根本没有描边 —— 没有任何东西去画那条边
+      · 上边要等过了切角才出现
+      · 矩形的左边被裁到只剩最底下一小截，成了一个和形状对不上的直角残边
+
+    44px 高的 .cut-slant 输入框实测：上边从 x≈9.4 才开始，斜边整整 34px 是开口的，
+    左下角露出约 7px 残边。远看像「描边是个矩形」，正是这么来的。
+
+    描边必须自己也是这个形状：外轮廓 + 反向内轮廓，用 evenodd 把中间挖空。
+    **挖空是关键** —— 中间留实色的话，压在上面的半透明玻璃面会被整片染上描边色。
+
+    用法（放在被裁元素内部，跟着它一起定位）：
+      <span aria-hidden class="cut-ring cut-ring-slant"
+            style="--ring: 1.5px; --ring-color: var(--color-primary)" />
+
+    内轮廓那两个斜边顶点用的是 (cut + ring, ring) 与 (ring, 100% - ring) 的近似。
+    严格的平行偏移还要按 √(cut² + 高²) / 高 缩一下，44px 高时差 ~0.3px，
+    在 1.5~2px 的描边上看不出来，而严格解要知道元素高度，CSS 给不了。
+  */
+  .cut-ring {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--ring-color);
+    /*
+      外轮廓故意向外溢出 1px。
+
+      环画在被裁元素**内部**（这样 hover 的位移、:focus 的兄弟选择器才都还成立），
+      于是那条斜边会被父元素和环各裁一次。两次抗锯齿是**相乘**的：
+      边界像素 50% × 50% = 25%，斜边描边肉眼可见地比水平边淡一截。
+      让环的外轮廓越过父元素的边界，可见边缘就只由父元素裁一次。
+    */
+    --ring-bleed: 1px;
+  }
+  /*
+    外轮廓 → 回到起点闭合 → 沿一条缝进内轮廓 → 反向绕内轮廓一圈 → 沿同一条缝出来。
+
+    两个「重复点」不是笔误，是这个写法的全部关窍。polygon() 只有一条轮廓线，
+    要挖洞就得靠这条缝把内外接起来；缝必须**来回各走一遍、完全重合**，
+    才是零宽、才不会被 evenodd 算作一次穿越。
+
+    偷懒的写法（外轮廓四个点后直接接内轮廓）会有两种失败，都亲手撞过：
+      · 内轮廓顺着走 —— 闭合段从右下斜穿整条上边带，加了 bleed 后**上边描边整条消失**
+      · 内轮廓逆着走 —— 外轮廓的斜边那一段根本没被走过，**斜边描边整条消失**
+    两种都只坏一条边、其余三条正常，很容易误判成「差不多能用」。
+  */
+  .cut-ring-slant {
+    clip-path: polygon(
+      evenodd,
+      /* 外轮廓：左上 → 右上 → 右下 → 左下 → 回左上闭合 */
+      calc(var(--cut-sm) - var(--ring-bleed)) calc(-1 * var(--ring-bleed)),
+      calc(100% + var(--ring-bleed)) calc(-1 * var(--ring-bleed)),
+      calc(100% + var(--ring-bleed)) calc(100% + var(--ring-bleed)),
+      calc(-1 * var(--ring-bleed)) calc(100% + var(--ring-bleed)),
+      calc(var(--cut-sm) - var(--ring-bleed)) calc(-1 * var(--ring-bleed)),
+      /* 缝：外左上 → 内左上；然后内轮廓反向绕一圈；最后自动闭合走回外左上 */
+      calc(var(--cut-sm) + var(--ring)) var(--ring),
+      calc(100% - var(--ring)) var(--ring),
+      calc(100% - var(--ring)) calc(100% - var(--ring)),
+      var(--ring) calc(100% - var(--ring)),
+      calc(var(--cut-sm) + var(--ring)) var(--ring)
+    );
+  }
+  /*
+    只做了 slant 一个变体，因为目前只有它需要描边。
+    加新形状时照抄这个结构：外轮廓原样，内轮廓每个顶点朝形状内部挪 var(--ring)。
+  */
+
+  /*
     纯文本按钮（返回 / 离开房间 / 跳过 / 退出）的触摸热区。
     视觉上仍是孤零零一行小字，但盒子补到 44px。
     不用 ::after 扩热区：这类按钮多半在 clip-path 容器里，伪元素会被一起裁掉。

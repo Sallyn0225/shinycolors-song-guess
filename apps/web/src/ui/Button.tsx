@@ -51,12 +51,22 @@ export function Button({
     variant === 'primary'
       ? { background: 'var(--grad-brand-ink)' }
       : variant === 'ghost'
-        ? // 轮廓是「非文字对比度」，要 3:1。primary-lt 只有 2.31:1，用 primary（5.50:1）
-          { boxShadow: 'inset 0 0 0 1px var(--color-primary)', background: 'rgb(255 255 255 / .5)' }
+        ? { background: 'rgb(255 255 255 / .5)' }
         : variant === 'outline'
           ? // comp 的主操作是描边不填充的平行四边形，不是浅玻璃小片
-            { boxShadow: 'inset 0 0 0 1.5px var(--color-primary)', background: 'transparent' }
+            { background: 'transparent' }
           : undefined
+
+  /**
+   * 描边的宽度。
+   *
+   * 轮廓是「非文字对比度」，要 3:1 —— primary-lt 只有 2.31:1，所以用 primary（5.50:1）。
+   *
+   * 画法是 `.cut-ring` 而不是 `inset box-shadow`：inset 阴影描的是**矩形**的边，
+   * 按钮本身被 `.cut-slant` 裁成平行四边形之后，斜边上没有描边，
+   * 左下角还会露出一截直角残边。见 index.css「坑三」。
+   */
+  const ring = variant === 'ghost' ? '1px' : variant === 'outline' ? '1.5px' : null
 
   return (
     <span
@@ -65,7 +75,7 @@ export function Button({
       <button
         {...rest}
         className={[
-          variant === 'quiet' ? '' : 'cut-slant',
+          variant === 'quiet' ? '' : 'cut-slant relative',
           'inline-flex w-full items-center justify-center gap-2 font-latin font-semibold',
           'tracking-[0.1em] transition-[transform,background-color,color,opacity] duration-300',
           'ease-[var(--ease-prism)] disabled:opacity-40',
@@ -78,6 +88,13 @@ export function Button({
           .join(' ')}
         style={{ minHeight: MIN_H[size], ...bg }}
       >
+        {ring && (
+          <span
+            aria-hidden
+            className="cut-ring cut-ring-slant"
+            style={{ '--ring': ring, '--ring-color': 'var(--color-primary)' } as React.CSSProperties}
+          />
+        )}
         {children}
       </button>
     </span>
