@@ -60,19 +60,27 @@ function CornerMark({ at, size }: { at: Corner; size: number }) {
   )
 }
 
+/** 四枚角标 + 那个带内边距的框。SectionTitle 与 HeroTitle 共用，角标构造只此一份 */
+function TitleBox({ size, children }: { size: number; children: React.ReactNode }) {
+  return (
+    <div
+      className="sc-titlebox relative inline-block text-center"
+      style={{ ['--tc' as string]: `calc(${size} * var(--u))` }}
+    >
+      <CornerMark at="tl" size={size} />
+      <CornerMark at="tr" size={size} />
+      <CornerMark at="bl" size={size} />
+      <CornerMark at="br" size={size} />
+      {children}
+    </div>
+  )
+}
+
 export function SectionTitle({ kana, latin, align = 'left', size = 'md', className = '' }: Props) {
   const c = CORNER[size]
   return (
     <div className={`${align === 'center' ? 'flex justify-center' : ''} ${className}`.trim()}>
-      <div
-        className="sc-titlebox relative inline-block text-center"
-        style={{ ['--tc' as string]: `calc(${c} * var(--u))` }}
-      >
-        <CornerMark at="tl" size={c} />
-        <CornerMark at="tr" size={c} />
-        <CornerMark at="bl" size={c} />
-        <CornerMark at="br" size={c} />
-
+      <TitleBox size={c}>
         <p
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
@@ -85,7 +93,49 @@ export function SectionTitle({ kana, latin, align = 'left', size = 'md', classNa
         >
           {latin}
         </h1>
-      </div>
+      </TitleBox>
+    </div>
+  )
+}
+
+/*
+  Hero 变体。层级与 SectionTitle 正好相反，这是有意的：
+
+  SectionTitle 是**区块**标题，按官网的 Kana-Over-Latin 规则，拉丁大写是主角、
+  片假名是它的小标。Hero 是**页面**标题，它要回答的是「这个站是干什么的」——
+  拉丁串答不了这件事（SONG GUESS 既不说闪耀色彩也不说无人声），
+  所以拉丁降为品牌标压在上排，中文主标题成为下排的主角，也是全页唯一的 h1。
+
+  两者共用同一套角标，形状语言不分家。
+*/
+interface HeroProps {
+  /** 上排小号 Jost 大写拉丁：品牌标，不是标题层级 */
+  brand: string
+  /** 下排大号中文：页面唯一的 h1 */
+  title: string
+  className?: string
+}
+
+export function HeroTitle({ brand, title, className = '' }: HeroProps) {
+  const c = CORNER.lg
+  return (
+    <div className={`flex justify-center ${className}`.trim()}>
+      <TitleBox size={c}>
+        <p
+          className="font-latin text-2xs font-semibold text-primary uppercase"
+          style={{ letterSpacing: 'var(--tracking-title)' }}
+        >
+          {brand}
+        </p>
+        {/* text-ink 而不是 text-primary：#615f90 是结构色，DESIGN.md 明写不作正文，
+            而页面主标题要按正文的对比度对待 */}
+        <h1
+          className="sc-title-lg jp-wrap mt-2 font-bold text-ink"
+          style={{ letterSpacing: 'var(--tracking-tight)' }}
+        >
+          {title}
+        </h1>
+      </TitleBox>
     </div>
   )
 }

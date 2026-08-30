@@ -1,8 +1,9 @@
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
 
+import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
+import { LIBRARY } from '../features/library'
 import { PrismRail } from '../ui/PrismRail'
-import { SectionTitle } from '../ui/SectionTitle'
 import { Stat } from '../ui/Stat'
 import { VolumeControl } from '../ui/VolumeControl'
 
@@ -74,24 +75,47 @@ function EntryBar({
 export function Start({ onStart, onVersus, busy, error }: Props) {
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full flex-col justify-center px-6 py-14 sm:px-10"
+      /*
+        不用 justify-center：内容比视口高（1440×900 实测 doc 1010 > vp 900），
+        居中在这里是空操作，留着只会让人以为纵向已经排过。
+        纵向节奏交给 py-14 与下面的组间距。
+      */
+      className="mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10"
       style={{ maxWidth: 'calc(1300 * var(--u))' }}
     >
-      <header className="anim-appear">
-        <SectionTitle kana="ソングゲス" latin="Song Guess" size="lg" />
+      {/*
+        组一「这是什么」。标题 + 说明 + 曲库数据是同一件事，靠得紧；
+        与下面的入口之间由光带分开 —— 这套系统里那条光本来就是「界线」的承担者，
+        所以不加框线也不加分隔线。
+      */}
+      <header className="anim-appear text-center">
+        <HeroTitle brand="Shiny Song Guess" title="闪彩猜歌" />
         <p
-          className="jp-wrap mt-6 text-base leading-relaxed text-ink-sub"
+          className="jp-wrap mx-auto mt-6 text-base leading-relaxed text-ink-sub"
           style={{ maxWidth: '46ch' }}
         >
-          听一段没有人声的伴奏，认出它是哪首歌。曲库收录 234 首 off vocal 音源。
+          听一段没有人声的伴奏，认出它是哪首歌。
         </p>
+        {/* 三个聚合量。「人声 0」是这一组里唯一的卖点 ——
+            它把「难度来源从记歌词变成记编曲」压成了一个数字。
+            都是总量，不含单曲时长或切片编号，建立不了对照表。 */}
+        <dl className="mt-7 flex justify-center gap-10 sm:gap-16">
+          <Stat label="曲数" value={LIBRARY.songs} align="center" />
+          <Stat label="片段" value={LIBRARY.clips} align="center" />
+          <Stat label="人声" value={0} align="center" />
+        </dl>
       </header>
 
-      <div className="anim-appear mt-8" style={{ animationDelay: '80ms' }}>
+      <div className="anim-appear mt-14" style={{ animationDelay: '80ms' }}>
         <PrismRail mode="idle" spectrum={false} />
       </div>
 
-      <section className="mt-6 flex flex-col" style={{ gap: 'calc(22 * var(--u))' }} aria-label="选择难度">
+      {/* 组二「怎么开始」。这一页的动作集只有这三条 */}
+      <section
+        className="mt-12 flex flex-col"
+        style={{ gap: 'calc(22 * var(--u))' }}
+        aria-label="选择难度"
+      >
         {DIFFICULTIES.map((d, i) => {
           const p = DIFFICULTY_PRESETS[d]
           return (
@@ -166,7 +190,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         位置在三个入口之后是有意的：这一页的动作集只有那三条，
         音量是**设定**不是入口，不该长成第四条横条去跟它们抢。
       */}
-      <div className="anim-appear mt-10" style={{ animationDelay: '340ms' }}>
+      <div className="anim-appear mt-14" style={{ animationDelay: '340ms' }}>
         <VolumeControl />
         <p className="jp-wrap mt-5 text-xs text-ink-faint" style={{ maxWidth: '60ch' }}>
           点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2
