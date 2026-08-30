@@ -9,6 +9,7 @@ import {
   type RoomVisibility,
 } from '@scg/shared'
 
+import { LIBRARY } from '../features/library'
 import { RoomCard } from '../components/RoomCard'
 import { audio } from '../audio'
 import { socket } from '../net/ws'
@@ -16,8 +17,8 @@ import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
 import { Overlay, OverlayMark } from '../ui/Overlay'
 import { Presence } from '../ui/Presence'
+import { HeroTitle } from '../ui/SectionTitle'
 import { PrismRail } from '../ui/PrismRail'
-import { SectionTitle } from '../ui/SectionTitle'
 import { Stat } from '../ui/Stat'
 
 interface Props {
@@ -214,18 +215,24 @@ export function Lobby({ onBack }: Props) {
       className="mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10"
       style={{ maxWidth: 'calc(760 * var(--u))' }}
     >
-      <SectionTitle kana="タイセン" latin="Versus" size="lg" className="anim-appear" />
+      {/* 组一「这是什么」。与首页同构：标题居中，说明贴着它，光带作为与操作区的界线 */}
+      <header className="anim-appear text-center">
+        <HeroTitle brand="Versus" title="1v1 空札領地戦" />
+        <p className="jp-wrap mx-auto mt-5 text-sm leading-relaxed text-ink-sub">
+          两个人各自一台设备，听同一段伴奏抢同一张牌。建一间房等人，或者从下面的列表里挑一间进去。
+        </p>
+      </header>
 
-      <p className="jp-wrap anim-appear mt-5 text-sm leading-relaxed text-ink-sub">
-        两个人各自一台设备，听同一段伴奏抢同一张牌。建一间房等人，或者从下面的列表里挑一间进去。
-      </p>
-
-      <div className="anim-appear mt-7" style={{ animationDelay: '80ms' }}>
+      <div className="anim-appear mt-10" style={{ animationDelay: '80ms' }}>
         <PrismRail mode="idle" spectrum={false} />
       </div>
 
-      {/* ── 身份与建房 ─────────────────────────────── */}
-      <div className="mt-8 flex flex-col" style={{ gap: 'calc(12 * var(--u))' }}>
+      {/*
+        组二「怎么进场」。建房与用房间码进房是两条并列的配对路径，
+        中间隔着的昵称是两条都要的前置，所以三者归一组、组内收紧。
+        不跟着 Hero 居中：输入框与按钮是整宽的，居中只会打断左对齐的扫读线。
+      */}
+      <div className="mt-10 flex flex-col" style={{ gap: 'calc(12 * var(--u))' }}>
         <Field
           type="text"
           value={nickname}
@@ -285,9 +292,9 @@ export function Lobby({ onBack }: Props) {
         </p>
       )}
 
-      {/* ── 房间列表 ───────────────────────────────── */}
+      {/* ── 组三「现在有谁」：房间列表 ───────────────── */}
       <div
-        className="mt-10 flex items-baseline justify-between gap-4"
+        className="mt-11 flex items-baseline justify-between gap-4"
         style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: 'calc(10 * var(--u))' }}
       >
         <h2
@@ -335,7 +342,7 @@ export function Lobby({ onBack }: Props) {
         )}
       </div>
 
-      {/* ── 玩法 ───────────────────────────────────── */}
+      {/* ── 组四「规则」 ───────────────────────────── */}
       <h2
         className="mt-12 text-2xs font-semibold text-primary"
         style={{ letterSpacing: 'var(--tracking-title)' }}
@@ -343,7 +350,8 @@ export function Lobby({ onBack }: Props) {
         アソビカタ / HOW TO PLAY
       </h2>
       <p className="jp-wrap mt-4 text-sm leading-relaxed text-ink-sub">
-        从 234 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards} 首摊在场上（每人自陣{' '}
+        从 {LIBRARY.songs} 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards}{' '}
+        首摊在场上（每人自陣{' '}
         {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首是
         <b className="font-bold text-ink">空札</b>
         —— 只会被播放、场上没有对应的牌，谁点谁お手つき。先清空自陣者胜。

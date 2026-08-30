@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "HeroTitle 是新组件、Start/Lobby 是组件重排，必须守这套组件约定"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "改动要过项目自己的前端质量线"}
+{"file": "DESIGN.md", "reason": "视觉世界的权威记录：零圆角、clip-path 斜切、Surface-Not-Text、Floor Rule 等 Named Rules 全部适用"}
+{"file": "PRODUCT.md", "reason": "界面清单、非 UI 代码禁区、文案语言约束、不给作弊者送线索原则"}

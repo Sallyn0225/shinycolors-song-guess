@@ -68,6 +68,46 @@ the caret and the selection highlight at the edges. The shape comes from a clipp
 
 ---
 
+## A reserved band must be conditional on what fills it
+
+`PrismRail` sizes itself to the spectrum bars' dynamic range (`112u`, `120u` in `mirror`),
+but the rail line itself is `bottom: 0`. When a screen passes `spectrum={false}`, nothing
+ever grows into that band, so the whole `112u` becomes empty space above the line —
+measured at 139px on the Start hero, which is what made the hero read as pinned to the
+top-left corner. The height is now conditional:
+
+```ts
+const span =
+  mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? 'calc(112 * var(--u))' : '3px'
+```
+
+`mirror` stays out of the condition: the board's rail must sit on the field's geometric
+midline, and its height is the precondition for being that line.
+
+The general rule: **when a component reserves space for an optional child, the reservation
+takes the same condition as the child.** An unconditional reservation is invisible in the
+component's own tests and only shows up as a void on the screens that opted out.
+
+---
+
+## Two title components, opposite hierarchies
+
+| | Top row | Bottom row | Used on |
+|---|---|---|---|
+| `SectionTitle` | small katakana | large Jost uppercase Latin (`h1`) | section headings |
+| `HeroTitle` | small Jost uppercase Latin (`p`) | large Chinese title (`h1`) | page heroes |
+
+Both draw the same four corner marks through the shared private `TitleBox`, so the shape
+language does not fork. The hierarchies are deliberately inverted: a section heading is
+labelled by the site's Latin voice, but a page hero has to answer *what is this site*, and
+a Latin string cannot (`SONG GUESS` says neither 闪耀色彩 nor off-vocal). The Chinese line
+carries that and is the page's only `h1`; the Latin drops to a brand mark.
+
+`HeroTitle`'s `h1` uses `text-ink`, not `text-primary` — `#615f90` is a structural colour
+that DESIGN.md explicitly bars from body text, and a page title is held to body contrast.
+
+---
+
 ## Shape primitives
 
 | Class | Shape | Used for |
