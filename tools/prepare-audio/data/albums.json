@@ -1,5 +1,5 @@
 {
-  "_comment": "album → unit 的决议规则。这是修复 artist 字段的核心：234 首里有 96 首的 ID3 artist 填的是作曲/编曲者而非演唱者（判据：artist 与 lrc 的『作曲 :』行重合）。CANVAS 与 ECHOES 都是角色歌 CD 系列，每卷对应一个组合，两个系列的卷号→组合编号完全一致（已对照本地 album tag 逐条验证）。",
+  "_comment": "album → unit 的决议规则。这是修复 artist 字段的核心：233 首里有 96 首的 ID3 artist 填的是作曲/编曲者而非演唱者（判据：artist 与 lrc 的『作曲 :』行重合）。CANVAS 与 ECHOES 都是角色歌 CD 系列，每卷对应一个组合，两个系列的卷号→组合编号完全一致（已对照本地 album tag 逐条验证）。",
 
   "seriesVolumeMap": {
     "_comment": "匹配 album 中的系列名 + 两位卷号。CANVAS 已核验 03/04/08，ECHOES 已核验 02。",
@@ -51,7 +51,7 @@
   },
 
   "needsReview": {
-    "_comment": "全部 234 首的演唱者均已决议，此处为空。若将来加入新素材导致 unresolved，scan 阶段会把它们打印出来。",
+    "_comment": "全部 233 首的演唱者均已决议，此处为空。若将来加入新素材导致 unresolved，scan 阶段会把它们打印出来。",
     "albums": []
   }
 }

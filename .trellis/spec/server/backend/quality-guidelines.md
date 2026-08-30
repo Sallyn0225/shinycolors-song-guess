@@ -14,7 +14,7 @@ pnpm -r test && pnpm -r typecheck     # before reporting done
 ```
 
 The tests require built assets: `Catalog.load()` reads `assets/manifest.*.json`, and
-`app.test.ts` asserts `/api/health` reports **234** songs. If the catalog is missing, run
+`app.test.ts` asserts `/api/health` reports **233** songs. If the catalog is missing, run
 `pnpm assets all` first — a failure here is an environment problem, not a code problem.
 
 There is no `vitest.config.ts`; vitest runs on defaults and collects `src/**/*.test.ts`.

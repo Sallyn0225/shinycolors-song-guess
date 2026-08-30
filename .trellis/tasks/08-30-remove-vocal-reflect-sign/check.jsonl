@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/prepare-audio/backend/asset-secrecy.md", "reason": "验收重点：确认没有孤儿切片/封面残留在 assets/ 里，以及 manifest 边界自检通过"}
+{"file": ".trellis/spec/prepare-audio/backend/quality-guidelines.md", "reason": "prepare-audio 的测试与验证约定，用于核对 Step 5/8 的验证手段是否符合本包规范"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "server 侧测试约定；核对 app.test.ts 的 233 断言改法正确"}
+{"file": ".trellis/spec/game-core/backend/quality-guidelines.md", "reason": "核对 karuta.test.ts 只改了注释、合成数据与断言逻辑未被误伤"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层一致性检查：曲目数 234→233 是否在三层全部落实，有无遗漏的硬编码（含 1404→1398）"}

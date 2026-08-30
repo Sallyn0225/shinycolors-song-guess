@@ -28,7 +28,13 @@ export function normalizeTitle(s: string): string {
     .toLowerCase()
 }
 
-/** ID3 title 尾部的 ' (Off Vocal)'。233/234 有，`リフレクトサイン (2022 Ver.)` 没有 → 必须可选 */
+/**
+ * ID3 title 尾部的 ' (Off Vocal)'。现役 233 首全都有后缀。
+ *
+ * 曾经混进来一首没有后缀的 `リフレクトサイン (2022 Ver.)`——缺后缀正是它有人声的信号，
+ * 已从 songs/ 剔除。后缀在这里保持**可选**，只做容错：素材命名不规范时不至于让整条
+ * pipeline 崩掉。真要拦截人声版，靠的是入库前人工确认，不是这个正则。
+ */
 const OFF_VOCAL_SUFFIX = /\s*\(Off Vocal\)\s*$/i
 
 export function stripOffVocal(rawTitle: string): string {
@@ -37,7 +43,7 @@ export function stripOffVocal(rawTitle: string): string {
 
 /**
  * 派生易混淆组 key：剥掉 `(xxx Ver.)` / `(2022 Ver.)` 这类版本后缀。
- * `Migratory Echoes` 的 10 个版本和 `リフレクトサイン` 的 2 个版本会各自归为一组。
+ * 现役曲库里 `Migratory Echoes` 的 9 个版本会因此归为一组。
  */
 export function variantGroupKey(title: string): string {
   return title

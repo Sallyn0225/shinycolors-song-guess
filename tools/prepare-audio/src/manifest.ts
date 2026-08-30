@@ -132,7 +132,7 @@ export async function writeManifests(
  *
  * 这几条都是「静默上线就泄题」的类型：
  *  - 出现 sliceId → 客户端能直接把切片映射回曲目
- *  - 出现 duration → 234 个不同时长几乎唯一标识曲目，是真实旁路
+ *  - 出现 duration → 233 个不同时长几乎唯一标识曲目，是真实旁路
  *  - 出现源文件路径 → 直接暴露曲名
  */
 export async function assertPublicManifestClean(): Promise<string[]> {

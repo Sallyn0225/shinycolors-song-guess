@@ -88,7 +88,7 @@ function fromPerformers(t: UnitTables, performers: string[]): { units: string[];
 /**
  * 决议一首歌的演唱者。
  *
- * 背景：ID3 `artist` 语义不可靠——234 首里有 96 首填的是**作曲/编曲者**而非演唱者
+ * 背景：ID3 `artist` 语义不可靠——233 首里有 96 首填的是**作曲/编曲者**而非演唱者
  * （判据：artist 与 lrc 的『作曲 :』行重合）。album 才是修复它的钥匙。
  *
  * 优先级由高到低。每条规则命中即返回，并记录 source 供审计。

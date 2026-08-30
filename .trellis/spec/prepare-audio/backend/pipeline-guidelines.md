@@ -1,7 +1,7 @@
 # Pipeline Guidelines
 
 > Stages are cached by source content and stage version, degrade instead of failing, and
-> report progress on one line. All three are what make a 234-song rebuild survivable.
+> report progress on one line. All three are what make a 233-song rebuild survivable.
 
 ---
 
@@ -21,7 +21,7 @@ the three changes, so:
 - swapping the source mp3 invalidates that song only;
 - **bumping one stage's version in `STAGE_VERSIONS` invalidates that stage only.** That is
   why the versions are a per-stage record rather than a single global number — changing the
-  slice planner must not force a re-analysis of 234 files.
+  slice planner must not force a re-analysis of 233 files.
 
 When you change a stage's algorithm, bump its version in
 `tools/prepare-audio/src/config.ts#STAGE_VERSIONS` in the same commit. Forgetting is the
@@ -56,6 +56,15 @@ Two re-entry points exist specifically to avoid re-encoding
 `rebuildManifests()` rewrites both manifests from existing `analyze`/`slice` caches. Metadata
 fixes must stay in that fast path.
 
+`scan` validates shape — one mp3, one jpg, an ID3 title, a plausible duration — but it does
+**not** and cannot verify that a track is actually off-vocal. That check is a human one, at
+the point material enters `songs/`. The signal to look for is a missing ` (Off Vocal)`
+suffix on the ID3 title: `stripOffVocal` treats the suffix as optional for robustness, so a
+vocal track sails through every stage and lands in the catalog, where it sings the answer to
+the player. One did (`リフレクトサイン (2022 Ver.)`, removed 2026-08-30). If you find
+yourself relaxing a rule in `util/text.ts` to accommodate one odd file, check whether the
+file is the bug.
+
 ---
 
 ## Degrade ladders, not hard failures
@@ -83,7 +92,7 @@ The default limit is `defaultConcurrency()`: `min(availableParallelism(), 12)`, 
 
 The 12 is measured, not guessed — the comment records that 8→16 workers gained only 8%
 because the bottleneck is memory bandwidth and I/O rather than CPU. Do not raise it without
-re-measuring, and do not use `Promise.all` over 234 ffmpeg invocations.
+re-measuring, and do not use `Promise.all` over 233 ffmpeg invocations.
 
 File-system fan-out (stat, utimes) uses a higher limit (32) since it is not CPU-bound.
 
@@ -95,9 +104,9 @@ There is no logger. Output is `process.stdout.write` with a `[stage]` prefix and
 text, and long jobs use the `Progress` class from `util/cache.ts`:
 
 ```
-[scan] 234 首，耗时 12.3s
-[analyze] 缓存命中 234/234
-[slice] ████████████░░░░░░░░░░░░ 640/1404 eta 88s 失败 0
+[scan] 233 首，耗时 12.3s
+[analyze] 缓存命中 233/233
+[slice] ████████████░░░░░░░░░░░░ 640/1398 eta 88s 失败 0
 [slice] ⚠ 记得跟一句 pnpm assets manifest，否则服务端还在用旧 id
 ```
 

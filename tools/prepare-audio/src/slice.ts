@@ -16,7 +16,7 @@ const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
  * 生成 20 字符（约 100 bit）的随机切片 id。
  *
  * 用 CSPRNG 随机串而不是 `HMAC(secret, songId:index)`：
- *  - 随机方案没有密钥可泄露（HMAC 一旦泄密钥，1404 个 id 全可离线重算）
+ *  - 随机方案没有密钥可泄露（HMAC 一旦泄密钥，1398 个 id 全可离线重算）
  *  - **轮换只是一次 rename**：重生成 id + fs.rename + 改 manifest，秒级完成，
  *    不需要重新编码。这让「定期换 id 打断攻击者积累的对照表」真正可行。
  */
@@ -59,7 +59,7 @@ export function specsFor(song: ScannedSong, analysis: AnalysisResult, existingId
  * 几条不能省的参数：
  *  - `-ss` 放 `-i` 前 → 输入 seek，快 2 倍以上。`-accurate_seek` 默认开启，所以是采样精确的。
  *    用 `-t`（相对时长）而不是 `-to`（输入 seek 后语义会变）。
- *  - `-map 0:a:0` → 全部 234 个 mp3 都内嵌了 mjpeg 封面流，不 map 会出错。
+ *  - `-map 0:a:0` → 全部 233 个 mp3 都内嵌了 mjpeg 封面流，不 map 会出错。
  *  - `-map_metadata -1 -fflags +bitexact` → **否则 ffmpeg 会把源 ID3 的 title/artist
  *    原样复制进 Opus 的 Vorbis comment，等于把答案直接写进切片文件**。
  *  - `-vbr off`（硬 CBR）→ 所有切片字节数几乎相同，消灭「按文件大小认曲」的旁路。

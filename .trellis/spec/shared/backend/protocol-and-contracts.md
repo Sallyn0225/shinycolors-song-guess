@@ -68,7 +68,7 @@ excluded from every view type in this file:
 - **The answer for the current round.** `RevealView` exists precisely so that the song is
   disclosed at one explicit moment (`roundReveal` / `roundResult`) and never before.
   `roundArm` deliberately carries only an opaque `clipToken` and a URL.
-- **`sliceId`, slice counts, durations.** With 234 songs a duration is very nearly a unique
+- **`sliceId`, slice counts, durations.** With 233 songs a duration is very nearly a unique
   identifier. The client sees a per-round random token; the token → sliceId map lives in
   server memory only.
 - **`answerIndex` for a solo question.** Grading is server-side

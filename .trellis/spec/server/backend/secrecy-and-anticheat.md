@@ -23,7 +23,7 @@ only mapping that can turn a clip back into an answer.
 `CatalogSong` into a response. Use it. The same discipline applies to `soloSessions.ts`:
 `serveQuestion()` returns options and a token and explicitly **not** `answerIndex`.
 
-Duration is the subtle one. With 234 songs, a duration is very nearly a unique identifier,
+Duration is the subtle one. With 233 songs, a duration is very nearly a unique identifier,
 so it is a real oracle and stays private.
 
 ---
@@ -58,7 +58,7 @@ Three rules in `app.ts` that look like performance tuning and are not:
 - **Clips: `cache-control: no-store`.** Whether a request hits cache is itself observable
   timing information.
 - **Everything static: `lastModified: false`.** The build order is song-title
-  lexicographic order, so `Last-Modified` on 234 covers reconstructs the sort. Both
+  lexicographic order, so `Last-Modified` on 233 covers reconstructs the sort. Both
   `fastifyStatic` mounts disable it, and `tools/prepare-audio` writes a `CANONICAL_MTIME`
   of `2020-01-01` to the files themselves for the same reason.
 - **`index.html`: `cache-control: no-cache`, everything else `immutable, maxAge 365d`.**

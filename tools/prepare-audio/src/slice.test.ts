@@ -31,7 +31,7 @@ describe('切片 id 与路径', () => {
 })
 
 // AAC 编码器给不了硬 CBR，字节数会在 184~198KB 之间浮动 ——
-// 1404 个切片的大小几乎就是唯一指纹，和 Opus 用 -vbr off 挡掉的是同一条旁路
+// 1398 个切片的大小几乎就是唯一指纹，和 Opus 用 -vbr off 挡掉的是同一条旁路
 describe('AAC 字节数补齐', () => {
   it('补到与目标完全一致，且 free box 头写的是自身长度', async () => {
     const f = await write('a.m4a', SLICE.aacPadToBytes - 5000)

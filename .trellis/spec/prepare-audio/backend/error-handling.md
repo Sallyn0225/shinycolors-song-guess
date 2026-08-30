@@ -72,7 +72,7 @@ session.
 
 `padAac` is worth singling out. It could truncate, skip, or warn; it throws, because an
 unpadded file is exactly the leak the padding exists to prevent, and a warning in a
-1404-file run scrolls past.
+1398-file run scrolls past.
 
 ---
 

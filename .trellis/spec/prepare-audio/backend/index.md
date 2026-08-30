@@ -1,6 +1,6 @@
 # @scg/prepare-audio Guidelines
 
-> `tools/prepare-audio` — a Node CLI that turns `songs/` (234 off-vocal mp3s) into
+> `tools/prepare-audio` — a Node CLI that turns `songs/` (233 off-vocal mp3s) into
 > `assets/` (slices, covers, two manifests). It runs offline; it is not part of the server.
 
 ---
