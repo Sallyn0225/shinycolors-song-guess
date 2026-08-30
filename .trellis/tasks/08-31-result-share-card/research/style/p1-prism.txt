@@ -1,0 +1,14 @@
+A vertical 2:3 shareable "battle report" result card for a Japanese idol song-guessing web game. Flat vector UI mockup, rendered as a crisp product design screenshot — NOT a photo, NO 3D, NO drop-shadow bevels.
+
+STYLE: refined editorial glassmorphism with sharp 45-degree corner cuts. Every panel is a rectangle with one or two corners sliced off diagonally (chamfered, like a beveled crystal), zero rounded corners anywhere. Frosted translucent white panels over a very pale lavender-white background (#f7f6fb). Thin 1px cool-grey hairline dividers. A single thin prism light-bar of magenta-cyan-yellow gradient runs across the card as the only saturated element. Colors: crystal violet #615f90, refraction cyan #5ee2ff, ink #191922, muted. Generous white space, calm, expensive, Swiss-typographic.
+
+LAYOUT top to bottom:
+- Small tracked-out label "RESULT" in violet, with Japanese katakana "リザルト" beside it
+- A player ID line: "@PLAYER_ID"
+- A huge Latin numeral "1420" in violet, with smaller "/ 2000" next to it
+- A horizontal row of 10 thin slanted parallelogram bars, most deep green, two crimson — a per-question result strip
+- A 4-column stat row separated by hairlines: labels "CORRECT 8/10", "RATE 80%", "AVG 3.2s", "CLIP 3s"
+- Three song rows, each a chamfered frosted bar with a small hexagonal album thumbnail, a song title, and a check or cross mark
+- Footer: small "闪耀色彩 猜歌" wordmark
+
+Text must be sharp, legible, correctly spelled, high contrast.

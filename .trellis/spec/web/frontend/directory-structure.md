@@ -68,9 +68,42 @@ know what 送り札 means, it knows `'sendable'`.
 | a shape/interaction primitive with no game knowledge | `ui/` |
 | a rendering of one game object | `components/` |
 | a computation you want a test for | `features/` |
+| canvas/image rendering | split it — see below |
 | a screen, or state that spans one screen | `screens/` |
 | a network call | `api.ts` (REST) or a message in `net/ws.ts` |
 | a token, shape, breakpoint-specific size, or animation | `index.css` |
+
+### Canvas rendering splits across two tiers
+
+`CanvasRenderingContext2D` is DOM, so a `draw(ctx, data)` that knows the game fits no tier:
+`features/` may not touch DOM, `ui/` may not know the game. The share-report ticket resolves
+this by making the layout a value:
+
+```
+features/shareCard.ts    结算数据 → DrawOp[]（纯数据的显示列表）   tested
+ui/ticketPainter.ts      DrawOp[] → ctx                          DOM, zero game knowledge
+```
+
+The payoff is not tier compliance, it is testability. Layout maths — truncation, alignment,
+overflow, per-row caps — is where this kind of feature actually breaks, and as a `DrawOp[]`
+it is an ordinary array assertion in vitest with no canvas and no browser.
+
+Text width is the one thing layout cannot compute alone. Inject it rather than importing it:
+
+```ts
+export type Measure = (text: string, font: string) => number
+export function buildSoloTicket(input: SoloReportInput, m: Measure): DrawOp[]
+```
+
+Production passes `ctx.measureText`; tests pass a fixed-width fake, which is what makes
+"truncates after the 4th character at 50px" a writable assertion.
+
+`features/` may only import `@scg/shared`, so a builder that needs `Summary` (which lives in
+`api.ts`) declares its **own** structurally-compatible input type. Screens then pass the
+`Summary` straight in — TypeScript's structural typing accepts it, and no mapping code or
+cross-tier import is needed.
+
+---
 
 Do not create `hooks/`, `utils/`, or `contexts/`. There is no shared custom hook in this
 codebase and no context provider; screens hold their own state and the three singletons are

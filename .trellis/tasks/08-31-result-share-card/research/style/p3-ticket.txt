@@ -1,0 +1,15 @@
+A vertical 2:3 shareable "battle report" card designed to look like a Japanese live-concert ticket stub / risograph print. Flat graphic design mockup, NOT a photo of paper held in a hand — a straight-on flat artwork.
+
+STYLE: Japanese editorial print design. Warm off-white paper (#f5f2ea) with faint paper grain and a torn perforation line with punch holes down one side. Two-color risograph printing feel with slight misregistration: deep indigo ink and fluorescent pink. Vertical Japanese text column running down the right edge. Dense small type, rule lines, ticket serial numbers, a rubber-stamp style circular seal. Retro, tactile, quiet, collectible. Lots of tiny typographic detail.
+
+LAYOUT:
+- Header rule with "RESULT / リザルト" and a date "2026.08.31"
+- Handwritten-stamp style player line "@PLAYER_ID"
+- A large indigo numeral "1420" set like a ticket seat number, with "/2000"
+- A tick-mark row of 10 small squares, 8 filled indigo, 2 filled pink
+- A tabular stat list with leader dots: "正答 8/10", "正答率 80%", "平均 3.2s"
+- Three song entries as a numbered typographic list with tiny album thumbnails
+- A round red rubber stamp overprinted at an angle reading "合格"
+- Footer: small wordmark "闪耀色彩 猜歌" and a fake barcode
+
+Text must be sharp, legible, correctly spelled.

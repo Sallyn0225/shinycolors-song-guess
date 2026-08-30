@@ -1,0 +1,14 @@
+A vertical 2:3 shareable "battle report" result card for a music/rhythm game. Flat vector UI mockup rendered as a crisp game-HUD screenshot — NOT a photo, NO 3D.
+
+STYLE: arcade rhythm-game result screen. Deep near-black indigo background (#0d0b1a) with faint diagonal scanlines and a subtle grid. Neon glow: electric cyan #5ee2ff, hot magenta #ff88ff, warm yellow #fff352. Aggressive italic slanted panels, chevron and arrow motifs, heavy angular sci-fi typography. Bloom and light-streak accents. High energy, competitive, like a fighting-game or arcade music-game score screen.
+
+LAYOUT top to bottom:
+- Slanted banner reading "RESULT"
+- Player nameplate: "@PLAYER_ID"
+- An enormous glowing rank letter "S" in a chamfered hexagon badge on the left, with a huge score "1420" in glowing cyan on the right
+- A per-question strip: 10 slanted neon bars, most cyan-lit, two dim red
+- A stat block in monospaced neon type: "CORRECT 8/10", "RATE 80%", "AVG 3.2s", "MAX COMBO 6"
+- Three song rows with small square album art and a glowing check or cross
+- Footer wordmark "闪耀色彩 猜歌" in small neon type
+
+Text must be sharp, legible, correctly spelled, high contrast.

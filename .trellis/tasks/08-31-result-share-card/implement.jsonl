@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四层结构总览与 audio/ws/api/features 的禁改约束"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "决定 grade.ts / shareCard.ts / ticketPainter.ts 各自该落在哪一层，以及 features 只许 import @scg/shared"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "ShareDialog 与 GradeBadge 要遵循的形状原语、样式与 a11y 基线"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "clip-path 陷阱、--u 尺寸体系、对比度规则，导出对话框与段位块都会踩到"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "DrawOp 判别联合与 strict 下的写法"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "ShareDialog 里字体/图片加载的 effect 取消与竞态处理"}
+{"file": "DESIGN.md", "reason": "颜色与排版 token 的来源，票根双色由 crystal-violet-deep 与 sub-rose 推导"}
+{"file": ".trellis/tasks/08-31-result-share-card/research/style/style-3-ticket.png", "reason": "选定的风格基底，实现时对照还原"}

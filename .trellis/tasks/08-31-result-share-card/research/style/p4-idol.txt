@@ -1,0 +1,14 @@
+A vertical 2:3 shareable "battle report" result card for a Japanese idol music game. Flat vector UI mockup rendered as a crisp graphic design screenshot — NOT a photo, NO 3D characters, NO human faces.
+
+STYLE: idol live-stage fan card. Luminous gradient background sweeping from soft lavender through sakura pink into aqua (#a2a2c0 → #ffbad6 → #77ffff), with bokeh light particles, lens flares, sparkle stars and thin ribbon streamers. Glossy white cards floating over it with soft glow edges. Playful rounded-but-crisp shapes, holographic iridescent foil accents, heart and star motifs. Bright, celebratory, cute but polished — like a premium gacha result screen or an idol trading card.
+
+LAYOUT top to bottom:
+- A ribbon banner reading "RESULT"
+- A rounded pill nameplate with a small star icon and "@PLAYER_ID"
+- A big score "1420" in glossy gradient type with a sparkle, "/2000" smaller
+- A row of 10 small rounded gem-like tiles, 8 glowing mint-green, 2 dim rose
+- Four little stat bubbles: "8/10", "80%", "3.2s", "NORMAL"
+- Three song cards with rounded album thumbnails, titles, and a heart or a small cross badge
+- A ribbon at the bottom with the wordmark "闪耀色彩 猜歌"
+
+Text must be sharp, legible, correctly spelled, high contrast against its background.

@@ -356,6 +356,71 @@ thumbnail ring — never text on white (`#fff68d` disappears). Give every solid 
 
 ---
 
+## Canvas export: four failures that do not throw
+
+The share-report ticket (`ui/ticketPainter.ts`) hit all four. None produced an error.
+
+### `ctx.font` falls back silently, and lays out at the fallback's widths
+
+Jost and Noto Sans JP arrive from Google Fonts. Set `ctx.font` before they load and the
+canvas quietly uses the default family **and measures with it** — the export is a complete
+image with wrong tracking, wrong truncation points and no console output. Await the faces
+before the first paint:
+
+```ts
+await Promise.all(sizes.map((f) => document.fonts.load(f).catch(() => undefined)))
+```
+
+Already-loaded faces resolve immediately, so this costs nothing on repeat opens. Do not let a
+rejection block the export — a fallback-font image beats a dialog that never finishes.
+
+### A missing image must have a declared fallback, or it leaves a hole
+
+`img.onerror` → skip the op is the right default for cover art, but for anything the layout
+reserves space around, skipping leaves a gap that looks like a rendering bug. Put the
+fallback in the op (`{ src, fallback }`) and resolve it in the loader, keyed by the original
+`src` — the painter should not know that a substitution happened.
+
+### `object-fit` on a `<canvas>` is the wrong tool for preview sizing
+
+Canvas content always fills the element box, so a box with the wrong aspect ratio stretches
+the drawing; whether `object-fit` rescues it depends on the browser treating canvas as a
+replaced element. Size the preview with `height` + `aspect-ratio` so the box is correct by
+construction and there is nothing to stretch.
+
+### Pixel-level noise makes PNG incompressible
+
+A per-pixel paper grain at export resolution measured **3.45 MB**. Generating it at logical
+resolution and upscaling changed nothing (3.45 MB) — interpolation recomputes every pixel to
+a fresh intermediate value, so the entropy survives. Upscaling with
+`imageSmoothingEnabled = false` produces genuine 2×2 blocks and the same image lands at
+**1.46 MB**. Cache the noise layer by size, too: regenerating 1440×2160 on every open is a
+visible stall between the click and the picture.
+
+## Overlays centre their overflow into unreachable space
+
+`ui/Overlay.tsx` is `flex … justify-center`. Content taller than the viewport is split across
+*both* ends, and scrollbars only travel downward — so the top is gone. Measured on the share
+dialog at 390×844: 804px of content in a 776px box, with the bottom button clipped.
+
+Any overlay whose content can grow (a preview image, a long list) must cap and scroll itself
+rather than rely on the overlay:
+
+```tsx
+<span className="cut-shadow-lg" style={{ maxHeight: '92dvh', overflowY: 'auto' }}>
+```
+
+Cap embedded media against `dvh` as well as `--u` (`min(calc(400 * var(--u)), 40dvh)`), so a
+short viewport shrinks the media instead of pushing the actions off-screen.
+
+## A huge `--u` figure will crush its row-mates on narrow screens
+
+`.sc-figure` is 96u. Put anything after it in a non-wrapping flex row and on a phone that
+element gets whatever pixels are left — the settlement grade badge was squeezed to a few tens
+of pixels and its title broke one character per line («资/深/P»). `flex-wrap` plus `w-full
+sm:w-auto` on the trailing element gives it its own line when narrow and restores the desktop
+arrangement. Check any row that pairs a display-scale numeral with text.
+
 ## Tailwind gotcha: co-listed utilities of the same property
 
 `line-clamp-2` works by setting `display: -webkit-box`. Writing

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验证命令与本包的质量红线"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "复查跨层 import：features 是否误引了 api.ts 或 React"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "复查新组件的 a11y 与样式基线"}
+{"file": ".trellis/tasks/08-31-result-share-card/prd.md", "reason": "逐条对验收标准"}
