@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
-- **Last Active**: 2026-08-30
+- **Total Sessions**: 4
+- **Last Active**: 2026-08-31
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~78 | Active |
+| `journal-1.md` | ~103 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-08-31 | 首页与联机大厅的 Hero 布局与标题重构 | `d3230c9`, `59e1e9e`, `5a898d8`, `7efaa52` | `main` |
 | 3 | 2026-08-30 | 移除误入曲库的人声版 リフレクトサイン (2022 Ver.) | `a02a215` | `main` |
 | 2 | 2026-08-30 | 公网联机房间：房间列表与公开/私人模式 | `7fcf118`, `1c4ee34`, `1416c94`, `1561e0b`, `c44c8dc`, `a065894` | `feat/public-room-lobby` |
 | 1 | 2026-08-30 | 前端视觉层全量重构收尾复验 | `430b52b` | `main` |

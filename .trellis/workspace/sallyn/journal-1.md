@@ -76,3 +76,28 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: 首页与联机大厅的 Hero 布局与标题重构
+<!-- trellis-session: v=2 fp=95f1b09b776c119f -->
+
+**Date**: 2026-08-31
+**Task**: 首页与联机大厅的 Hero 布局与标题重构
+**Branch**: `main`
+
+### Summary
+
+用户反馈首页与 1v1 大厅的 Hero「被放在左上角、没有居中」，且标题不说明网站是干什么的。实测发现容器一直是居中的（1440 下 main x=65），偏的是内容：PrismRail 无条件按频谱柱的动态范围定高 112u，而光带线是 bottom: 0，两页都传 spectrum={false}，那 112u 整条变成光带上方 139px 的空白；同时整宽 1220px 的 Hero 行里标题框只占 446px、段落 383px，右侧 774px 无人平衡。修法：PrismRail 高度改为跟着 spectrum 走（mirror 不参与判断，牌场光带必须在几何中线上）；新增 HeroTitle，层级与 SectionTitle 相反——拉丁降为品牌标在上、中文主标题在下且是唯一 h1，两者共用抽出的 TitleBox；首页改 SHINY SONG GUESS / 闪彩猜歌，大厅改 VERSUS / 1v1 空札領地戦；Hero 补曲库数据组（曲数/片段/人声），纵向节奏从等距 mt-5/6/7/8 改为组内紧组间松、两组由光带分开；去掉 Start 的 justify-center（内容 1010px > 视口 900px，是空操作）。顺带修了过期数字：两处写死的「234 首」是 a02a215 移除人声版曲目后没同步的旧值，实际 233 首 / 1398 切片，收敛进 features/library.ts。验证：四档视口 overflowX 0、Hero 中心偏差 0、光带 112→3px、Play 仍 112u 无回归、Tab 顺序与视觉一致、reduced-motion 下 6 个 anim-appear 全部关闭、typecheck 通过、93 tests 通过、impeccable 检测器无发现。两条约定写回 DESIGN.md（The Hero-Title Rule、光带高度跟着频谱走）与 component-guidelines.md（组件为可选子元素预留的空间必须跟那个子元素同条件）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d3230c9` | chore(task): 08-30-hero-layout-and-title 规划产物 |
+| `59e1e9e` | fix(web): 光带在不画频谱时不再预留频谱带的高度 |
+| `5a898d8` | feat(web): 首页与大厅 Hero 改为居中构图，标题说明产品是什么 |
+| `7efaa52` | docs: 把光带高度条件化与 Hero 标题层级两条约定写回 spec |
+
+### Status
+
+[OK] **Completed**
