@@ -46,14 +46,6 @@ AGENTS.local.md
 # 外部 skill 的锁文件，与 .claude/skills/ 配套，跟着 .claude/ 一起不入库
 skills-lock.json
 
-# Impeccable：只保留文本产物与「被批准的那张 comp」（方向契约引用它，要能被审计）。
-# 其余是一轮决策用掉的手牌与浏览器取证截图，共约 17MB，不入库。
-.impeccable/*
-!.impeccable/config.json
-!.impeccable/decision-payload.json
-!.impeccable/mocks/
-.impeccable/mocks/*
-!.impeccable/mocks/decision/
-.impeccable/mocks/decision/*
-!.impeccable/mocks/decision/running-light.png
-!.impeccable/mocks/decision/prompts/
+# Impeccable：决策页产物、效果图、浏览器取证截图与本地配置，全部不入库。
+# 方向契约本身写在 apps/web/index.html 的 body 注释里，随代码走，不依赖这个目录。
+.impeccable/
