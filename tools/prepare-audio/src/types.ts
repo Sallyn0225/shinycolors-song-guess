@@ -6,7 +6,7 @@ export interface ScannedSong {
   title: string
   /** ID3 title 原文 */
   rawTitle: string
-  /** ID3 artist 原文。语义不可靠——96/234 填的是作曲/编曲者 */
+  /** ID3 artist 原文。语义不可靠——96/233 填的是作曲/编曲者 */
   rawArtist: string
   album: string
   /** 源 mp3 绝对路径（可能超过 260 字符） */

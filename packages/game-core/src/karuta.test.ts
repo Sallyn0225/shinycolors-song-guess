@@ -62,8 +62,8 @@ describe('发牌', () => {
     expect(a.karafuda).not.toEqual(c.karafuda)
   })
 
-  // 互斥组：Migratory Echoes 有 9 个版本、リフレクトサイン 有 2 个，
-  // 去人声后几乎无法区分，同场出现会造成「无法靠实力避免的失误」
+  // 互斥组：现役曲库里只有 Migratory Echoes 一组（9 个版本），去人声后几乎无法区分，
+  // 同场出现会造成「无法靠实力避免的失误」。下面用合成数据造两组，是为了覆盖多组共存的情形。
   it('一局内同一易混淆组最多取 1 首', () => {
     const groups: Record<number, string> = {}
     for (let i = 0; i < 9; i++) groups[i] = 'migratory-echoes'

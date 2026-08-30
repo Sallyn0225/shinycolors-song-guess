@@ -97,7 +97,7 @@ function albumScore(a: SongMeta, b: SongMeta): number {
 }
 
 /**
- * 综合相似度。album 对 234 首 100% 可用，是 unit 之外最可靠的分组信号。
+ * 综合相似度。album 对 233 首 100% 可用，是 unit 之外最可靠的分组信号。
  */
 export function similarity(a: SongMeta, b: SongMeta): number {
   return 0.35 * unitScore(a, b) + 0.2 * albumScore(a, b) + 0.45 * titleScore(a, b)
@@ -108,7 +108,7 @@ export interface Neighbour {
   sim: number
 }
 
-/** 为每首歌预计算最像的 N 个邻居（234×234，毫秒级），运行时 O(1) 取用 */
+/** 为每首歌预计算最像的 N 个邻居（233×233，毫秒级），运行时 O(1) 取用 */
 export function computeNeighbours(songs: SongMeta[], topN = 24): Map<string, Neighbour[]> {
   const out = new Map<string, Neighbour[]>()
   for (const a of songs) {

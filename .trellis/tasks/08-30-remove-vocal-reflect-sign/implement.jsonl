@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/prepare-audio/backend/index.md", "reason": "pipeline 各 stage 的职责与模块地图；本任务要重跑 scan→slice→covers→manifest，并且这份文档第 3 行的『234 off-vocal mp3s』就是待改目标之一"}
+{"file": ".trellis/spec/prepare-audio/backend/pipeline-guidelines.md", "reason": "StageCache 的内容寻址语义。约束 C2 要求重建必须命中缓存、不得重编码其余 233 首；文档第 4/24/86/98/99 行的 234 也需同步"}
+{"file": ".trellis/spec/prepare-audio/backend/asset-secrecy.md", "reason": "解释为何残留切片/封面是 oracle、selfCheck 为何会 fail build。第 37 行的 234 需改，且 R2『不留残留』的理由源于此"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "第 17 行明确写了 app.test.ts 断言 /api/health 报告 234 首；测试断言与文档要一起改成 233"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "第 26/61 行以 234 首为前提论证时长与 Last-Modified 的旁路风险，曲目数变化后表述需同步"}
+{"file": ".trellis/spec/game-core/backend/index.md", "reason": "deal.ts / karuta.test.ts 属于该包；confusableGroup 约束的背景在此，改注释前需确认没有其他地方依赖『リフレクトサイン 有 2 个版本』这一事实"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务横跨 prepare-audio 产物 → server 断言 → game-core 注释三层，需按跨层检查清单确认无遗漏"}

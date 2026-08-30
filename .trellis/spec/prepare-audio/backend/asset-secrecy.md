@@ -34,7 +34,7 @@ From `slice.ts#encodeSlice`, with the reason for each:
 - **`-vbr off`** (hard CBR) — makes every slice essentially the same byte count. The cost is
   slightly worse quality on complex passages, which is why the bitrate is 80k rather than
   64k. Without it, size alone identifies the track.
-- **`-map 0:a:0`** — all 234 mp3s embed an mjpeg cover stream; without an explicit audio map
+- **`-map 0:a:0`** — all 233 mp3s embed an mjpeg cover stream; without an explicit audio map
   the encode errors out. Not secrecy, but equally non-optional.
 - **`-ss` before `-i`** with `-t` (not `-to`) — input seek, >2× faster, and still sample
   accurate because `-accurate_seek` is on by default.
@@ -44,7 +44,7 @@ From `slice.ts#encodeSlice`, with the reason for each:
 
 The AAC fallback (`encodeSliceAac`) mirrors all of it, and adds `-movflags +faststart`. It
 needs `padAac()` afterwards because ffmpeg's native aac encoder has no true CBR: measured
-sizes drift between 184–198 KB, which across 1404 slices is very nearly a unique
+sizes drift between 184–198 KB, which across 1398 slices is very nearly a unique
 fingerprint. `padAac` appends an MP4 `free` box — explicitly skippable per spec, harmless to
 every decoder — up to `SLICE.aacPadToBytes`. If a file exceeds that constant, `padAac`
 **throws** rather than shipping an uneven file; raise the constant and rerun.
@@ -56,7 +56,7 @@ every decoder — up to `SLICE.aacPadToBytes`. If a file exceeds that constant, 
 `newSliceId()` produces 20 Crockford-base32 characters (~100 bits) from `randomBytes`.
 
 The rejected alternative was `HMAC(secret, songId:index)`. Random wins on two counts: there
-is no key to leak (a leaked key would let an attacker recompute all 1404 ids offline), and
+is no key to leak (a leaked key would let an attacker recompute all 1398 ids offline), and
 **rotation is a rename**. `--rotate-ids` regenerates ids, renames the files and rewrites the
 manifest in seconds without re-encoding, which is what makes "rotate periodically to break
 any table an attacker has accumulated" actually practical.
@@ -90,6 +90,40 @@ automatically, but the substring scan is what catches a field nested somewhere u
 from reality when someone changes `--with-aac-fallback` without re-running `slice`. The
 server uses the result to decide whether to advertise `fallbackUrl`; advertising one that
 does not exist gives old Safari a 404 instead of audio, which is worse than no fallback.
+
+---
+
+## Removing a song: the pipeline never deletes, so orphans are on you
+
+`scan.ts`, `slice.ts`, `covers.ts` and `manifest.ts` only ever **write**. There is no orphan
+reaping anywhere. Delete a directory from `songs/`, re-run `pnpm assets all`, and the old
+song's 6 slices, 2 webps and 2 cache entries stay on disk — invisible to the manifest but
+still served by `fastifyStatic`, which is exactly the leftover-file oracle this document
+exists to prevent.
+
+The trap is the ordering. Slice filenames are random ids; **the only record of which slice
+belongs to which song is `manifest.private.json#sliceIndex`.** Re-run the manifest stage
+first and that mapping is overwritten — the orphans become unattributable, findable only by
+diffing the whole `slices/` tree against the new manifest.
+
+So the order is fixed:
+
+1. read the doomed sliceIds out of the **current** `manifest.private.json` before touching
+   anything;
+2. delete the `songs/` directory;
+3. delete those slices, `cover/<songId>.webp`, `thumb/<songId>.webp`, and
+   `.cache/{analysis,slices}/<songId>.json`;
+4. only then `pnpm assets all`.
+
+Verify with a set difference — every `.opus` on disk must appear in `sliceIndex` and vice
+versa. Expect the analyze/slice stages to report 100% cache hits: a rebuild that re-encodes
+means a cache key was disturbed, and re-encoding also churns every sliceId, breaking URLs
+that clients have cached.
+
+**Never write that mapping into a tracked file.** `.gitignore` excludes `assets/` but
+*includes* `.trellis/tasks/`, so a scratch JSON dropped in a task directory to hold "the
+sliceIds I'm about to delete" will happily carry the full 1398-entry answer table into the
+repository. Keep such scratch files outside version control and delete them when done.
 
 ---
 

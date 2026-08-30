@@ -7,8 +7,8 @@ export class DealError extends Error {}
  * 从曲库抽出本局用的曲子。
  *
  * **易混淆组约束**：同一个 confusableGroup 内最多取 1 首。
- * `Migratory Echoes` 有 9 个版本、`リフレクトサイン` 有 2 个，去人声后几乎无法区分——
- * 同时出现在牌场上就会造成「无法靠实力避免的失误」，那是缺陷不是难度。
+ * `Migratory Echoes` 有 9 个版本，去人声后几乎无法区分——同时出现在牌场上就会造成
+ * 「无法靠实力避免的失误」，那是缺陷不是难度。
  */
 export function selectPool(songs: readonly SongRef[], count: number, seed: string): SongRef[] {
   const rng = createRng(`${seed}:pool`)
