@@ -263,8 +263,17 @@ export function PrismRail({
   /*
     频谱带的高度就是它的动态范围上限。原来 top 只有 46u（≈49px），
     而 comp 的频谱带约 140px —— 峰再高也长不出来，只能摊成栅栏。
+
+    但这个高度只在**真的画频谱**时才有意义。光带线本身是 bottom: 0，
+    所以 spectrum={false} 的场合（首页、大厅）这 112u 全部变成光带上方的空白：
+    实测 1440 宽下段落底边 y=231、光带 y≈370，中间 139px 一无所有，
+    首页 Hero 因此看着像浮在左上角。没有频谱就只占光带自己的 3px。
+
+    mirror 不参与这个判断：牌场的光带必须落在场区几何中线上，
+    那条线的全部意义就是「自陣与敵陣之间的界线」（见 index.css 的 .sc-panelrow）。
   */
-  const span = mode === 'mirror' ? 'calc(120 * var(--u))' : 'calc(112 * var(--u))'
+  const span =
+    mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? 'calc(112 * var(--u))' : '3px'
 
   return (
     <div
