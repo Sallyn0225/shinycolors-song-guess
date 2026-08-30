@@ -58,7 +58,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   return (
     <main
       className="mx-auto w-full px-6 py-14 sm:px-10"
-      style={{ maxWidth: 'calc(1300 * var(--u))' }}
+      style={{ maxWidth: 'var(--page-main)' }}
     >
       <header className="anim-appear">
         <SectionTitle kana="リザルト" latin={`Result · ${preset.label}`} size="md" />

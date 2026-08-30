@@ -77,12 +77,18 @@ measured at 139px on the Start hero, which is what made the hero read as pinned 
 top-left corner. The height is now conditional:
 
 ```ts
-const span =
-  mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? 'calc(112 * var(--u))' : '3px'
+const span = mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? undefined : '3px'
 ```
 
 `mirror` stays out of the condition: the board's rail must sit on the field's geometric
 midline, and its height is the precondition for being that line.
+
+The spectrum branch resolves to `undefined` and the element takes the `.sc-rail-spectrum`
+class instead (`88u` desktop / `112u` narrow). The component still owns *which* branch
+applies — that is the semantic decision — but the branch's number belongs in CSS because it
+is the largest non-content block in the play screen's vertical budget and has to differ per
+breakpoint. Keep the trichotomy readable in the component; keep breakpoint-dependent
+magnitudes out of it.
 
 The general rule: **when a component reserves space for an optional child, the reservation
 takes the same condition as the child.** An unconditional reservation is invisible in the

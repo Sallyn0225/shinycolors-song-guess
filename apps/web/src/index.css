@@ -16,9 +16,24 @@
 /* ── 设计单位 ─────────────────────────────────────────
    官网全站不用 px 只用 vw，单一断点 767px，PC 稿宽 1440 / SP 稿宽 375。
    直接照搬会让 2560 宽的屏上一切巨大化，所以钳制住两端。
-   1440 处 --u 恰为 1px，即官网的 1:1 还原点。                     */
+   1440 处 --u 恰为 1px，即官网的 1:1 还原点。
+
+   桌面那一条还要**同时受视口高约束**。只看宽的话（原来是 clamp(0.78px, vw/1440, 1.16px)）：
+
+     · 稿是 1440×900，宽高比 16:10。一块 1920×1080 的屏视口只有 1920×990 ——
+       宽多出 33% 而高只多出 10%，按宽缩放取到 1.16 的上钳位，整页放大 16%，
+       实测单人猜歌页 doc 1150 > vp 990，怎么都得滚。屏越宽越扁，溢出越狠。
+     · 上钳位 1.16 本身也说不通：1440 是 1:1 还原点，允许超过 1 等于允许版面
+       比它自己的参考稿还大。
+
+   min(vw/1440, vh/900) 就是「把稿等比装进当前视口」，两个方向都不会溢出；
+   上钳位收回 1。低钳位 0.78 保留 —— 击穿不了可读性，因为最小几级字号和
+   触摸热区都有真 px 地板（见下面的 @theme 与 .tap-line）。
+
+   窄屏那条**不加 vh 项**：移动端浏览器地址栏收起会改变 vh，
+   字号绑上去会在滚动时抖。                                       */
 :root {
-  --u: clamp(0.78px, 0.0694444444vw, 1.16px);
+  --u: clamp(0.78px, min(0.0694444444vw, 0.1111111111vh), 1px);
 }
 @media (max-width: 767px) {
   :root {
@@ -31,14 +46,19 @@
      p-4 = calc(var(--spacing) * 4) = 16 设计 px。 */
   --spacing: calc(4 * var(--u));
 
-  /* 最小的两级带**真 px 地板**，不跟 --u 缩到底。
+  /* 最小的几级带**真 px 地板**，不跟 --u 缩到底。
      官网稿上片假名小标是 10px、注释是 11px，照搬会在 --u 触到低钳位时掉到
      7.8px / 8.6px —— 那不是风格，是读不出来。11px 是功能性文字的下限，
-     12px 是正文的下限；1584 以上 --u > 1.1，两级重新跟着视口走。 */
+     12px 是正文的下限。
+
+     sm 与 base 原本没有地板，是个漏网：--u 到低钳位 0.78 时 sm 掉到 10.1px、
+     base 掉到 11.7px，两个都在自己该守的线以下 —— 而 sm 承的是演唱者、说明、
+     难度介绍这些**正文**。桌面单位改成同时看视口高之后低钳位常态化了，
+     这一条必须补上，否则「收紧密度」会变成「把正文缩到读不出来」。 */
   --text-2xs: max(11px, calc(10 * var(--u)));
   --text-xs: max(12px, calc(11 * var(--u)));
-  --text-sm: calc(13 * var(--u));
-  --text-base: calc(15 * var(--u));
+  --text-sm: max(12px, calc(13 * var(--u)));
+  --text-base: max(13px, calc(15 * var(--u)));
   --text-lg: calc(18 * var(--u));
   --text-xl: calc(22 * var(--u));
   --text-2xl: calc(28 * var(--u));
@@ -122,6 +142,20 @@
   --cut-sm: calc(12 * var(--u));
   --cut-md: calc(20 * var(--u));
   --cut-lg: calc(40 * var(--u));
+
+  /*
+    版心。原来是四个字面量散在六个 screen 的内联样式里，其中三处是 1300u ——
+    1440 宽下内容占 90.3%，两侧各只剩 70px（实测 gutter 4.9%），一屏文字排到边，
+    眼睛没有落脚的地方。收到 1120u：1920 下两侧各 400px（20.8%），
+    1440 下各 216px（15%）。
+
+    再窄就不行了 —— 单人猜歌那四条选项条是「整宽横条」的形状语汇，
+    1366 档再收会短到失去这个语义。
+  */
+  --page-main: calc(1120 * var(--u)); /* 首页 / 单人猜歌 / 结算：多列信息 */
+  --page-board: calc(1000 * var(--u)); /* 牌场：12+12 张牌的网格 */
+  --page-narrow: calc(760 * var(--u)); /* 大厅 / 房间：单列表单 */
+  --page-card: calc(520 * var(--u)); /* 牌场结算卡 */
 
   color-scheme: light;
   /* 浏览器自带的那些表面也归设计系统管 */
@@ -405,8 +439,9 @@
   .sc-title-lg {
     font-size: calc(36 * var(--u));
   }
+  /* 选项条上的曲名。桌面从 32u 收到 28u —— 见下面 .sc-bar 的定高说明 */
   .sc-song {
-    font-size: calc(32 * var(--u));
+    font-size: calc(28 * var(--u));
   }
   .sc-figure {
     font-size: calc(96 * var(--u));
@@ -421,10 +456,18 @@
     font-size: min(calc(96 * var(--u)), 12.5vw);
   }
 
-  /* 限时题里，四个选项必须全部在一屏内 —— 看不见的选项等于不能选。
-     窄屏把条高、条间距和揭晓栏一起压下来，保证 4 条不越过折线。 */
+  /*
+    限时题里，四个选项必须全部在一屏内 —— 看不见的选项等于不能选。
+    窄屏把条高、条间距和揭晓栏一起压下来，保证 4 条不越过折线。
+
+    桌面这一档是**定高**，不是 min-height。原因是原来的 112u 钳位既掩盖问题
+    又没掩盖：条内文本块 = 曲名 32u × lh 1.22 × 最多两行（line-clamp-2）
+    + mt-0.5 + 演唱者 ≈ 102u，一行曲名的条停在钳位 112u、两行的被内容顶到 102u
+    —— 高度取决于曲名长短，所以「有的时候」翻到下一题页面就长短不一。
+    曲名收到 28u 后两行 ≈ 92u，定高 96u 把它整个包住，四条恒等高、逐题也恒等高。
+  */
   .sc-bar {
-    min-height: max(60px, calc(112 * var(--u)));
+    height: max(60px, calc(96 * var(--u)));
   }
   /* 标题的角标框。窄屏收窄左右留白 —— 不收的话「LISTENING + 题号」这一行会横向溢出 */
   .sc-titlebox {
@@ -482,6 +525,26 @@
     padding-top: calc(2 * var(--spacing));
   }
 
+  /*
+    桌面下把整屏内容垂直居中。收紧密度之后首页与单人猜歌页在四档常见视口里都装得下，
+    再顶着上边排就变成「上面挤、下面空一大片」的偏构图。
+
+    关键是 `safe` —— 普通的 `center` 在内容比容器高时会把溢出**平均分到两端**，
+    顶上那截跑到视口外且滚不回来（滚动条只能往下走），页面头部就此永远够不着。
+    `safe center` 在这种情况下自动退回 flex-start。这也正是原来 Start 注释里
+    「不用 justify-center」要躲的那个坑，现在有了正确的写法。
+
+    窄屏显式退回顶端对齐：那里内容本来就比视口高，居中没有意义。
+  */
+  .sc-vfit {
+    justify-content: safe center;
+  }
+  @media (max-width: 767px) {
+    .sc-vfit {
+      justify-content: flex-start;
+    }
+  }
+
   .sc-tile-title {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -489,10 +552,26 @@
     overflow: hidden;
   }
   .sc-options {
-    gap: calc(20 * var(--u));
+    gap: calc(16 * var(--u));
   }
+  /*
+    揭晓槽也是定高。它承的三列里最高的一列（「正解」26u + 「+N 速度 +M」）
+    实测正好压在原来 58u 的 min-height 边上 —— 差一点就撑高整页，
+    而曲名一折行必然撑高（窄屏实测 38u 的槽被顶到 88px）。
+    定高 64u 加上曲名单行化（Play.tsx 的 truncate），answering ↔ revealed
+    的页面高度差恒为 0。窄屏保持 min-height，那里这一块本来就要能换行。
+  */
   .sc-revealslot {
-    min-height: calc(58 * var(--u));
+    height: calc(64 * var(--u));
+  }
+  /*
+    光带的频谱带高度。112u 是频谱的动态范围上限（见 PrismRail 的注释），
+    桌面收到 88u —— 1440 档仍有 79px 峰高，不会「摊成栅栏」。
+    组件里那个 mirror / spectrum / 3px 的三分支语义保留，只是把 spectrum
+    那一支的高度下放到 CSS，好按断点分档。
+  */
+  .sc-rail-spectrum {
+    height: calc(88 * var(--u));
   }
 
   @media (max-width: 767px) {
@@ -517,14 +596,21 @@
     .sc-roomcode {
       font-size: min(calc(68 * var(--u)), 12.5vw);
     }
+    /* height 要显式写回 auto —— 桌面那两条改成定高之后，
+       不覆盖的话 min-height 根本不起作用，窄屏的条会被钉死在桌面的高度上 */
     .sc-bar {
+      height: auto;
       min-height: max(56px, calc(74 * var(--u)));
     }
     .sc-options {
       gap: calc(11 * var(--u));
     }
     .sc-revealslot {
+      height: auto;
       min-height: calc(38 * var(--u));
+    }
+    .sc-rail-spectrum {
+      height: calc(112 * var(--u));
     }
     /* 窄屏牌面改 3 列 4 行，牌宽从 ~81px 涨到 ~114px，
        曲名才放得下 —— 4 列时 12 首里有 6~7 首会被截成「…」 */

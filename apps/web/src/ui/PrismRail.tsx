@@ -271,15 +271,18 @@ export function PrismRail({
 
     mirror 不参与这个判断：牌场的光带必须落在场区几何中线上，
     那条线的全部意义就是「自陣与敵陣之间的界线」（见 index.css 的 .sc-panelrow）。
+
+    spectrum 那一支的**具体高度**交给 .sc-rail-spectrum（桌面 88u / 窄屏 112u）——
+    它是全页纵向预算里最大的一块非内容区，要能按断点分档；
+    这里只决定「用哪一支」，三分支的语义本身不变。
   */
-  const span =
-    mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? 'calc(112 * var(--u))' : '3px'
+  const span = mode === 'mirror' ? 'calc(120 * var(--u))' : spectrum ? undefined : '3px'
 
   return (
     <div
       ref={rootRef}
-      className={`relative w-full ${className}`.trim()}
-      style={{ height: span }}
+      className={['relative w-full', span ? '' : 'sc-rail-spectrum', className].filter(Boolean).join(' ')}
+      style={span ? { height: span } : undefined}
       {...(getRemaining
         ? {
             role: 'progressbar' as const,

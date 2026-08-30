@@ -55,12 +55,12 @@ function EntryBar({
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className="flex w-full flex-col items-start gap-3 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:pr-8"
+          className="flex w-full flex-col items-start gap-3 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:py-2 sm:pr-8"
           style={{
             clipPath: BAR_CLIP,
             background: solid ? 'var(--grad-brand-ink)' : 'var(--color-surface-lit)',
             backdropFilter: solid ? undefined : 'blur(calc(8 * var(--u)))',
-            minHeight: 'max(72px, calc(118 * var(--u)))',
+            minHeight: 'max(72px, calc(100 * var(--u)))',
             paddingLeft: 'calc(60 * var(--u))',
             color: solid ? '#fff' : undefined,
           }}
@@ -76,12 +76,12 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
   return (
     <main
       /*
-        不用 justify-center：内容比视口高（1440×900 实测 doc 1010 > vp 900），
-        居中在这里是空操作，留着只会让人以为纵向已经排过。
-        纵向节奏交给 py-14 与下面的组间距。
+        纵向节奏交给 py 与下面的组间距，桌面各降一档（见 sm: 前缀）。
+        收紧之后桌面四档视口都装得下，所以 .sc-vfit 把内容垂直居中；
+        窄屏内容仍比视口高（375×667 实测 doc 1175 > vp 667），那里它退回顶端对齐。
       */
-      className="mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10"
-      style={{ maxWidth: 'calc(1300 * var(--u))' }}
+      className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10 sm:py-8"
+      style={{ maxWidth: 'var(--page-main)' }}
     >
       {/*
         组一「这是什么」。标题 + 说明 + 曲库数据是同一件事，靠得紧；
@@ -91,7 +91,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
       <header className="anim-appear text-center">
         <HeroTitle brand="Shiny Song Guess" title="闪彩猜歌" />
         <p
-          className="jp-wrap mx-auto mt-6 text-base leading-relaxed text-ink-sub"
+          className="jp-wrap mx-auto mt-6 text-base leading-relaxed text-ink-sub sm:mt-4"
           style={{ maxWidth: '46ch' }}
         >
           听一段没有人声的伴奏，认出它是哪首歌。
@@ -99,21 +99,21 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         {/* 三个聚合量。「人声 0」是这一组里唯一的卖点 ——
             它把「难度来源从记歌词变成记编曲」压成了一个数字。
             都是总量，不含单曲时长或切片编号，建立不了对照表。 */}
-        <dl className="mt-7 flex justify-center gap-10 sm:gap-16">
+        <dl className="mt-7 flex justify-center gap-10 sm:mt-5 sm:gap-16">
           <Stat label="曲数" value={LIBRARY.songs} align="center" />
           <Stat label="片段" value={LIBRARY.clips} align="center" />
           <Stat label="人声" value={0} align="center" />
         </dl>
       </header>
 
-      <div className="anim-appear mt-14" style={{ animationDelay: '80ms' }}>
+      <div className="anim-appear mt-14 sm:mt-7" style={{ animationDelay: '80ms' }}>
         <PrismRail mode="idle" spectrum={false} />
       </div>
 
       {/* 组二「怎么开始」。这一页的动作集只有这三条 */}
       <section
-        className="mt-12 flex flex-col"
-        style={{ gap: 'calc(22 * var(--u))' }}
+        className="mt-12 flex flex-col sm:mt-7"
+        style={{ gap: 'calc(18 * var(--u))' }}
         aria-label="选择难度"
       >
         {DIFFICULTIES.map((d, i) => {
@@ -190,9 +190,9 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         位置在三个入口之后是有意的：这一页的动作集只有那三条，
         音量是**设定**不是入口，不该长成第四条横条去跟它们抢。
       */}
-      <div className="anim-appear mt-14" style={{ animationDelay: '340ms' }}>
+      <div className="anim-appear mt-14 sm:mt-7" style={{ animationDelay: '340ms' }}>
         <VolumeControl />
-        <p className="jp-wrap mt-5 text-xs text-ink-faint" style={{ maxWidth: '60ch' }}>
+        <p className="jp-wrap mt-5 text-xs text-ink-faint sm:mt-3" style={{ maxWidth: '60ch' }}>
           点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2
           秒延迟。松开音量滑块会试听一声，设定记在这台设备上。
         </p>

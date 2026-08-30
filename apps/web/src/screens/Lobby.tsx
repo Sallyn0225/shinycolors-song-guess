@@ -213,7 +213,7 @@ export function Lobby({ onBack }: Props) {
   return (
     <main
       className="mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10"
-      style={{ maxWidth: 'calc(760 * var(--u))' }}
+      style={{ maxWidth: 'var(--page-narrow)' }}
     >
       {/* 组一「这是什么」。与首页同构：标题居中，说明贴着它，光带作为与操作区的界线 */}
       <header className="anim-appear text-center">

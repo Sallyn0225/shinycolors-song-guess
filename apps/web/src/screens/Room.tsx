@@ -58,7 +58,7 @@ export function Room({ initialRoom, onLeave }: Props) {
   return (
     <main
       className="mx-auto flex min-h-dvh w-full flex-col justify-center px-6 py-14 sm:px-10"
-      style={{ maxWidth: 'calc(760 * var(--u))' }}
+      style={{ maxWidth: 'var(--page-narrow)' }}
     >
       <SectionTitle kana="ルーム" latin="Room" size="md" className="anim-appear" />
 

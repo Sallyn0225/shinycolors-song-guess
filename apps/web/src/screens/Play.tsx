@@ -215,8 +215,8 @@ export function Play({ session, onFinish, onQuit }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full flex-col px-5 py-4 sm:px-10 sm:py-8"
-          style={{ maxWidth: 'calc(1300 * var(--u))' }}>
+    <main className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-5 py-4 sm:px-10 sm:py-5"
+          style={{ maxWidth: 'var(--page-main)' }}>
       {/* ── 头 ────────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <SectionTitle
@@ -282,7 +282,13 @@ export function Play({ session, onFinish, onQuit }: Props) {
               />
             </span>
             <span className="anim-appear min-w-0" style={{ animationDelay: '60ms' }}>
-              <span className="jp-wrap block font-bold text-ink" style={{ fontSize: 'calc(22 * var(--u))' }}>
+              {/* truncate 而不是让它换行：这一行折行就把揭晓槽顶高、整页跟着长一截。
+                  曲名同时还印在下面那条正确答案的选项条上（line-clamp-2，两行），
+                  所以截在这里不丢信息 */}
+              <span
+                className="jp-wrap block truncate font-bold text-ink"
+                style={{ fontSize: 'calc(22 * var(--u))' }}
+              >
                 {result.song.title}
               </span>
               <span className="jp-wrap block text-sm text-ink-sub">{result.song.artist}</span>

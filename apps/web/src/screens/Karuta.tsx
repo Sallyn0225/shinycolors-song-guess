@@ -788,7 +788,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     // 两个领地尽量拉开 —— 中间那段距离就是歌牌的「场」
     <main
       className="mx-auto flex min-h-dvh w-full flex-col justify-between px-3 py-4 sm:px-6 sm:py-6"
-      style={{ maxWidth: 'calc(1000 * var(--u))' }}
+      style={{ maxWidth: 'var(--page-board)' }}
     >
       {/* 遮罩打开时整块牌场 inert，所以它必须自成一层、且遮罩在它之外 */}
       <div ref={boardRef} className="flex flex-1 flex-col justify-between">
@@ -942,7 +942,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           className="fixed inset-0 z-40 flex items-center justify-center px-5"
           style={{ background: 'rgb(247 246 251 / .9)', backdropFilter: 'blur(calc(6 * var(--u)))' }}
         >
-          <span className="cut-shadow-lg anim-appear w-full" style={{ maxWidth: 'calc(520 * var(--u))' }}>
+          <span className="cut-shadow-lg anim-appear w-full" style={{ maxWidth: 'var(--page-card)' }}>
             {/*
               cut-card 的 --cut-lg（≈43px）大于 p-8（≈34px），左上角切除区会吃掉
               紧贴顶端的内容 —— OverlayMark 与胜负字正好落在那里。多给一截上内边距。

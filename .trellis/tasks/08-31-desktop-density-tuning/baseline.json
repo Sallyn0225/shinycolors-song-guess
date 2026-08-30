@@ -1,0 +1,741 @@
+{
+  "base": "http://localhost:5173",
+  "noFonts": false,
+  "at": "2026-08-30T16:20:46.993Z",
+  "results": [
+    {
+      "viewport": "1366x678",
+      "screen": "1366x768",
+      "screenName": "Start",
+      "scrollHeight": 975,
+      "innerHeight": 678,
+      "overflowY": 297,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "overflowX": 0,
+      "u": 0.949,
+      "main": {
+        "left": 66,
+        "width": 1233,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1366x678",
+      "screen": "1366x768",
+      "screenName": "Play/answering",
+      "scrollHeight": 930,
+      "innerHeight": 678,
+      "overflowY": 252,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "overflowX": 0,
+      "u": 0.949,
+      "main": {
+        "left": 66,
+        "width": 1233,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        106.23,
+        106.23,
+        106.23,
+        106.23
+      ],
+      "revealSlot": 55.02,
+      "rail": 106.23,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1366x678",
+      "screen": "1366x768",
+      "screenName": "Play/revealed",
+      "correct": false,
+      "scrollHeight": 930,
+      "innerHeight": 678,
+      "overflowY": 252,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "overflowX": 0,
+      "u": 0.949,
+      "main": {
+        "left": 66,
+        "width": 1233,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        106.23,
+        106.23,
+        106.23,
+        106.23
+      ],
+      "revealSlot": 55.02,
+      "rail": 106.23,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1366x678",
+      "screen": "1366x768",
+      "screenName": "Play/revealed-hit",
+      "correct": true,
+      "scrollHeight": 930,
+      "innerHeight": 678,
+      "overflowY": 252,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "overflowX": 0,
+      "u": 0.949,
+      "main": {
+        "left": 66,
+        "width": 1233,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        106.23,
+        106.23,
+        106.23,
+        106.23
+      ],
+      "revealSlot": 55.02,
+      "rail": 106.23,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1366x678",
+      "screen": "1366x768",
+      "screenName": "Lobby",
+      "scrollHeight": 966,
+      "innerHeight": 678,
+      "overflowY": 288,
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "overflowX": 0,
+      "u": 0.949,
+      "main": {
+        "left": 323,
+        "width": 721,
+        "gutterRatio": 0.2361
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1440x810",
+      "screen": "1440x900",
+      "screenName": "Start",
+      "scrollHeight": 1021,
+      "innerHeight": 810,
+      "overflowY": 211,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 70,
+        "width": 1300,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1440x810",
+      "screen": "1440x900",
+      "screenName": "Play/answering",
+      "scrollHeight": 980,
+      "innerHeight": 810,
+      "overflowY": 170,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 70,
+        "width": 1300,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        112,
+        112,
+        112,
+        112
+      ],
+      "revealSlot": 58,
+      "rail": 112,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1440x810",
+      "screen": "1440x900",
+      "screenName": "Play/revealed",
+      "correct": false,
+      "scrollHeight": 980,
+      "innerHeight": 810,
+      "overflowY": 170,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 70,
+        "width": 1300,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        112,
+        112,
+        112,
+        112
+      ],
+      "revealSlot": 58,
+      "rail": 112,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1440x810",
+      "screen": "1440x900",
+      "screenName": "Play/revealed-hit",
+      "correct": true,
+      "scrollHeight": 980,
+      "innerHeight": 810,
+      "overflowY": 170,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 70,
+        "width": 1300,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        112,
+        112,
+        112,
+        112
+      ],
+      "revealSlot": 58,
+      "rail": 112,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1440x810",
+      "screen": "1440x900",
+      "screenName": "Lobby",
+      "scrollHeight": 1009,
+      "innerHeight": 810,
+      "overflowY": 199,
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 340,
+        "width": 760,
+        "gutterRatio": 0.2361
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1536x774",
+      "screen": "1536x864",
+      "screenName": "Start",
+      "scrollHeight": 1080,
+      "innerHeight": 774,
+      "overflowY": 306,
+      "scrollWidth": 1536,
+      "innerWidth": 1536,
+      "overflowX": 0,
+      "u": 1.067,
+      "main": {
+        "left": 75,
+        "width": 1387,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1536x774",
+      "screen": "1536x864",
+      "screenName": "Play/answering",
+      "scrollHeight": 1044,
+      "innerHeight": 774,
+      "overflowY": 270,
+      "scrollWidth": 1536,
+      "innerWidth": 1536,
+      "overflowX": 0,
+      "u": 1.067,
+      "main": {
+        "left": 75,
+        "width": 1387,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        119.45,
+        119.45,
+        119.45,
+        119.45
+      ],
+      "revealSlot": 61.86,
+      "rail": 119.45,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1536x774",
+      "screen": "1536x864",
+      "screenName": "Play/revealed",
+      "correct": true,
+      "scrollHeight": 1044,
+      "innerHeight": 774,
+      "overflowY": 270,
+      "scrollWidth": 1536,
+      "innerWidth": 1536,
+      "overflowX": 0,
+      "u": 1.067,
+      "main": {
+        "left": 75,
+        "width": 1387,
+        "gutterRatio": 0.0486
+      },
+      "barHeights": [
+        119.45,
+        119.45,
+        119.45,
+        119.45
+      ],
+      "revealSlot": 61.86,
+      "rail": 119.45,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1536x774",
+      "screen": "1536x864",
+      "screenName": "Lobby",
+      "scrollHeight": 1066,
+      "innerHeight": 774,
+      "overflowY": 292,
+      "scrollWidth": 1536,
+      "innerWidth": 1536,
+      "overflowX": 0,
+      "u": 1.067,
+      "main": {
+        "left": 363,
+        "width": 811,
+        "gutterRatio": 0.2361
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "1920x990",
+      "screen": "1920x1080",
+      "screenName": "Start",
+      "scrollHeight": 1168,
+      "innerHeight": 990,
+      "overflowY": 178,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "overflowX": 0,
+      "u": 1.16,
+      "main": {
+        "left": 206,
+        "width": 1508,
+        "gutterRatio": 0.1073
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11.6,
+      "textXs": 12.76
+    },
+    {
+      "viewport": "1920x990",
+      "screen": "1920x1080",
+      "screenName": "Play/answering",
+      "scrollHeight": 1135,
+      "innerHeight": 990,
+      "overflowY": 145,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "overflowX": 0,
+      "u": 1.16,
+      "main": {
+        "left": 206,
+        "width": 1508,
+        "gutterRatio": 0.1073
+      },
+      "barHeights": [
+        129.91,
+        129.91,
+        129.91,
+        129.91
+      ],
+      "revealSlot": 67.27,
+      "rail": 129.91,
+      "minTap": 44,
+      "text2xs": 11.6,
+      "textXs": 12.76
+    },
+    {
+      "viewport": "1920x990",
+      "screen": "1920x1080",
+      "screenName": "Play/revealed",
+      "correct": false,
+      "scrollHeight": 1135,
+      "innerHeight": 990,
+      "overflowY": 145,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "overflowX": 0,
+      "u": 1.16,
+      "main": {
+        "left": 206,
+        "width": 1508,
+        "gutterRatio": 0.1073
+      },
+      "barHeights": [
+        129.91,
+        129.91,
+        129.91,
+        129.91
+      ],
+      "revealSlot": 67.27,
+      "rail": 129.91,
+      "minTap": 44,
+      "text2xs": 11.6,
+      "textXs": 12.76
+    },
+    {
+      "viewport": "1920x990",
+      "screen": "1920x1080",
+      "screenName": "Play/revealed-hit",
+      "correct": true,
+      "scrollHeight": 1135,
+      "innerHeight": 990,
+      "overflowY": 145,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "overflowX": 0,
+      "u": 1.16,
+      "main": {
+        "left": 206,
+        "width": 1508,
+        "gutterRatio": 0.1073
+      },
+      "barHeights": [
+        129.91,
+        129.91,
+        129.91,
+        129.91
+      ],
+      "revealSlot": 67.27,
+      "rail": 129.91,
+      "minTap": 44,
+      "text2xs": 11.6,
+      "textXs": 12.76
+    },
+    {
+      "viewport": "1920x990",
+      "screen": "1920x1080",
+      "screenName": "Lobby",
+      "scrollHeight": 1152,
+      "innerHeight": 990,
+      "overflowY": 162,
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "overflowX": 0,
+      "u": 1.16,
+      "main": {
+        "left": 519,
+        "width": 882,
+        "gutterRatio": 0.2704
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11.6,
+      "textXs": 12.76
+    },
+    {
+      "viewport": "375x667",
+      "screen": "iPhone SE",
+      "screenName": "Start",
+      "scrollHeight": 1183,
+      "innerHeight": 667,
+      "overflowY": 516,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 0,
+        "width": 375,
+        "gutterRatio": 0
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "375x667",
+      "screen": "iPhone SE",
+      "screenName": "Play/answering",
+      "scrollHeight": 774,
+      "innerHeight": 667,
+      "overflowY": 107,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 0,
+        "width": 375,
+        "gutterRatio": 0
+      },
+      "barHeights": [
+        77.41,
+        77.41,
+        77.41,
+        74
+      ],
+      "revealSlot": 38,
+      "rail": 112,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "375x667",
+      "screen": "iPhone SE",
+      "screenName": "Play/revealed",
+      "correct": true,
+      "scrollHeight": 824,
+      "innerHeight": 667,
+      "overflowY": 157,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 0,
+        "width": 375,
+        "gutterRatio": 0
+      },
+      "barHeights": [
+        77.41,
+        77.41,
+        77.41,
+        77.41
+      ],
+      "revealSlot": 84.56,
+      "rail": 112,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "375x667",
+      "screen": "iPhone SE",
+      "screenName": "Lobby",
+      "scrollHeight": 1032,
+      "innerHeight": 667,
+      "overflowY": 365,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowX": 0,
+      "u": 1,
+      "main": {
+        "left": 0,
+        "width": 375,
+        "gutterRatio": 0
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "390x844",
+      "screen": "iPhone 12",
+      "screenName": "Start",
+      "scrollHeight": 1221,
+      "innerHeight": 844,
+      "overflowY": 377,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowX": 0,
+      "u": 1.04,
+      "main": {
+        "left": 0,
+        "width": 390,
+        "gutterRatio": 0
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "390x844",
+      "screen": "iPhone 12",
+      "screenName": "Play/answering",
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowY": 0,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowX": 0,
+      "u": 1.04,
+      "main": {
+        "left": 0,
+        "width": 390,
+        "gutterRatio": 0
+      },
+      "barHeights": [
+        76.95,
+        76.95,
+        76.95,
+        76.95
+      ],
+      "revealSlot": 39.52,
+      "rail": 116.47,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "390x844",
+      "screen": "iPhone 12",
+      "screenName": "Play/revealed",
+      "correct": false,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowY": 0,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowX": 0,
+      "u": 1.04,
+      "main": {
+        "left": 0,
+        "width": 390,
+        "gutterRatio": 0
+      },
+      "barHeights": [
+        80.5,
+        76.95,
+        80.5,
+        80.5
+      ],
+      "revealSlot": 58.23,
+      "rail": 116.47,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "390x844",
+      "screen": "iPhone 12",
+      "screenName": "Play/revealed-hit",
+      "correct": true,
+      "scrollHeight": 852,
+      "innerHeight": 844,
+      "overflowY": 8,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowX": 0,
+      "u": 1.04,
+      "main": {
+        "left": 0,
+        "width": 390,
+        "gutterRatio": 0
+      },
+      "barHeights": [
+        80.5,
+        76.95,
+        80.5,
+        80.5
+      ],
+      "revealSlot": 87.92,
+      "rail": 116.47,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    },
+    {
+      "viewport": "390x844",
+      "screen": "iPhone 12",
+      "screenName": "Lobby",
+      "scrollHeight": 1066,
+      "innerHeight": 844,
+      "overflowY": 222,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowX": 0,
+      "u": 1.04,
+      "main": {
+        "left": 0,
+        "width": 390,
+        "gutterRatio": 0
+      },
+      "barHeights": [],
+      "revealSlot": null,
+      "rail": 3,
+      "minTap": 44,
+      "text2xs": 11,
+      "textXs": 12
+    }
+  ]
+}
