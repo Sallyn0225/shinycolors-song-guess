@@ -26,6 +26,47 @@ const BINS = 128
 /** 只用到 ~15kHz（Opus 64kbps 单声道再往上基本是空的），对应 bin 80 */
 const BIN_LO = 1
 const BIN_HI = 80
+/*
+  下面三个常量是量出来的，不是试出来的。
+
+  把映射临时换成恒等、在每根柱的中心取样，量得对数映射后的真实分布：
+    六等分平均 [.97 .80 .67 .66 .58 .51]   —— 左右只差 1.9 倍
+    分位 p05 .44 / p25 .61 / p50 .67 / p75 .80 / p95 .99
+
+  关键是**值域挤在量程上半段**：AnalyserNode 的 minDecibels −100 / maxDecibels −30
+  把一段响的混音全映到 0.44~1.0。任何低于 0.44 的拐点都会让每一根顶满 ——
+  我先后试过 0.12 与 0.36，两次都是满格的墙，因为拐点定在了数据的下方。
+*/
+/**
+ * 实测的静态频谱剖面（六等分平均，左→右）。
+ * 每根柱除以它所在位置的剖面值，全宽就都以 1.0 为基准 ——
+ * 这样一个拐点能通吃全宽。乘一条猜的指数斜率做不到这件事：
+ * 斜率与真实剖面对不上时，全局拐点必然要么切掉左边、要么放过右边。
+ */
+const PROFILE_PTS = [0.97, 0.8, 0.67, 0.66, 0.58, 0.51]
+/**
+ * 拐点与跨度，表示为「当前帧最高柱的比例」。
+ * 窗口很窄（0.86~1.00）是因为数据本身压得极紧：getByteFrequencyData 是 dB 刻度，
+ * 除以剖面之后，中位柱就落在帧最大值的 88%。拐点必须压到那儿，多数格子才会矮。
+ * 用比例而不是绝对值：每首曲子的响度和频谱形状都不同，绝对拐点是在拿单曲调参 ——
+ * 实测同一组常量换一首歌就会在「全顶满」和「全贴地」之间跳。
+ * 按帧最大值取相对阈值则与曲子无关；又因为它是**全帧**的、不是逐带的，
+ * 不会像逐带自适应那样把左右翻过来。
+ */
+const KNEE = 0.86
+const SPAN = 0.14
+
+/** 把六个测点插值成每根柱的除数，模块加载时算一次 */
+const PROFILE = Array.from({ length: BARS }, (_, i) => {
+  const x = (i / (BARS - 1)) * (PROFILE_PTS.length - 1)
+  const a = Math.min(PROFILE_PTS.length - 1, Math.floor(x))
+  const b = Math.min(PROFILE_PTS.length - 1, a + 1)
+  const f = x - a
+  const v = (PROFILE_PTS[a] as number) * (1 - f) + (PROFILE_PTS[b] as number) * f
+  // 0.85 次幂：完全抹平会让高频的相对起伏被放大成主角（实测高柱全跑到右边），
+  // 留一点自然的低频优势，音乐才不像被均衡器压过
+  return Math.max(0.05, Math.pow(v, 0.85))
+})
 
 /** 棱镜彩虹取色。与 CSS 里的 --grad-prism 同一组停靠点 */
 const PRISM: Array<[number, [number, number, number]]> = [
@@ -86,15 +127,8 @@ export function PrismRail({
 
   const levels = useRef(new Float32Array(BINS))
   const smooth = useRef(new Float32Array(BARS))
-  /** 对数映射后的每格取值；避免每帧分配 */
-  const raw = useRef(new Float32Array(BARS))
-  /** 每格的长期均值，只用来校正频谱倾斜（不是逐帧 AGC） */
-  const base = useRef(new Float32Array(BARS))
-  /** 倾斜校正后的取值与它的排序副本（求分位数），避免每帧分配 */
-  const tilted = useRef(new Float32Array(BARS))
-  const sortBuf = useRef(new Float32Array(BARS))
-  /** 出过声的帧数，用来让倾斜均值先快后慢地收敛 */
-  const frames = useRef(0)
+  /** 剖面归一后的中间量，避免每帧分配 */
+  const shaped = useRef(new Float32Array(BARS))
 
   // 每帧从 ref 读最新的取值函数，避免把 effect 绑在它的身份上重启 rAF
   const getRemainingRef = useRef(getRemaining)
@@ -159,75 +193,46 @@ export function PrismRail({
       const maxLen = mirror ? h / 2 : h
 
       /*
-        动态范围是这条光带的全部性格。
-        AnalyserNode 已经做过 smoothingTimeConstant，再叠一层慢回落的平滑，
-        任何真实混音都会被摊成一排等高栅栏 —— 那是条码，不是频谱。
-        所以这里做两件事：
-          · 逐帧按当前最大值归一化，让最响的那根始终顶到满格
-          · 过一道 gamma，把中间值压下去，只留尖刺
-        再把回落系数放开（0.12 → 0.28），谷才回得来。
-      */
-      /*
-        两件事决定这条频谱像不像频谱：
+        这条频谱的性格由三件事决定，三件都不能省：
 
-        ① 对数频率映射。128 个 bin 线性覆盖 0~24kHz，而 64kbps 单声道 Opus 的能量
-           几乎全在 5kHz 以下 —— 线性取样会把四分之三的宽度分给一段近乎无声的高频，
-           画出来就是「左边一堆、右边全平」。改成按倍频程取样，每一格都落在有内容的地方。
-        ② 只校正频谱倾斜，不做逐帧 AGC。低频永远比高频响十几倍，不校正的话高频永远贴地；
-           但若按「每格自己的瞬时峰值」归一，每根就都顶到满格 —— 实测 CV 掉到 0.08，
-           比不校正还平。所以用每格的**长期均值**求一个静态增益并钳制在 0.5~3.5 倍，
-           把倾斜抹平、把动态留下。
-        ③ 动态由帧级分位映射给出：底取中位数、线性到 77%。
-           实测这一组的 CV 1.10 / 左右能量比 0.94，与 comp 的 1.13 同量级；
-           把底降到 30 分位会让 CV 掉回 0.79，又开始发平。
-           这三个数是按 comp 的频谱带反解的（144px 里中位 4px、p75 20px、峰 87px）。
+        ① 对数频率映射。fftSize=256 → 128 个 bin 线性覆盖 0~24kHz，而 64kbps 单声道
+           Opus 的能量几乎全在 5kHz 以下。线性取样会把四分之三的宽度分给一段近乎
+           无声的高频，画出来就是「左边一堆、右边全平」。按倍频程取样，每一格才都落在
+           有内容的地方。
+
+        ② 除以实测的静态剖面。低频比高频响（实测六等分 [.97 .80 .67 .66 .58 .51]），
+           不校正右半边就恒暗。用「除以剖面」而不是「乘一条斜率」：斜率对不上真实剖面时，
+           后面那个全局拐点必然要么切掉左边、要么放过右边。
+
+        ③ 绝对映射，不做任何逐帧/逐带归一。
+           这一条是试错换来的：按帧峰值归一会在「左重」和「右重」之间硬切
+           （TILT 1 → [36,9,3,3,1]，TILT 5 → [1,1,5,22,35]，中间没有稳定区间）；
+           按每格自己的近期平均归一，则每根都停在自己的平均线上 —— 实测 CV 掉到 0.05，
+           整条光带成了一堵等高的墙。两者都是反馈回路，都会自己走掉。
+           固定拐点没有回路：响的带高、静的带矮、同一带随音乐起伏，全部可静态推演。
+
+        另外，AnalyserNode 的 minDecibels −100 / maxDecibels −30 把一段响的混音全映到
+        0.44~1.0 —— 拐点定在这个区间之下就是一堵满格的墙。先后试过 0.12 和 0.36，都是。
       */
-      let frameMax = 0
+      // ① 对数取样 + ② 除以静态剖面
+      let frameMax = 1e-4
       for (let i = 0; i < BARS; i++) {
         const t = i / (BARS - 1)
         const pos = BIN_LO * Math.pow(BIN_HI / BIN_LO, t)
         const lo = Math.floor(pos)
-        const hi = Math.min(BINS - 1, lo + 1)
+        const hi2 = Math.min(BINS - 1, lo + 1)
         const f = pos - lo
-        const v = got ? (levels.current[lo] ?? 0) * (1 - f) + (levels.current[hi] ?? 0) * f : 0
-        raw.current[i] = v
-        if (v > frameMax) frameMax = v
+        const v = got ? (levels.current[lo] ?? 0) * (1 - f) + (levels.current[hi2] ?? 0) * f : 0
+        const n = v / (PROFILE[i] as number)
+        shaped.current[i] = n
+        if (n > frameMax) frameMax = n
       }
-      // 没在出声时不要把底噪放大成满屏
-      const gate = Math.min(1, frameMax / 0.08)
-
-      /*
-        每格长期均值 → 静态倾斜增益。
-        纯 EMA（0.005）要三秒多才收敛，那三秒里能量还是全堆在左边（实测左右比 3.15）。
-        所以前 200 帧走运行均值、快速收敛，之后再退化成 EMA 跟随曲子变化。
-      */
-      if (got) frames.current++
-      const rate = Math.max(0.005, 1 / Math.max(1, frames.current))
-      let baseSum = 0
+      // ③ 以本帧最高柱为 1，取相对拐点
       for (let i = 0; i < BARS; i++) {
-        const b = (base.current[i] ?? 0) * (1 - rate) + raw.current[i]! * rate
-        base.current[i] = b
-        baseSum += b
-      }
-      const baseAvg = Math.max(0.0005, baseSum / BARS)
-
-      // 倾斜校正后的取值，同时求这一帧的中位与峰
-      for (let i = 0; i < BARS; i++) {
-        const g = Math.min(3.5, Math.max(0.5, baseAvg / Math.max(0.0005, base.current[i] ?? 0)))
-        tilted.current[i] = raw.current[i]! * g
-      }
-      sortBuf.current.set(tilted.current)
-      sortBuf.current.sort()
-      const floor = sortBuf.current[Math.floor(BARS * 0.5)] ?? 0
-      let hi = 0
-      for (let i = 0; i < BARS; i++) if (tilted.current[i]! > hi) hi = tilted.current[i]!
-      const spanN = Math.max(0.0001, hi - floor)
-
-      for (let i = 0; i < BARS; i++) {
-        const above = Math.max(0, (tilted.current[i]! - floor) / spanN)
-        // 峰留到 77%：顶到天花板就是丢信息。基线 2%，对应官网频谱那种「极矮但不断」
-        const shaped = got ? (0.02 + 0.75 * above) * gate : 0
-        const target = reduce ? shaped * 0.4 : shaped
+        const rel = shaped.current[i]! / frameMax
+        const above = Math.min(1, Math.max(0, (rel - KNEE) / SPAN))
+        const target0 = got ? 0.02 + 0.78 * above ** 1.35 : 0
+        const target = reduce ? target0 * 0.4 : target0
         const prev = smooth.current[i] ?? 0
         // 起快落慢，但落得没那么慢 —— 慢回落正是把频谱抹平成栅栏的元凶
         smooth.current[i] = prev + (target - prev) * (target > prev ? 0.6 : 0.3)

@@ -116,6 +116,46 @@ countdown retraction or the creases: those are information, not decoration.
 
 ---
 
+## Audio visualisation: measure the data before choosing constants
+
+The spectrum in `PrismRail` took six wrong versions. Both root causes generalise.
+
+### Never infer gain from the data you are drawing
+
+Every "compute the gain from the current data" scheme is a feedback loop, and each one
+walked away on its own:
+
+| approach | measured result |
+|---|---|
+| normalise by the frame peak, floor at the frame median | hard-switches between left-heavy and right-heavy; no stable middle |
+| normalise each bar by its own recent average | every bar parks on its own average — CV collapsed to **0.05**, a wall of equal-height bars |
+| multiply by a guessed exponential tilt | when the slope disagrees with the real profile, a global knee must either clip the left or spare the right |
+
+What works is static and inspectable: log-frequency sampling → divide by a **measured**
+static profile → take the knee as a fraction of the current frame's tallest bar. The last
+step adapts across songs (loudness and spectral shape differ per track) but is frame-global,
+not per-band, so it cannot invert the left/right balance.
+
+### Measure the range instead of assuming it
+
+`AnalyserNode`'s `minDecibels −100` / `maxDecibels −30` compress a loud mix into
+**0.44–1.0** after `getByteFrequencyData` normalisation — the whole useful range sits in the
+top half. Knees were set at 0.12 and then 0.36; both are *below the data*, so both produced
+a saturated wall, and both looked like a shaping problem rather than a range problem.
+
+The way out: temporarily replace the mapping with identity, sample **at each bar's centre**
+(sampling every pixel column counts the ~54% gaps between bars as zeros and drags the mean
+down by half), and read the real distribution. Choose constants from that, then invert the
+formula from a rendered measurement to check.
+
+### Verify a timing-dependent visual with numbers, not screenshots
+
+The answering window is 8–15s and the MCP round trip is seconds, so screenshots land in the
+wrong state more often than not — one measured "CV 2.46" turned out to be cover art and
+the 不正解 label, captured after `audio.stop()`. Measure inside the page in a single call
+(wait, sample, reduce) and assert the state (`h1` reads LISTENING, a 重听 button exists)
+before trusting any capture.
+
 ## Colour: check contrast against the surface the text actually lands on
 
 The trap that caught this project twice: tokens were tuned against `--color-ground`, then
