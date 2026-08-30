@@ -1,0 +1,11 @@
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "本任务的核心是协议加法：RoomSummary / RoomView 新字段 / rooms 订阅消息 / roomList 推送。这份规范定义了 wire 类型的写法、zod 在边界的位置，以及什么绝不能下发给客户端"}
+{"file": ".trellis/spec/shared/backend/directory-structure.md", "reason": "sanitizeRoomName 要放进 shared，需要确认「什么可以进这个包」的边界与 .js import 规则"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "Hub 的列表推送要新增定时器，Room 要新增只读状态。这份规范规定了 after()/clearTimers() 的定时器纪律、unref 要求，以及 Room 与 Hub 的职责分层"}
+{"file": ".trellis/spec/server/backend/directory-structure.md", "reason": "新增 ws/quota.ts 模块与 config.ts 新旋钮，需要确认 buildApp 的组合方式与新代码该放哪"}
+{"file": ".trellis/spec/server/backend/error-handling.md", "reason": "新增 ErrCode（server_busy / too_many_rooms）与 joinRoom 失败限流，需要遵循「什么时候回答、什么时候静默丢弃」的既有判断"}
+{"file": ".trellis/spec/server/backend/logging-guidelines.md", "reason": "反滥用天然诱人打日志。这份规范说明了 Fastify logger 为何关闭、什么绝不能打印——design.md 已决定不引入日志，实现时不要违背"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "Lobby 要拆成 Lobby + Room 两屏并新增 RoomCard 组件，需要确认四层结构里各自该落在哪一层"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "RoomCard 是新的 game-specific 无状态组件，需要遵循 shape 原语、--u 尺寸、a11y 基线"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "房间列表订阅的状态该放哪、socket 单例与组件状态的边界，直接决定 Lobby/Room 拆分是否正确"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "列表订阅是一个带清理的长期 effect（进大厅订阅、离开退订），需要遵循订阅与取消的既有约定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务是典型的 shared→server→web 三层贯通改动，需要跨层一致性的思考框架"}

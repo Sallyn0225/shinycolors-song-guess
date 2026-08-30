@@ -1,0 +1,11 @@
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "server 的测试约定与验证命令。新增的 hub/quota 测试要与既有 app.test.ts / room.test.ts 的风格一致，且既有 49 个用例不得回归"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "检查新增的 250ms 合并定时器与 5s sweeper 是否遵守定时器纪律（进 Set、unref、clearTimers 在相位迁移之前），以及 Room 是否被错误地塞进了列表关注点"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "房间列表是新的对外信息面。必须核对 RoomSummary 没有泄漏任何曲目线索、没有下发私人房间、creatorIp 没有出现在任何下发结构里"}
+{"file": ".trellis/spec/server/backend/logging-guidelines.md", "reason": "核对反滥用逻辑没有偷偷加日志，尤其是不能打印来源 IP 与房间名"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "核对新增 wire 类型的 zod 校验完整、visibility 的默认值确实是 private（失败方向不暴露）、没有把服务端内部字段混进视图类型"}
+{"file": ".trellis/spec/shared/backend/quality-guidelines.md", "reason": "shared 的类型约定与验证命令；sanitizeRoomName 的单测是否覆盖了退化输入"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "前端验证命令、clip-path 陷阱、--u 尺寸、对比度规则。核对 RoomCard 与新大厅是否踩了这些既有的坑"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "核对 RoomSummary / RoomStatus 的判别联合用法与 strict 下的处理，尤其是 status 三态的穷尽性"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "核对列表项的 a11y 基线：键盘可达、disabled 语义、状态不只靠颜色编码"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Lobby 拆分后容易在 Lobby/Room 两屏之间复制粘贴（Presence、shell 布局）。用它检查抽取是否到位"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "核对三层的数据流一致性：sanitizeRoomName 两侧同源、状态映射规则前后端一致、错误码在前端都有对应展示"}
