@@ -16,6 +16,11 @@ coverage/
 .playwright-mcp/
 /*.png
 
+# 设计风格提取产物（designlang 自动生成 ~16MB，含官网截图与原始 CSS，均为第三方版权素材）
+# 只保留人工校订后的设计语言文档
+design-extract-output/*
+!design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md
+
 # Trellis：只保留 tasks / spec / workspace，其余（脚本、模板、运行时状态）不入库
 .trellis/*
 !.trellis/tasks/
