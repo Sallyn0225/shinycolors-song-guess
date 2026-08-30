@@ -1,38 +1,51 @@
-# Backend Development Guidelines
+# @scg/server Guidelines
 
-> Best practices for backend development in this project.
+> `apps/server` — Fastify HTTP + WebSocket. Owns authority, timers, secrecy and transport.
+> It owns no rules; those live in `@scg/game-core`.
 
 ---
 
-## Overview
+## What this package is
 
-This directory contains guidelines for backend development. Fill in each file with your project's specific conventions.
+```
+src/index.ts        process entry: keepAlive tuning, listen, SIGTERM
+src/app.ts          buildApp(): all routes, static mounts, /ws registration
+src/config.ts       SERVER_CONFIG from env, coverUrl()
+src/catalog.ts      Catalog.load() — the public/private manifest split
+src/soloSessions.ts SoloSessionStore — in-memory single-player sessions
+src/ws/hub.ts       socket ↔ session ↔ room routing, zod validation, rate limit
+src/ws/room.ts      one 1v1 room: seats, round state machine, timers, broadcasts
+src/ws/timing.ts    PlayerTiming — the anti-cheat reaction-time adjudicator
+```
+
+49 tests: `app.test.ts` drives routes through `app.inject()`, `ws/room.test.ts` drives a
+real `ws` client against a real listening server.
+
+There is no database. All state is in-memory and intentionally so: a match is worthless
+after it ends, and the private catalog must never be reachable over HTTP. Do not introduce
+persistence without revisiting [Secrecy and Anti-Cheat](./secrecy-and-anticheat.md).
+
+---
+
+## The one-sentence architecture
+
+`buildApp()` composes everything and returns a Fastify instance; `index.ts` only listens.
+That split is what lets every test build a fresh app in `beforeAll` without a port.
 
 ---
 
 ## Guidelines Index
 
-| Guide | Description | Status |
-|-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | ORM patterns, queries, migrations | To fill |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| Guide | Description |
+|-------|-------------|
+| [Directory Structure](./directory-structure.md) | Module layout, `buildApp` composition, where new code goes |
+| [Realtime Guidelines](./realtime-guidelines.md) | Room state machine, server-authoritative timers, reconnect, heartbeat |
+| [Secrecy and Anti-Cheat](./secrecy-and-anticheat.md) | Public/private catalog split, clip tokens, cache headers, reaction-time adjudication |
+| [Error Handling](./error-handling.md) | zod at every boundary, `ErrCode`, when to answer and when to drop |
+| [Logging Guidelines](./logging-guidelines.md) | Why the Fastify logger is off, what must never be printed |
+| [Quality Guidelines](./quality-guidelines.md) | Test conventions, verification commands |
 
 ---
 
-## How to Fill These Guidelines
-
-For each guideline file:
-
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
-
----
-
-**Language**: All documentation should be written in **English**.
+**Language**: spec files are written in English; source comments here are Chinese, and so
+are the user-facing `message` strings in `ServerMsg`. Match the file you are editing.

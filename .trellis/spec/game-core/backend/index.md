@@ -1,38 +1,44 @@
-# Backend Development Guidelines
+# @scg/game-core Guidelines
 
-> Best practices for backend development in this project.
+> `packages/game-core` — the rules of both game modes, as pure functions over plain data.
+> No network, no clock, no I/O, no logging.
 
 ---
 
-## Overview
+## What this package is
 
-This directory contains guidelines for backend development. Fill in each file with your project's specific conventions.
+```
+src/types.ts     Card, MatchState, Tap, RoundResult, SendRecord, KarutaConfig …
+src/rng.ts       createRng(seed) — mulberry32 + xmur3, the only source of randomness
+src/deal.ts      selectPool / dealMatch / applyLayout / cardsLeft
+src/select.ts    pickNextReading / pickSlice — what gets read next
+src/karuta.ts    adjudicate / pendingSends / applyRound — the 1v1 rules
+src/solo.ts      generateSoloRound / pickDistractors / gradeAnswer — the solo rules
+src/scoring.ts   scoreAnswer / maxScore
+src/testing.ts   makeSongs / TEST_CONFIG — fixtures, shipped in src on purpose
+src/index.ts     barrel
+```
+
+59 tests in `karuta.test.ts`, `solo.test.ts`, `scoring.test.ts`. Because everything here is
+deterministic and pure, an entire match can be replayed in a unit test — that is the
+property the package exists to preserve.
+
+`apps/server` owns transport, timers and authority; this package owns *what the rules say*.
+The split is what lets the rules be tested without a socket. The layer directory is named
+`backend/` by the Trellis scaffold; nothing here is server-specific.
 
 ---
 
 ## Guidelines Index
 
-| Guide | Description | Status |
-|-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | ORM patterns, queries, migrations | To fill |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| Guide | Description |
+|-------|-------------|
+| [Directory Structure](./directory-structure.md) | Module layout, dependency direction, where a new rule goes |
+| [Purity and Determinism](./purity-and-determinism.md) | The non-negotiable properties and how existing code keeps them |
+| [Error Handling](./error-handling.md) | When to throw, when to fall back silently |
+| [Quality Guidelines](./quality-guidelines.md) | Test conventions, verification commands |
 
 ---
 
-## How to Fill These Guidelines
-
-For each guideline file:
-
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
-
----
-
-**Language**: All documentation should be written in **English**.
+**Language**: spec files are written in English; source comments here are Chinese. Match
+the file you are editing.

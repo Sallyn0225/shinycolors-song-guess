@@ -1,51 +1,67 @@
 # Quality Guidelines
 
-> Code quality standards for backend development.
+> `@scg/shared` has no tests of its own — it has no behaviour to test. Its quality bar is
+> the type system plus the four packages that break when it is wrong.
 
 ---
 
-## Overview
+## Verification
 
-<!--
-Document your project's quality standards here.
+```bash
+pnpm --filter @scg/shared typecheck    # tsc --noEmit
+pnpm -r typecheck                      # the real check: every consumer still compiles
+pnpm -r test                           # 143 tests, all downstream
+```
 
-Questions to answer:
-- What patterns are forbidden?
-- What linting rules do you enforce?
-- What are your testing requirements?
-- What code review standards apply?
--->
+`packages/shared/package.json` has no `test` script. Do not add a vitest file here to
+manufacture coverage; if a change needs a test, the test belongs where the behaviour is
+(`packages/game-core` for rules, `apps/server` for the wire loop).
 
-(To be filled by the team)
-
----
-
-## Forbidden Patterns
-
-<!-- Patterns that should never be used and why -->
-
-(To be filled by the team)
+`pnpm -r typecheck` is the one that matters. Because consumers compile this package's
+source directly (no `dist`), a wrong type here surfaces as a compile error in
+`apps/web`/`apps/server`, not locally.
 
 ---
 
-## Required Patterns
+## Type conventions inherited from `tsconfig.base.json`
 
-<!-- Patterns that must always be used -->
+`strict`, plus three flags that shape how code in this repo is written:
 
-(To be filled by the team)
-
----
-
-## Testing Requirements
-
-<!-- What level of testing is expected -->
-
-(To be filled by the team)
+- **`noUncheckedIndexedAccess`** — `arr[i]` is `T | undefined`. This is why the codebase is
+  full of `arr[i] as T` and `?? fallback`. Prefer the explicit fallback; reach for the
+  assertion only where the index was just derived from `length` (as in
+  `packages/game-core/src/rng.ts`).
+- **`noImplicitOverride`**, **`noFallthroughCasesInSwitch`** — a `switch` on a message `t`
+  must `break` or `return` in every arm.
+- **`declaration: true`, `target: ES2023`, `module: ESNext`** — no CommonJS anywhere.
 
 ---
 
-## Code Review Checklist
+## Style that the whole repo follows
 
-<!-- What reviewers should check -->
+- **No semicolons, single quotes, 2-space indent, trailing commas.** There is no ESLint or
+  Prettier config in this repo — formatting is maintained by matching surrounding code.
+  Read the file before you write in it.
+- **`interface` for object shapes, `type` for unions and aliases.** `protocol.ts` follows
+  this exactly: `interface PlayerView`, `type TapVerdict = 'correct' | ...`.
+- **`as const` on every constant table** — `DIFFICULTY_PRESETS`, `SCORING`,
+  `KARUTA_DEFAULTS`, `ROOM_CODE_ALPHABET`. It is what makes `DIFFICULTIES[number]` a
+  literal union instead of `string`.
+- **Doc comments explain *why*, never *what*.** `/** 每轮题目数 */` is fine on a field whose
+  name is `questionCount`; a comment restating the type is not. The valuable ones record a
+  rejected alternative or a measured number — see the `hard.clipSeconds` and
+  `speedCurve` comments.
 
-(To be filled by the team)
+---
+
+## Common mistakes in this package
+
+- Adding a field to a `*View` interface without asking whether it leaks the answer. Run
+  through [Protocol and Contracts](./protocol-and-contracts.md) first.
+- Adding a client message type to `ClientMsg` by hand instead of to `clientMsgSchema`.
+  `ClientMsg` is `z.infer<...>`; a hand-added member either does not compile or silently
+  bypasses validation.
+- Importing anything from `@scg/game-core` here. The dependency runs the other way
+  (`packages/game-core/package.json` depends on `@scg/shared`); a back-import is a cycle.
+- Collapsing two constants that happen to hold the same number. See
+  [Tuning Constants](./tuning-constants.md).

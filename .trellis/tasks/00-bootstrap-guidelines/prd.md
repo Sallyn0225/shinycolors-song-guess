@@ -21,12 +21,42 @@ the rest conversationally.
 
 ## Status (update the checkboxes as you complete each item)
 
-- [ ] Fill guidelines for @scg/server
-- [ ] Fill guidelines for @scg/web
-- [ ] Fill guidelines for @scg/game-core
-- [ ] Fill guidelines for @scg/shared
-- [ ] Fill guidelines for @scg/prepare-audio
-- [ ] Add code examples
+- [x] Fill guidelines for @scg/server
+- [x] Fill guidelines for @scg/web
+- [x] Fill guidelines for @scg/game-core
+- [x] Fill guidelines for @scg/shared
+- [x] Fill guidelines for @scg/prepare-audio
+- [x] Add code examples
+
+### What was actually done (2026-08-30)
+
+No importable convention docs existed — `AGENTS.md` is only the Trellis block, and there is
+no `CLAUDE.md` / `.cursorrules` / `CONTRIBUTING.md`. Everything below was read out of the
+source.
+
+**The scaffold was pruned to match the real codebase** (approved by the developer):
+
+- Deleted `frontend/` under `server`, `game-core`, `shared`, `prepare-audio` — 28 template
+  files about components, hooks and state management for four packages that contain no
+  React. `@scg/web` is the only frontend.
+- Deleted `database-guidelines.md` in all four backend layers — there is no database
+  anywhere in this project; all state is in-memory or on disk as build artifacts.
+- Deleted `logging-guidelines.md` for `shared`, `game-core` and `prepare-audio`
+  (`@scg/game-core` is deliberately silent; the other two have no logger). Kept for
+  `server`, where "the Fastify logger is off, and here is what must never be printed" is a
+  real rule.
+- Added files the packages actually needed: `protocol-and-contracts.md` and
+  `tuning-constants.md` (shared), `purity-and-determinism.md` (game-core),
+  `realtime-guidelines.md` and `secrecy-and-anticheat.md` (server),
+  `pipeline-guidelines.md` and `asset-secrecy.md` (prepare-audio).
+
+Layer directory names (`backend/` / `frontend/`) were left alone so Trellis tooling and
+jsonl manifests keep resolving; each `index.md` notes where the name does not describe the
+package.
+
+Every claim is anchored to a real path, constant or measured number. Verified while
+writing: 143 tests pass (game-core 59, server 49, web 21, prepare-audio 14) and
+`pnpm -r typecheck` is clean across all five packages.
 
 ---
 

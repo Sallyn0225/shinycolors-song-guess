@@ -1,38 +1,39 @@
-# Backend Development Guidelines
+# @scg/shared Guidelines
 
-> Best practices for backend development in this project.
+> `packages/shared` — the wire contract and every tunable number. No runtime, no I/O.
 
 ---
 
-## Overview
+## What this package is
 
-This directory contains guidelines for backend development. Fill in each file with your project's specific conventions.
+Four source files, ~450 lines, zero behaviour:
+
+```
+src/protocol.ts     ClientMsg / ServerMsg, the view types, the zod schema
+src/difficulty.ts   DIFFICULTY_PRESETS, KARUTA_DEFAULTS
+src/scoring.ts      SCORING constants + ScoreBreakdown
+src/index.ts        barrel: export * from each of the above
+```
+
+It is imported by **every** other package (`@scg/web`, `@scg/server`, `@scg/game-core`,
+`@scg/prepare-audio`). A change here is a change to all four at once — that is the whole
+point of the package and also the reason to be careful in it.
+
+The layer directory is called `backend/` because that is the Trellis scaffold's name for a
+non-React layer. `@scg/shared` is neither backend nor frontend; it is consumed by both.
 
 ---
 
 ## Guidelines Index
 
-| Guide | Description | Status |
-|-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | ORM patterns, queries, migrations | To fill |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| Guide | Description |
+|-------|-------------|
+| [Directory Structure](./directory-structure.md) | File layout, the `.js` import rule, what may not enter this package |
+| [Protocol and Contracts](./protocol-and-contracts.md) | Wire types, zod at the boundary, what must never reach the client |
+| [Tuning Constants](./tuning-constants.md) | Where game feel lives, and why each knob is separate |
+| [Quality Guidelines](./quality-guidelines.md) | Type conventions, verification commands |
 
 ---
 
-## How to Fill These Guidelines
-
-For each guideline file:
-
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
-
----
-
-**Language**: All documentation should be written in **English**.
+**Language**: spec files are written in English. Source comments in this repo are Chinese;
+match the file you are editing, do not convert either direction.
