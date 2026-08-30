@@ -16,6 +16,13 @@ coverage/
 .playwright-mcp/
 /*.png
 
+# Trellis：只保留 tasks / spec / workspace，其余（脚本、模板、运行时状态）不入库
+.trellis/*
+!.trellis/tasks/
+!.trellis/spec/
+!.trellis/workspace/
+!.trellis/.gitignore
+
 # AI agent 工具目录
 .agents/
 .claude/
