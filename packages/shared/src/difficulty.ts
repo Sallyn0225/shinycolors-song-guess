@@ -100,6 +100,13 @@ export const KARUTA_DEFAULTS = {
   roundWindowSeconds: 6,
   /** 窗口结束后的宽限（秒），到点服务器用手上有的输入结算，永不等待客户端 */
   graceSeconds: 2,
+  /**
+   * 挑送り札的时限（秒）。超时回落到「送自陣待得最久的那张」——
+   * 和 MVP 的自动规则完全一致，所以慢或掉线的人不会被卡住，只是失去挑选权。
+   */
+  okuriSeconds: 10,
+  /** 掉线后保留座位的宽限（秒）。到点判负 */
+  disconnectGraceSeconds: 60,
   /** 反应时间差小于此值视为同时，牌判给该牌所在领地的一方 */
   tieEpsilonMs: 25,
   /** 低于此反应时间视为抢跑——辨认一首还没听到的歌是不可能的 */

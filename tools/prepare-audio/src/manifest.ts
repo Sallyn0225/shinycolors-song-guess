@@ -45,7 +45,35 @@ export interface WriteManifestArgs {
   specs: Map<string, SliceSpec[]>
 }
 
-export async function writeManifests(args: WriteManifestArgs): Promise<{ publicCount: number; sliceCount: number }> {
+/**
+ * AAC 兜底副本在不在。
+ *
+ * 直接看磁盘而不是记一个标志位：标志位会和实际产物走散（改了 `--with-aac-fallback`
+ * 却没重跑 slice，或反过来），而服务端要据此决定要不要给客户端 `fallbackUrl` ——
+ * 报了却不存在，老 Safari 会拿到 404 然后彻底没声音。
+ */
+async function detectAacFallback(specs: Map<string, SliceSpec[]>): Promise<boolean> {
+  const probes: string[] = []
+  for (const list of specs.values()) {
+    const first = list[0]
+    if (first) probes.push(first.sliceId)
+    if (probes.length >= 3) break
+  }
+  if (probes.length === 0) return false
+  const found = await Promise.all(
+    probes.map((id) =>
+      fs
+        .access(path.join(ASSETS_ROOT, 'slices', id.slice(0, 2), `${id}.m4a`))
+        .then(() => true)
+        .catch(() => false),
+    ),
+  )
+  return found.every(Boolean)
+}
+
+export async function writeManifests(
+  args: WriteManifestArgs,
+): Promise<{ publicCount: number; sliceCount: number; aacFallback: boolean }> {
   const { songs, tables, analyses, specs } = args
   const neighbours = computeNeighbours(songs)
 
@@ -82,6 +110,7 @@ export async function writeManifests(args: WriteManifestArgs): Promise<{ publicC
   }
 
   const units = tables.units.map((u) => ({ id: u.id, name: u.name, color: u.color, kind: u.kind }))
+  const aacFallback = await detectAacFallback(specs)
 
   await fs.mkdir(ASSETS_ROOT, { recursive: true })
   await fs.writeFile(
@@ -91,11 +120,11 @@ export async function writeManifests(args: WriteManifestArgs): Promise<{ publicC
   )
   await fs.writeFile(
     PRIVATE_MANIFEST,
-    JSON.stringify({ version: MANIFEST_VERSION, songs: privateSongs, sliceIndex }, null, 2),
+    JSON.stringify({ version: MANIFEST_VERSION, aacFallback, songs: privateSongs, sliceIndex }, null, 2),
     'utf8',
   )
 
-  return { publicCount: publicSongs.length, sliceCount: Object.keys(sliceIndex).length }
+  return { publicCount: publicSongs.length, sliceCount: Object.keys(sliceIndex).length, aacFallback }
 }
 
 /**

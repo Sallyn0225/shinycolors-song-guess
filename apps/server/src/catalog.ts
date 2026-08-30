@@ -54,13 +54,19 @@ export class Catalog {
     readonly units: Array<{ id: string; name: string; color: string | null }>,
     /** 出题输入，交给 game-core 的纯函数 */
     readonly soloSongs: SoloSong[],
+    /**
+     * 是否有 AAC 兜底副本。
+     * 只有为 true 才给客户端下发 fallbackUrl —— 报了却不存在，
+     * 老 Safari 会拿到 404 然后彻底没声音，比不报还糟。
+     */
+    readonly aacFallback: boolean,
   ) {}
 
   static async load(assetsRoot = ASSETS_ROOT): Promise<Catalog> {
     const [priv, pub] = await Promise.all([
       fs
         .readFile(path.join(assetsRoot, 'manifest.private.json'), 'utf8')
-        .then((s) => JSON.parse(s) as { songs: PrivateSong[] }),
+        .then((s) => JSON.parse(s) as { songs: PrivateSong[]; aacFallback?: boolean }),
       fs
         .readFile(path.join(assetsRoot, 'manifest.public.json'), 'utf8')
         .then(
@@ -100,7 +106,13 @@ export class Catalog {
       throw new Error(`曲库为空——请先跑 pnpm assets all（找的是 ${assetsRoot}）`)
     }
 
-    return new Catalog(songs, new Map(songs.map((s) => [s.id, s])), pub.units, soloSongs)
+    return new Catalog(
+      songs,
+      new Map(songs.map((s) => [s.id, s])),
+      pub.units,
+      soloSongs,
+      priv.aacFallback === true,
+    )
   }
 
   sliceIdFor(songId: string, sliceIndex: number): string | null {

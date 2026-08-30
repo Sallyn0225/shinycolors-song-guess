@@ -43,6 +43,22 @@ export const SLICE = {
   sampleRate: 48000,
   fadeInSec: 0.02,
   fadeOutSec: 0.06,
+
+  // ── AAC 兜底（--with-aac-fallback）─────────────────────
+  // Safari 18.4（2025-03）以前 Ogg 和 WebM 容器的 Opus 都放不了，选哪个都救不了老版本，
+  // 所以老 Safari 只能靠一份 AAC 副本。默认不生成：多花 30% 构建时间和一倍体积。
+  /** ffmpeg 的原生 aac 编码器没有真正的 CBR，码率取 96k 让质量与 80k Opus 相当 */
+  aacBitrateKbps: 96,
+  /**
+   * 每个 m4a 补 `free` box 补到这个字节数，全部一样大。
+   *
+   * **不能省**：实测 15 秒 96k 的 aac 文件在 184~198KB 之间浮动，
+   * 1404 个切片的字节数几乎就是唯一指纹 —— 和 Opus 用 `-vbr off` 消灭的是同一条旁路，
+   * 只是 aac 编码器给不了硬 CBR，只能事后补齐。
+   * `free` 是 MP4 规范里明确可跳过的 box，追加在文件尾不影响任何解码器。
+   * 取值要留出余量；超了会在自检里报出来，届时调大这个常量重跑即可。
+   */
+  aacPadToBytes: 208_000,
 } as const
 
 export const ANALYZE = {

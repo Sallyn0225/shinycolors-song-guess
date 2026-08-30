@@ -53,12 +53,41 @@ export interface Transfer {
   cause: 'take' | 'okuri' | 'otetsuki'
 }
 
+/**
+ * 一次「从自陣送一张牌给对手」的记录。
+ *
+ * 取敵陣的送り札和お手つき的罚牌其实是同一件事——都是某一方要从自陣挑一张送出去。
+ * 记下 `candidates` 是为了让上层能把**当时**合法的选项原样问给玩家：
+ * 一回合里同一个人可能要送两张（取敵陣 + 对手お手つき），第二张的可选集合已经变了。
+ */
+export interface SendRecord {
+  from: PlayerId
+  to: PlayerId
+  cause: 'okuri' | 'otetsuki'
+  cardId: CardId
+  /** 做这次选择时 `from` 自陣的全部牌（含最终送出的那张） */
+  candidates: CardId[]
+  /** true = 用了玩家自选；false = 回落到「送自陣待得最久的那张」 */
+  chosen: boolean
+}
+
+/**
+ * 玩家本回合想送出的牌，按顺序排队消费。
+ *
+ * 队列而不是单值：一回合里同一个人可能要送两张。
+ * 不合法的条目（不在自陣、已送出）会被跳过并回落到自动规则——
+ * 规则引擎永远能算出一个结果，不会因为客户端乱报而卡住。
+ */
+export type SendChoices = Partial<Record<PlayerId, readonly CardId[]>>
+
 export interface RoundResult {
   roundNo: number
   reading: Reading
   taps: Array<Tap & { verdict: TapVerdict }>
   winner: PlayerId | null
   transfers: Transfer[]
+  /** 本回合发生的送札，按发生顺序。`transfers` 里对应的是 okuri/otetsuki 两类 */
+  sends: SendRecord[]
   cardsLeft: Record<PlayerId, number>
 }
 

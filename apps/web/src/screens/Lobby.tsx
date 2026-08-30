@@ -17,8 +17,9 @@ export function Lobby({ onBack }: Props) {
   const [rtt, setRtt] = useState<number | null>(null)
 
   useEffect(() => {
-    socket.onStatus = setConnected
+    const offStatus = socket.onStatus(setConnected)
     socket.connect()
+    setConnected(socket.connected)
     const off = socket.on((msg) => {
       if (msg.t === 'room') {
         setRoom(msg.room)
@@ -30,6 +31,7 @@ export function Lobby({ onBack }: Props) {
     const t = window.setInterval(() => setRtt(socket.clock.rttMs || null), 800)
     return () => {
       off()
+      offStatus()
       window.clearInterval(t)
     }
   }, [])

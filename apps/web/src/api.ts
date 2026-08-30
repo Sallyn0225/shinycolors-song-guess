@@ -8,6 +8,8 @@ export interface SessionInfo {
   answerSeconds: number
   optionCount: number
   replays: number
+  /** 曲库里有没有 AAC 兜底副本。没有就别去试，只会白等一次 404 */
+  aacFallback: boolean
 }
 
 export interface Option {
@@ -99,3 +101,6 @@ export const api = {
 
 /** 切片地址。token 是每局一次性的，客户端永远看不到 sliceId */
 export const clipUrl = (sid: string, token: string): string => `/api/clip/${sid}/${token}`
+
+/** AAC 兜底地址。Safari 18.4 以前放不了 Ogg Opus，只能换一份 */
+export const clipFallbackUrl = (sid: string, token: string): string => `${clipUrl(sid, token)}.m4a`

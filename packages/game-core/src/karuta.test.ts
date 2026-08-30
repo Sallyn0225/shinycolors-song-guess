@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { applyLayout, cardsLeft, dealMatch, selectPool, DealError } from './deal.js'
-import { adjudicate, applyRound } from './karuta.js'
+import { adjudicate, applyRound, pendingSends } from './karuta.js'
 import { pickNextReading, pickSlice, liveFieldSongs } from './select.js'
 import { makeSongs, TEST_CONFIG } from './testing.js'
 import type { CardId, MatchState, PlayerId, Reading, SongRef, Tap } from './types.js'
@@ -145,6 +145,146 @@ describe('取牌', () => {
       cfg,
     )
     expect(r.transfers.find((t) => t.cause === 'okuri')?.cardId).toBe(expected)
+  })
+
+  it('玩家自选送り札时送的是他挑的那张', () => {
+    const { state } = deal()
+    const enemy = ownCard(state, 'B')
+    const want = ownCard(state, 'A', 5) // 故意不是队首
+
+    const r = adjudicate(
+      state,
+      fieldReading(state, enemy),
+      [{ player: 'A', cardId: enemy, reactionMs: 800 }],
+      cfg,
+      { A: [want] },
+    )
+    expect(r.transfers.find((t) => t.cause === 'okuri')?.cardId).toBe(want)
+    expect(r.sends[0]?.chosen).toBe(true)
+    expect(applyRound(state, r).layout.B).toContain(want)
+  })
+
+  // 客户端可能乱报（已送出的牌、敵陣的牌、根本不存在的 id）。
+  // 规则引擎必须照样算得出结果，否则一条脏消息就能把整局卡死。
+  it('自选的牌不合法时静默回落到自动规则', () => {
+    const { state } = deal()
+    const enemy = ownCard(state, 'B')
+    const auto = state.layout.A[0]
+
+    for (const bogus of [['bogus-id'], [enemy], []]) {
+      const r = adjudicate(
+        state,
+        fieldReading(state, enemy),
+        [{ player: 'A', cardId: enemy, reactionMs: 800 }],
+        cfg,
+        { A: bogus },
+      )
+      expect(r.transfers.find((t) => t.cause === 'okuri')?.cardId).toBe(auto)
+      expect(r.sends[0]?.chosen).toBe(false)
+    }
+  })
+
+  // 一回合里同一个人可能要送两张：取敵陣的送り札 + 对手お手つき的罚牌
+  it('同一回合要送两张时按队列依次消费，不会送重复的牌', () => {
+    const { state } = deal()
+    const enemy = ownCard(state, 'B')
+    const wrong = ownCard(state, 'B', 1) // B 点错自陣的另一张
+    const [w1, w2] = [ownCard(state, 'A', 4), ownCard(state, 'A', 7)]
+
+    const r = adjudicate(
+      state,
+      fieldReading(state, enemy),
+      [
+        { player: 'A', cardId: enemy, reactionMs: 800 },
+        { player: 'B', cardId: wrong, reactionMs: 900 },
+      ],
+      cfg,
+      { A: [w1, w2] },
+    )
+
+    expect(r.sends.map((s) => s.cardId)).toEqual([w1, w2])
+    expect(r.sends.map((s) => s.cause)).toEqual(['okuri', 'otetsuki'])
+    // 第二次选择时第一张已经不在自陣里了
+    expect(r.sends[1]?.candidates).not.toContain(w1)
+    expect(r.sends.every((s) => s.chosen)).toBe(true)
+  })
+
+  // 双方互相お手つき时两张送札同回合发生。若把「刚收到的牌」算进候选，
+  // 后一个人的候选集就会随前一个人的选择而变 —— 上层提前公示的列表当场作废
+  it('同回合双方各送一张时，候选集互不影响', () => {
+    const { state } = deal()
+    const target = ownCard(state, 'A', 0)
+    const taps: Tap[] = [
+      { player: 'A', cardId: ownCard(state, 'A', 1), reactionMs: 800 },
+      { player: 'B', cardId: ownCard(state, 'B', 1), reactionMs: 900 },
+    ]
+    const reading = fieldReading(state, target)
+
+    const base = adjudicate(state, reading, taps, cfg)
+    expect(base.sends).toHaveLength(2)
+
+    const candidatesOf = (r: typeof base, p: PlayerId) => r.sends.find((s) => s.from === p)?.candidates
+    expect(candidatesOf(base, 'A')).toEqual(state.layout.A)
+    expect(candidatesOf(base, 'B')).toEqual(state.layout.B)
+
+    // B 改挑另一张，A 的候选集必须一字不变
+    const other = adjudicate(state, reading, taps, cfg, { B: [ownCard(state, 'B', 9)] })
+    expect(candidatesOf(other, 'A')).toEqual(candidatesOf(base, 'A'))
+    // 刚从对手手里收到的牌不会出现在自己的候选里
+    const fromB = other.sends.find((s) => s.from === 'B')?.cardId as CardId
+    expect(candidatesOf(other, 'A')).not.toContain(fromB)
+  })
+
+  it('pendingSends 按人合并，且只在真有得选时才问', () => {
+    const { state } = deal()
+    const enemy = ownCard(state, 'B')
+    const wrong = ownCard(state, 'B', 1)
+
+    const r = adjudicate(
+      state,
+      fieldReading(state, enemy),
+      [
+        { player: 'A', cardId: enemy, reactionMs: 800 },
+        { player: 'B', cardId: wrong, reactionMs: 900 },
+      ],
+      cfg,
+    )
+    expect(pendingSends(r)).toEqual([
+      { player: 'A', count: 2, candidates: state.layout.A },
+    ])
+
+    // 自陣只剩一张时没有可选性，不该拿一个假选择去打断节奏
+    const last = applyLayout(
+      { ...state, layout: { ...state.layout, A: state.layout.A.slice(0, 1) } },
+      'A',
+      state.layout.A.slice(0, 1),
+    )
+    const r2 = adjudicate(
+      last,
+      fieldReading(last, enemy),
+      [{ player: 'A', cardId: enemy, reactionMs: 800 }],
+      cfg,
+    )
+    expect(r2.sends).toHaveLength(1)
+    expect(pendingSends(r2)).toEqual([])
+  })
+
+  // 上层要「先跑一遍问玩家、再带着答案跑一遍定案」，
+  // 这条保证两遍除送出的牌之外完全一致——否则玩家看到的揭晓会和最终结果对不上
+  it('带 choices 重跑只改送出的牌，判定与胜负不变', () => {
+    const { state } = deal()
+    const enemy = ownCard(state, 'B')
+    const taps: Tap[] = [{ player: 'A', cardId: enemy, reactionMs: 800 }]
+    const auto = adjudicate(state, fieldReading(state, enemy), taps, cfg)
+    const picked = adjudicate(state, fieldReading(state, enemy), taps, cfg, {
+      A: [ownCard(state, 'A', 3)],
+    })
+
+    expect(picked.winner).toBe(auto.winner)
+    expect(picked.taps).toEqual(auto.taps)
+    expect(picked.cardsLeft).toEqual(auto.cardsLeft)
+    expect(picked.transfers.map((t) => t.cause)).toEqual(auto.transfers.map((t) => t.cause))
+    expect(picked.transfers[0]).toEqual(auto.transfers[0]) // take 那条一模一样
   })
 
   it('更快的一方取得牌', () => {
@@ -333,7 +473,15 @@ describe('出题策略', () => {
         usedSlices: { ...cur.usedSlices, [reading.songId]: usedSlices },
         history: [
           ...cur.history,
-          { roundNo: cur.roundNo + 1, reading, taps: [], winner: null, transfers: [], cardsLeft: { A: 12, B: 12 } },
+          {
+            roundNo: cur.roundNo + 1,
+            reading,
+            taps: [],
+            winner: null,
+            transfers: [],
+            sends: [],
+            cardsLeft: { A: 12, B: 12 },
+          },
         ],
       }
     }

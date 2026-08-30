@@ -34,6 +34,8 @@ export class AudioEngine {
   private readonly cache = new Map<string, AudioBuffer>()
   private readonly order: string[] = []
   private readonly inflight = new Map<string, Promise<AudioBuffer>>()
+  /** 这台设备解不了 Opus，已切到 AAC 兜底 */
+  private preferFallback = false
 
   get unlocked(): boolean {
     return this.ctx !== null && this.ctx.state === 'running'
@@ -72,8 +74,22 @@ export class AudioEngine {
     }
   }
 
-  /** 下载并解码，结果进 LRU。可提前对下一题调用以消除起播等待 */
-  async prefetch(key: string, url: string): Promise<AudioBuffer> {
+  private async fetchDecode(ctx: AudioContext, url: string): Promise<AudioBuffer> {
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const bytes = await res.arrayBuffer()
+    // decodeAudioData 会 detach 传入的 ArrayBuffer，所以先留一份副本
+    return ctx.decodeAudioData(bytes.slice(0))
+  }
+
+  /**
+   * 下载并解码，结果进 LRU。可提前对下一题调用以消除起播等待。
+   *
+   * `fallbackUrl` 是 AAC 兜底：Safari 18.4（2025-03）以前 Ogg Opus 解不了，
+   * 而这**不能靠 `canPlayType` 提前判断**——iOS 上它会说谎。只能真解一次看它成不成，
+   * 成功切到兜底后记住，后续直接走兜底，不再每题白试一遍 Opus。
+   */
+  async prefetch(key: string, url: string, fallbackUrl?: string): Promise<AudioBuffer> {
     const hit = this.cache.get(key)
     if (hit) return hit
     const pending = this.inflight.get(key)
@@ -84,20 +100,22 @@ export class AudioEngine {
       const ctx = this.ctx
       if (!ctx) throw new Error('AudioContext 未初始化')
 
+      const urls = this.preferFallback && fallbackUrl ? [fallbackUrl] : [url, ...(fallbackUrl ? [fallbackUrl] : [])]
+
       let lastErr: unknown
       for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const bytes = await res.arrayBuffer()
-          // decodeAudioData 会 detach 传入的 ArrayBuffer，所以先留一份副本
-          const buf = await ctx.decodeAudioData(bytes.slice(0))
-          this.remember(key, buf)
-          return buf
-        } catch (err) {
-          lastErr = err
-          await new Promise((r) => setTimeout(r, 200 * 3 ** attempt))
+        for (const [i, u] of urls.entries()) {
+          try {
+            const buf = await this.fetchDecode(ctx, u)
+            // 主格式解不了、兜底能解 —— 这台设备以后一律走兜底
+            if (i > 0) this.preferFallback = true
+            this.remember(key, buf)
+            return buf
+          } catch (err) {
+            lastErr = err
+          }
         }
+        await new Promise((r) => setTimeout(r, 200 * 3 ** attempt))
       }
       throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
     })()
@@ -152,8 +170,9 @@ export class AudioEngine {
     url: string,
     seconds: number,
     atCtxTime?: number,
+    fallbackUrl?: string,
   ): Promise<{ startedAtCtxTime: number }> {
-    const buf = await this.prefetch(key, url)
+    const buf = await this.prefetch(key, url, fallbackUrl)
     const ctx = this.ctx
     const master = this.master
     if (!ctx || !master) throw new Error('AudioContext 未初始化')

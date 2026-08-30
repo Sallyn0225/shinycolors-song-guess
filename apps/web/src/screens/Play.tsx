@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { api, clipUrl, type AnswerResult, type QuestionView, type SessionInfo } from '../api'
+import {
+  api,
+  clipFallbackUrl,
+  clipUrl,
+  type AnswerResult,
+  type QuestionView,
+  type SessionInfo,
+} from '../api'
 import { audio } from '../audio'
 import { Stage } from '../components/Stage'
 import { OptionCard, type OptionState } from '../components/OptionCard'
@@ -40,6 +47,12 @@ export function Play({ session, onFinish, onQuit }: Props) {
     return Math.max(0, left / (session.answerSeconds * 1000))
   }, [session.answerSeconds])
 
+  /** 曲库有兜底副本时才把它交给音频引擎；没有就别去试，只会白等一次 404 */
+  const fallbackOf = useCallback(
+    (token: string) => (session.aacFallback ? clipFallbackUrl(session.sessionId, token) : undefined),
+    [session.sessionId, session.aacFallback],
+  )
+
   /** 只播前 clipSeconds 秒。切片文件恒为 15 秒，难度只体现在这里的截断 */
   const playClip = useCallback(
     async (q: QuestionView) => {
@@ -48,12 +61,14 @@ export function Play({ session, onFinish, onQuit }: Props) {
           key(q.index, q.clipToken),
           clipUrl(session.sessionId, q.clipToken),
           session.clipSeconds,
+          undefined,
+          fallbackOf(q.clipToken),
         )
       } catch {
         setError('音频加载失败，可以重听或直接作答')
       }
     },
-    [session.sessionId, session.clipSeconds],
+    [session.sessionId, session.clipSeconds, fallbackOf],
   )
 
   const submit = useCallback(
@@ -91,7 +106,9 @@ export function Play({ session, onFinish, onQuit }: Props) {
         setQuestion(q)
 
         // 先解码好再起表，避免把下载时间算进答题时间
-        await audio.prefetch(key(q.index, q.clipToken), clipUrl(session.sessionId, q.clipToken)).catch(() => {})
+        await audio
+          .prefetch(key(q.index, q.clipToken), clipUrl(session.sessionId, q.clipToken), fallbackOf(q.clipToken))
+          .catch(() => {})
         if (cancelled) return
 
         const { deadlineMs } = await api.begin(session.sessionId, index)
@@ -106,7 +123,11 @@ export function Play({ session, onFinish, onQuit }: Props) {
           void api
             .question(session.sessionId, index + 1)
             .then((next) =>
-              audio.prefetch(key(next.index, next.clipToken), clipUrl(session.sessionId, next.clipToken)),
+              audio.prefetch(
+                key(next.index, next.clipToken),
+                clipUrl(session.sessionId, next.clipToken),
+                fallbackOf(next.clipToken),
+              ),
             )
             .catch(() => {})
         }
@@ -122,7 +143,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
       cancelled = true
       audio.stop()
     }
-  }, [index, session.sessionId, session.replays, session.total, playClip])
+  }, [index, session.sessionId, session.replays, session.total, playClip, fallbackOf])
 
   // 截止用一个 timeout 就够，不必每帧检查
   useEffect(() => {

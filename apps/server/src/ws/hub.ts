@@ -130,10 +130,12 @@ export class Hub {
                 playerId: pid,
                 tServer: Date.now(),
                 resumeToken: msg.resumeToken,
+                resumed: true,
               })
               this.reply(socket, { t: 'room', room: room.roomView(pid) })
               try {
-                this.reply(socket, { t: 'stateSync', match: room.matchView(pid) })
+                // 牌面、记忆倒计时、当前回合截止时刻一次给全，客户端不需要再问
+                this.reply(socket, room.syncMessage(pid))
               } catch {
                 /* 对局尚未开始 */
               }
@@ -141,7 +143,15 @@ export class Hub {
             }
           }
         }
-        this.reply(socket, { t: 'welcome', playerId: 'A', tServer: Date.now(), resumeToken: '' })
+        // 座位已被回收（宽限到期或房间已散）——告诉客户端这是一次全新连接，
+        // 别让它继续挂在「重连中」的界面上等一个永远不会来的 stateSync
+        this.reply(socket, {
+          t: 'welcome',
+          playerId: 'A',
+          tServer: Date.now(),
+          resumeToken: '',
+          resumed: false,
+        })
         return
       }
 
@@ -157,6 +167,7 @@ export class Hub {
           playerId: seat.playerId,
           tServer: Date.now(),
           resumeToken: seat.resumeToken,
+          resumed: false,
         })
         this.reply(socket, { t: 'room', room: room.roomView(seat.playerId) })
         return
@@ -180,6 +191,7 @@ export class Hub {
           playerId: seat.playerId,
           tServer: Date.now(),
           resumeToken: seat.resumeToken,
+          resumed: false,
         })
         for (const p of ['A', 'B'] as const) {
           const other = room.seatOf(p)
@@ -220,6 +232,9 @@ export class Hub {
         break
       case 'tap':
         room.tap(me, msg.roundNo, msg.cardId, msg.reactionMs)
+        break
+      case 'okuri':
+        room.okuri(me, msg.roundNo, msg.cardIds)
         break
       case 'rematch':
         room.voteRematch(me, msg.agree)

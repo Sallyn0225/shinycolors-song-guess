@@ -13,20 +13,24 @@
 
 | 模块 | 状态 | 测试 |
 |---|---|---|
-| `tools/prepare-audio` 素材流水线 | ✅ 完成 | 8 |
+| `tools/prepare-audio` 素材流水线 | ✅ 完成 | 14 |
 | `packages/shared` 协议与可调参数 | ✅ 完成 | — |
-| `packages/game-core` 纯规则引擎 | ✅ 完成 | 53 |
-| `apps/server` 单机 API + 联机 WS | ✅ 完成 | 41 |
+| `packages/game-core` 纯规则引擎 | ✅ 完成 | 59 |
+| `apps/server` 单机 API + 联机 WS | ✅ 完成 | 49 |
 | `apps/web` 单机 + 联机 1v1 UI | ✅ 可玩 | 21 |
 
-**123 个测试全过，全仓 `tsc --noEmit` 干净。**
+**143 个测试全过，全仓 `tsc --noEmit` 干净。**
 
-### 未做（按计划的 MVP 边界，属于有意留下的）
+计划里 v2 的四项已全部做完：**玩家自选送り札**、**断线重连 UI**、**公网部署加固**、**AAC 兜底**。
+部署细节单独在 [`DEPLOY.md`](./DEPLOY.md)。
 
-- **玩家自选送り札**——目前自动送自陣待得最久的那张（确定性，玩家可预判）
-- **断线重连 UI**——协议和 `resumeToken` 已就位，服务端保留座位 60 秒，但前端没有恢复界面
-- **公网部署加固**——wss、反向代理的 `Upgrade` 头转发、`proxy_read_timeout` 要大于 WS 心跳间隔、切片走 CDN
-- **AAC 兜底**——切片是 Ogg Opus。Safari 18.4 以下两种容器都有问题，真机测过再决定要不要开 `--with-aac-fallback`
+### 未做
+
+- **AAC 副本默认不生成**——能力已就位（`pnpm assets slice --with-aac-fallback`），
+  但要不要为老 Safari 多花 290MB 磁盘，得等真机测过再定。没生成时服务端不会下发
+  `fallbackUrl`，客户端也就不会去试，所以这是个纯开关
+- **公网匹配队列 / 观战 / 天梯**——计划里就明确不做
+- **拖拽摆牌**——记忆阶段是「点 A 再点 B 交换」，够用且天然支持键盘
 
 ---
 
@@ -44,6 +48,15 @@ pnpm --filter @scg/web dev        # :5173  ← 打开这个
 
 Vite 和服务端都监听所有网卡，同一局域网的手机可直接访问。
 
+也可以只开一个端口——构建过前端后服务端会一并托管它：
+
+```bash
+pnpm --filter @scg/web build      # → apps/web/dist
+pnpm --filter @scg/server start   # :5179 同时给页面和 /ws
+```
+
+公网部署走这条路（页面和 WS 同源，wss 才跟着页面的 https 自动生效），见 `DEPLOY.md`。
+
 ### 素材流水线的其他命令
 
 ```bash
@@ -53,7 +66,12 @@ pnpm assets review     # 生成演唱者复核表 assets/artist-review.md
 pnpm assets audit      # 起本地控制台 :5178（切片试听 + 归属编辑器）
 pnpm assets preview --only hard   # 打印一轮真实出题，看干扰项质量
 pnpm assets stress     # 用真实曲库跑 300 轮，检查出题不退化
+
+pnpm assets slice --with-aac-fallback   # 额外生成 AAC 副本（老 Safari 兜底）
+pnpm assets slice --rotate-ids          # 换掉全部 sliceId，只 rename 不重编码
 ```
+
+后两条跑完都要跟一句 `pnpm assets manifest`，否则服务端还在用旧的映射。
 
 ---
 
@@ -83,16 +101,32 @@ packages/game-core/      纯规则引擎（无 I/O、无 timer、无 Date.now）
 
 apps/server/
   catalog.ts               载入 manifest；private 永不经 HTTP 暴露
+  config.ts                环境变量、CDN 前缀、前端产物目录、WS 心跳
   soloSessions.ts          单机会话；答案只存服务端
-  ws/room.ts               房间 + 回合状态机
+  ws/room.ts               房间 + 回合状态机（含送り札的「先问后定案」）
   ws/timing.ts             反应时间判定与防作弊交叉校验
 
 apps/web/
-  audio.ts                 Web Audio 单例（预取、精确调度、频谱）
-  net/ws.ts                WS 客户端 + 时钟同步
+  audio.ts                 Web Audio 单例（预取、精确调度、频谱、AAC 兜底）
+  net/ws.ts                WS 客户端 + 时钟同步 + 座位凭证
   components/Stage.tsx     倒计时环 + 频谱可视化（rAF 直写 DOM）
   features/narrate.ts      回合结果的文案生成（纯函数，14 个测试）
   features/karutaBoard.ts  稳定槽位
+```
+
+一个回合在两层之间怎么走：
+
+```
+服务端                                          客户端
+  pickNextReading ──roundArm{token,url}──────►  下载 + 解码
+                  ◄──────────────clipReady───┘
+  定起播时刻 ─────roundStart{startAtServer}──►  按同步时钟起播
+                  ◄────────────────────tap───┘  reactionMs 相对起播
+  adjudicate(无 choices) → pendingSends
+   ├ 没人要送 ────roundResult────────────────►  揭晓 + 落牌面
+   └ 有人要送 ────roundReveal{pending}───────►  揭晓 + 挑牌界面
+                  ◄──────────────────okuri───┘  （或 10s 超时）
+                  ─roundResult───────────────►  落牌面
 ```
 
 ---
@@ -138,6 +172,19 @@ apps/web/
 
 联机固定用**困难**难度的曲库策略，回合窗口 **6s**。
 
+### 6. 送り札的挑选放在**揭晓之后**，且候选集不含刚收到的牌
+
+计划只说了「v2 做玩家自选，10 秒计时 + 超时回落到自动规则」，没说插在流程的哪一步。实现时定成：
+
+```
+判定完 → 先广播 roundReveal（答案 + 双方反应时间）→ 再等人挑 → 最后广播 roundResult
+```
+
+答案立刻揭晓，挑牌的人才有依据挑；牌面变化留到定案时一次落。**没有送札的回合完全不走这条路**，
+直接发 `roundResult`——多数回合的节奏一点没变。
+
+另外加了一条计划里没有的规则：**本回合刚收到的牌不能立刻再送出去**。理由见「会咬人的地方 · 规则」。
+
 ---
 
 ## 会咬人的地方
@@ -153,11 +200,15 @@ apps/web/
 - **切片 mtime 必须统一**——构建顺序就是曲名字典序，按 mtime 排一遍就能还原整张对照表。HTTP 层也要禁 `Last-Modified`、用内容哈希 ETag。
 - **响度必须在 mono 降混后测**。输出是 `-ac 1`，立体声测出的响度差 1~1.5 dB（实测 stereo `-8.7` vs mono `-10.1`）。
 - **`-vbr off`（硬 CBR）不能改成 VBR**——现在 1404 个切片字节数完全相同（151504B），VBR 下会有 ±3.5KB 差异，足以标识曲目。
+- **AAC 副本必须补 `free` box 到统一大小**。ffmpeg 的原生 aac 编码器**没有真正的 CBR**——实测 15s/96k 的文件在 184~198KB 之间浮动，等于把 `-vbr off` 挡掉的旁路又开了回来。做法是编完在文件尾追加一个 MP4 `free` box 补到 `SLICE.aacPadToBytes`（208000B）。`free` 是规范里明确可跳过的 box，实测追加后 ffmpeg 解出来仍是 15.000s。自检对 aac 要求字节数**唯一**（不是「接近」），超出常量会直接报错让你调大它。
+- **mp4 容器天然带 `major_brand` / `handler_name` 这类 tag**，与曲目无关，自检的白名单里已排除；别把它们当成泄漏去「修」。
 
 ### 规则
 
 - **同一首歌重播必须换切片**。6 首空札要覆盖 15~25 回合，必然重复；若放同一段音频，玩家会学会「这段听过 → 是空札 → 别点」，整个空札机制当场塌掉。`select.ts` 的 `pickSlice` 做了 LRU 轮换，有测试守着。
 - **易混淆组内的曲目永不互为干扰项**，一局内同组最多取 1 首。否则会产生「无法靠实力避免的失误」。
+- **送り札的候选集必须排除「本回合刚收到的牌」**。这条不是洁癖，是「先问后定案」能不能成立的前提：双方在同一回合互相お手つき时要各送一张，如果把收到的牌算进候选，**后一个人的候选集就会随前一个人的选择而变**——服务端提前公示给他的列表当场作废，他挑的牌变成非法、被静默换成队首。这个 bug 只在「双方同回合都要送」时出现，写测试前先撞上了。`adjudicate` 里的 `incoming` 就是干这个的，有测试守着。
+- **`adjudicate` 必须是纯的，才能「跑两遍」**。流程是先用无 `choices` 跑一遍拿到「谁要挑、能挑哪些」，问完人再带着答案重跑一遍定案。两遍的判定、胜负、反应时间必须字字相同，否则玩家看到的揭晓会和最终结果对不上。有一条测试专门钉住这件事。
 
 ### 前端
 
@@ -167,12 +218,22 @@ apps/web/
 - **领地可能超过 12 张**（お手つき / 送り札 会送牌过来），牌场不能固定渲染 12 格。
 - **牌被取走后位置要留空**，不能让后面的牌顶上来——玩家背的就是位置。`SlotMap` 负责这件事。
 - **Vite 代理 WebSocket 要显式 `ws: true`**，只写 target 不会转发 upgrade 请求。
+- **刷新后必须再要一次用户手势**。`resumeToken` 能把牌面接回来，但 `AudioContext` 是锁着的，而解锁**只能发生在真实用户手势的调用栈里**。不补这一下，接回来的人整局静音——和「忘了手势门」是同一个坑的第二次现身，同样在本地热重载时永远不复现。Karuta 里的「点击继续对局」遮罩就是它。
+- **座位凭证存 `sessionStorage` 不是 `localStorage`**。刷新能找回座位，但新开标签页应该是新玩家；用 localStorage 会让同一台机器的两个窗口互相抢座位。
+- **连接通了不等于座位还在**。服务端重启或宽限到期后，重连会拿到 `welcome{resumed:false}`——此时断线遮罩不会出现（连接确实是好的），如果不主动退出牌场，玩家会对着一个点什么都没反应的棋盘发呆。App 里对这条消息做了「在牌场上就退回首页并说明原因」。
+- **`socket.connect()` 必须幂等**。大厅和重连逻辑都会调它，不加保护会开出第二条 WebSocket 去抢座位。
+- **连接状态是多播不是单个回调槽**。之前 `socket.onStatus = fn` 被大厅和牌场互相覆盖，改成了订阅 + 退订。
 
 ### 服务端
 
 - **取题与开始计时必须分开**（`GET question` 和 `POST begin`）。客户端会预取下一题，若取题即起表，下一题一进去就超时了。
 - **回合按服务器定时器结算，永不等待客户端**。不发 `clipReady` 的客户端照样过回合，否则「卡住不响应」就是免输策略。
 - **无 body 的 POST**：浏览器 fetch 常给它们带上 `content-type: application/json`，Fastify 默认解析空 body 会返回 400。已加容错解析器。
+- **挑送り札也不等客户端**。10 秒到点就用自动规则（送自陣待得最久的那张）定案，和 MVP 一直在用的是同一条规则——所以掉线的人只是失去挑选权，不会把整局卡住。掉线的一方**根本不问**，问了也只是白等满 10 秒。
+- **只在真的有得选时才问**。自陣只剩一张牌时候选集只有一个元素，`pendingSends` 会把它过滤掉——拿一个假选择去打断节奏，比直接自动送更糟。
+- **WS 除了业务 ping 还要协议级心跳**。业务 ping 是应用层消息，救不了「对端拔网线」——那种情况不会发 FIN，连接会半开着占住座位直到 TCP keepalive（默认 2 小时）才发现。25 秒一次的 `ping`/`pong` 能在一个周期内清掉它，座位才能及时进入掉线宽限。
+- **`keepAliveTimeout` 必须大于上游反代的对应值**。反了会撞上一个很难查的竞态：代理复用连接发新请求的同一瞬间 Node 正好把它关掉，用户随机看到 502。取 90 秒（nginx 默认 75）。
+- **fastify-static 用 `index: false` 注册后，`/` 会返回 403 而不是 404**——它把根路径当成目录。所以 SPA 的 notFoundHandler 兜不住首页，得单独写一条 `app.get('/')`。而 `index.html` **绝不能缓存**：缓存住了就把用户永久钉在某一次构建上，而它引用的带哈希文件名早换了，表现是白屏。
 
 ---
 
@@ -242,7 +303,9 @@ overrides.json > artist 精确匹配 > artist 按 / 拆分 > artist 含 (CV. > �
 
 调手感基本只需要动这两个文件：
 
-- `packages/shared/src/difficulty.ts` —— 难度预设、`KARUTA_DEFAULTS`（牌数、空札数、记忆时间、回合窗口、平局阈值、人类反应下限）
+- `packages/shared/src/difficulty.ts` —— 难度预设、`KARUTA_DEFAULTS`（牌数、空札数、记忆时间、回合窗口、平局阈值、人类反应下限、**挑送り札时限 10s**、**掉线宽限 60s**）
 - `packages/shared/src/scoring.ts` —— 基础分 100、速度奖励上限 100、速度曲线指数 1.6、重听扣分 10
 
-切片策略在 `tools/prepare-audio/src/config.ts`（段数、时长、分数偏移、目标响度、码率）。改完要 `pnpm assets slice --force`。
+切片策略在 `tools/prepare-audio/src/config.ts`（段数、时长、分数偏移、目标响度、码率、AAC 码率与补齐目标）。改完要 `pnpm assets slice --force`。
+
+服务端的部署侧旋钮全在 `apps/server/src/config.ts`，由环境变量驱动（`PORT` / `HOST` / `TRUST_PROXY` / `WEB_ROOT` / `PUBLIC_ASSET_BASE` / `WS_HEARTBEAT_MS`），逐条说明在 `DEPLOY.md`。

@@ -7,7 +7,7 @@ import { scan } from './scan.js'
 import { buildMeta } from './buildMeta.js'
 import { analyzeSong, gainForTrack } from './analyze.js'
 import { planSlices } from './planSlices.js'
-import { encodeSlice, slicePath, specsFor } from './slice.js'
+import { aacPath, encodeSlice, encodeSliceAac, newSliceId, slicePath, specsFor } from './slice.js'
 import { coverPath, encodeCovers, thumbPath } from './covers.js'
 import { loadTables } from './resolveUnit.js'
 import { assertPublicManifestClean, writeManifests } from './manifest.js'
@@ -41,6 +41,8 @@ interface Args {
   only: string | null
   /** 重新生成全部 sliceId。用于「换 id 打断攻击者积累的对照表」——只需 rename，不重新编码 */
   rotateIds: boolean
+  /** 额外生成一份 AAC 副本，给 Safari 18.4 以前的版本兜底 */
+  withAac: boolean
 }
 
 function parseArgs(argv: string[]): Args {
@@ -59,6 +61,7 @@ function parseArgs(argv: string[]): Args {
     force: argv.includes('--force'),
     only: get('--only'),
     rotateIds: argv.includes('--rotate-ids'),
+    withAac: argv.includes('--with-aac-fallback'),
   }
 }
 
@@ -232,7 +235,68 @@ async function stageAnalyze(args: Args): Promise<AnalysisResult[]> {
   return ok
 }
 
+/**
+ * 换掉全部 sliceId，**只 rename，不重新编码**。
+ *
+ * 这正是当初选「CSPRNG 随机 id」而不是「HMAC(secret, songId:index)」的理由：
+ * 随机方案没有密钥可泄露，轮换也只是一次改名 + 改 manifest，秒级完成。
+ * 「定期换 id 让攻击者攒下的对照表作废」这件事因此真的可行，而不是纸面能力。
+ *
+ * mtime 由 rename 原样保留，所以不必重新统一。
+ */
+async function rotateSliceIds(args: Args): Promise<Map<string, SliceSpec[]>> {
+  const songs = applyOnly(await loadMeta(args), args.only)
+  const specCache = new StageCache<SliceSpec[]>(SLICE_DIR_CACHE, STAGE_VERSIONS.slice)
+
+  const specsBySong = new Map<string, SliceSpec[]>()
+  const renames: Array<{ from: string; to: string }> = []
+  const missing: string[] = []
+
+  for (const song of songs) {
+    const cached = await specCache.get(song.id, song.srcSize, song.srcMtimeMs)
+    if (!cached) {
+      missing.push(song.title)
+      continue
+    }
+    const next = cached.map((s) => ({ ...s, sliceId: newSliceId() }))
+    for (const [i, old] of cached.entries()) {
+      const fresh = next[i] as SliceSpec
+      renames.push({ from: slicePath(old.sliceId), to: slicePath(fresh.sliceId) })
+      renames.push({ from: aacPath(old.sliceId), to: aacPath(fresh.sliceId) })
+    }
+    specsBySong.set(song.id, next)
+    await specCache.set(song.id, song.srcSize, song.srcMtimeMs, next)
+  }
+
+  if (missing.length > 0) {
+    process.stdout.write(`[slice] ⚠ ${missing.length} 首没有切片缓存，先跑一次 pnpm assets slice\n`)
+    process.exitCode = 1
+    return specsBySong
+  }
+
+  let moved = 0
+  let absent = 0
+  await mapConcurrent(renames, 32, async ({ from, to }) => {
+    await fs.mkdir(path.dirname(to), { recursive: true })
+    try {
+      await fs.rename(from, to)
+      moved++
+    } catch {
+      // m4a 兜底没生成时正常缺席
+      absent++
+    }
+  })
+
+  process.stdout.write(
+    `[slice] 轮换完成：改名 ${moved} 个文件（另有 ${absent} 个不存在，多半是没开 AAC 兜底）\n`,
+  )
+  process.stdout.write(`[slice] ⚠ 记得跟一句 pnpm assets manifest，否则服务端还在用旧 id\n`)
+  return specsBySong
+}
+
 async function stageSlice(args: Args): Promise<Map<string, SliceSpec[]>> {
+  if (args.rotateIds) return rotateSliceIds(args)
+
   const all = await loadMeta(args)
   const songs = applyOnly(all, args.only)
   const analyses = await stageAnalyze(args)
@@ -247,7 +311,7 @@ async function stageSlice(args: Args): Promise<Map<string, SliceSpec[]>> {
   for (const song of songs) {
     const analysis = analysisById.get(song.id)
     if (!analysis) continue
-    const cached = args.rotateIds ? null : await specCache.get(song.id, song.srcSize, song.srcMtimeMs)
+    const cached = await specCache.get(song.id, song.srcSize, song.srcMtimeMs)
     const specs = specsFor(song, analysis, cached?.map((s) => s.sliceId))
     specsBySong.set(song.id, specs)
     await specCache.set(song.id, song.srcSize, song.srcMtimeMs, specs)
@@ -259,21 +323,26 @@ async function stageSlice(args: Args): Promise<Map<string, SliceSpec[]>> {
   let skipped = 0
 
   await mapConcurrent(jobs, args.concurrency, async ({ song, spec }) => {
-    const out = slicePath(spec.sliceId)
+    const outs = [slicePath(spec.sliceId), ...(args.withAac ? [aacPath(spec.sliceId)] : [])]
     if (!args.force) {
-      try {
-        const st = await fs.stat(out)
-        if (st.size > 0) {
-          skipped++
-          bar.tick(`⟨已存在⟩`)
-          return
-        }
-      } catch {
-        /* 不存在，继续编码 */
+      const sizes = await Promise.all(
+        outs.map((f) =>
+          fs
+            .stat(f)
+            .then((s) => s.size)
+            .catch(() => 0),
+        ),
+      )
+      // 只要有一份缺了就重跑这一格 —— 后加 --with-aac-fallback 时才会补上 m4a
+      if (sizes.every((s) => s > 0)) {
+        skipped++
+        bar.tick(`⟨已存在⟩`)
+        return
       }
     }
     try {
       await encodeSlice(song, spec)
+      if (args.withAac) await encodeSliceAac(song, spec)
       bar.tick(`⟨${song.title} #${spec.index}⟩`)
     } catch (err) {
       failures.push({ title: song.title, index: spec.index, error: String(err) })
@@ -292,8 +361,11 @@ async function stageSlice(args: Args): Promise<Map<string, SliceSpec[]>> {
     process.exitCode = 1
   }
 
-  await normalizeMtimes(jobs.map((j) => slicePath(j.spec.sliceId)))
-  await selfCheck(jobs.map((j) => slicePath(j.spec.sliceId)))
+  const opusFiles = jobs.map((j) => slicePath(j.spec.sliceId))
+  const aacFiles = args.withAac ? jobs.map((j) => aacPath(j.spec.sliceId)) : []
+  await normalizeMtimes([...opusFiles, ...aacFiles])
+  await selfCheck(opusFiles, 'opus')
+  if (aacFiles.length > 0) await selfCheck(aacFiles, 'aac')
 
   return specsBySong
 }
@@ -314,9 +386,14 @@ async function normalizeMtimes(files: string[]): Promise<void> {
   })
 }
 
-/** 构建后自检。任何一条不过就 exit 1——这几条都是「静默上线就泄题」的类型 */
-async function selfCheck(files: string[]): Promise<void> {
-  process.stdout.write(`\n[slice] 防作弊自检…\n`)
+/**
+ * 构建后自检。任何一条不过就 exit 1——这几条都是「静默上线就泄题」的类型。
+ *
+ * opus 靠 `-vbr off` 天然等长；aac 靠事后补 `free` box 补到完全相同，
+ * 所以两种格式都要求字节数**唯一**，而不是「接近」。
+ */
+async function selfCheck(files: string[], kind: 'opus' | 'aac' = 'opus'): Promise<void> {
+  process.stdout.write(`\n[slice] 防作弊自检（${kind}）…\n`)
   const problems: string[] = []
 
   const stats = await mapConcurrent(files, 32, async (f) => {
@@ -335,21 +412,30 @@ async function selfCheck(files: string[]): Promise<void> {
   const mtimes = new Set(present.map((s) => Math.round(s.mtimeMs)))
   if (mtimes.size > 1) problems.push(`mtime 未统一：出现 ${mtimes.size} 个不同值（会泄漏构建顺序）`)
 
-  // 2. CBR 生效：字节数应高度集中
+  // 2. CBR / 补齐生效：字节数应高度集中
   const sizes = present.map((s) => s.size).sort((a, b) => a - b)
   const spread = (sizes[sizes.length - 1] ?? 0) - (sizes[0] ?? 0)
   process.stdout.write(
     `  字节数 min=${sizes[0]} max=${sizes[sizes.length - 1]} 跨度=${spread}B（唯一值 ${new Set(sizes).size} 个）\n`,
   )
-  if (spread > 4096) problems.push(`切片字节数跨度 ${spread}B 过大，CBR 可能未生效（会泄漏曲目身份）`)
+  if (kind === 'aac') {
+    // 补 free box 之后必须**完全**相同，容不下任何浮动
+    if (new Set(sizes).size > 1) {
+      problems.push(`AAC 切片字节数出现 ${new Set(sizes).size} 个不同值，补齐未生效（会泄漏曲目身份）`)
+    }
+  } else if (spread > 4096) {
+    problems.push(`切片字节数跨度 ${spread}B 过大，CBR 可能未生效（会泄漏曲目身份）`)
+  }
 
-  // 3. 抽样确认没有残留 tag
+  // 3. 抽样确认没有残留 tag。
+  //    mp4 容器天然带 major_brand/handler_name 这类结构性 tag，与曲目无关，不算泄漏。
+  const structural = ['encoder', 'major_brand', 'minor_version', 'compatible_brands', 'handler_name', 'language']
   const sample = files.filter((_, i) => i % Math.max(1, Math.floor(files.length / 12)) === 0).slice(0, 12)
   for (const f of sample) {
     try {
       const info = await probe(f)
       const leaked = Object.entries(info.tags).filter(
-        ([k]) => !['encoder'].includes(k.toLowerCase()),
+        ([k]) => !structural.includes(k.toLowerCase()),
       )
       if (leaked.length > 0) {
         problems.push(`切片残留元数据 ${path.basename(f)}: ${JSON.stringify(Object.fromEntries(leaked))}`)
@@ -360,7 +446,7 @@ async function selfCheck(files: string[]): Promise<void> {
   }
 
   if (problems.length === 0) {
-    process.stdout.write(`  ✓ mtime 已统一 / CBR 生效 / 抽检 ${sample.length} 个切片无残留 tag\n`)
+    process.stdout.write(`  ✓ mtime 已统一 / 字节数已对齐 / 抽检 ${sample.length} 个切片无残留 tag\n`)
   } else {
     process.stdout.write(`  ✗ 自检未通过：\n`)
     for (const p of problems) process.stdout.write(`    - ${p}\n`)
@@ -442,8 +528,13 @@ async function stageManifest(args: Args): Promise<void> {
     return
   }
 
-  const { publicCount, sliceCount } = await writeManifests({ songs, tables, analyses, specs })
+  const { publicCount, sliceCount, aacFallback } = await writeManifests({ songs, tables, analyses, specs })
   process.stdout.write(`[manifest] public ${publicCount} 首 / private 含 ${sliceCount} 个切片映射\n`)
+  process.stdout.write(
+    aacFallback
+      ? `[manifest] AAC 兜底：已就位，服务端会给客户端下发 fallbackUrl\n`
+      : `[manifest] AAC 兜底：未生成（Safari 18.4 以前放不了 Ogg Opus；需要就跑 pnpm assets slice --with-aac-fallback）\n`,
+  )
 
   const problems = await assertPublicManifestClean()
   if (problems.length === 0) {

@@ -21,15 +21,18 @@ import {
   applyRound,
   cardsLeft,
   dealMatch,
+  pendingSends,
   pickNextReading,
   type KarutaConfig,
   type MatchState,
   type Reading,
+  type RoundResult,
   type SongRef,
   type Tap,
 } from '@scg/game-core'
 
 import type { Catalog } from '../catalog.js'
+import { coverUrl } from '../config.js'
 import { PlayerTiming } from './timing.js'
 
 const OPPONENT: Record<PlayerId, PlayerId> = { A: 'B', B: 'A' }
@@ -38,8 +41,10 @@ const OPPONENT: Record<PlayerId, PlayerId> = { A: 'B', B: 'A' }
 const ARM_TIMEOUT_MS = 5000
 /** 回合结束到下一回合的揭晓时间 */
 const REVEAL_MS = 2800
+/** 挑送り札的时限。到点回落到自动规则——慢或掉线的人只是失去挑选权，不会卡住整局 */
+const OKURI_TIMEOUT_MS = KARUTA_DEFAULTS.okuriSeconds * 1000
 /** 掉线宽限 */
-const DISCONNECT_GRACE_MS = 60_000
+const DISCONNECT_GRACE_MS = KARUTA_DEFAULTS.disconnectGraceSeconds * 1000
 
 export interface Connection {
   send(msg: ServerMsg): void
@@ -66,7 +71,16 @@ export function newRoomCode(): string {
   return out
 }
 
-type RoundPhase = 'idle' | 'arming' | 'counting' | 'open' | 'revealing'
+type RoundPhase = 'idle' | 'arming' | 'counting' | 'open' | 'choosing' | 'revealing'
+
+/** 等待挑送り札期间的暂存。回合已判完，只差「送哪张」 */
+interface OkuriWait {
+  roundNo: number
+  taps: Tap[]
+  needed: Map<PlayerId, number>
+  choices: Record<PlayerId, CardId[]>
+  submitted: Set<PlayerId>
+}
 
 /**
  * 一个 1v1 房间。
@@ -89,6 +103,8 @@ export class Room {
   private roundStartAt = 0
   private armedBy = new Set<PlayerId>()
   private taps = new Map<PlayerId, Tap & { arrivedAt: number; clamped: boolean }>()
+  /** 回合已判完、正在等人挑送り札 */
+  private okuriWait: OkuriWait | null = null
   /** 每局重新生成的 token → sliceId。客户端永远看不到 sliceId */
   private clipTokens = new Map<string, string>()
   private timers = new Set<NodeJS.Timeout>()
@@ -251,6 +267,30 @@ export class Room {
     }
   }
 
+  /**
+   * 重连后要恢复的一切：牌面 + 记忆倒计时 + 当前回合的截止时刻。
+   *
+   * 故意**不**补发 roundArm —— 重连的人没有本回合的 clipToken，也没听过音频，
+   * 让他等下一回合才是公平的。`round` 只用来告诉他「本回合还在进行，别急」。
+   */
+  syncMessage(you: PlayerId): ServerMsg {
+    const inFlight = this.roundPhase === 'counting' || this.roundPhase === 'open'
+    return {
+      t: 'stateSync',
+      match: this.matchView(you),
+      ...(inFlight && this.reading
+        ? {
+            round: {
+              roundNo: this.reading.roundNo,
+              endsAtServerTime:
+                this.roundStartAt + this.config.windowMs + KARUTA_DEFAULTS.graceSeconds * 1000,
+            },
+          }
+        : {}),
+      ...(this.state?.phase === 'memorize' ? { memorizeEndsAtServer: this.memorizeEndsAt } : {}),
+    }
+  }
+
   // ── 对局 ──────────────────────────────────────────────
 
   setReady(player: PlayerId, ready: boolean): void {
@@ -294,7 +334,7 @@ export class Room {
     if (!this.state || this.state.phase !== 'memorize') return
     try {
       this.state = applyLayout(this.state, player, order)
-      this.send(player, { t: 'stateSync', match: this.matchView(player) })
+      this.send(player, this.syncMessage(player))
     } catch {
       this.send(player, { t: 'error', code: 'bad_state', message: '布局无效' })
     }
@@ -305,7 +345,7 @@ export class Room {
     if (!seat || !this.state || this.state.phase !== 'memorize') return
     seat.ready = true
     // 必须广播，否则先点完的人不知道自己在等谁
-    this.broadcastMatch((p) => ({ t: 'stateSync', match: this.matchView(p) }))
+    this.broadcastMatch((p) => this.syncMessage(p))
     if ((['A', 'B'] as const).every((p) => this.seats[p]?.ready)) {
       this.clearTimers()
       this.beginPlaying()
@@ -333,6 +373,7 @@ export class Room {
     this.state = { ...state, usedSlices: { ...state.usedSlices, [picked.reading.songId]: picked.usedSlices } }
     this.taps.clear()
     this.armedBy.clear()
+    this.okuriWait = null
     this.roundPhase = 'arming'
 
     const sliceId = this.catalog.sliceIdFor(picked.reading.songId, picked.reading.sliceIndex)
@@ -340,11 +381,14 @@ export class Room {
     const token = randomBytes(16).toString('hex')
     this.clipTokens.set(token, sliceId)
 
+    const url = `/api/room/${this.code}/clip/${token}`
     this.broadcast({
       t: 'roundArm',
       roundNo: picked.reading.roundNo,
       clipToken: token,
-      url: `/api/room/${this.code}/clip/${token}`,
+      url,
+      // 只在真有 AAC 副本时才报，否则老 Safari 会拿到 404 而不是声音
+      ...(this.catalog.aacFallback ? { fallbackUrl: `${url}.m4a` } : {}),
     })
 
     // 到点无论如何都开始 —— 从不发 clipReady 的客户端照样过回合
@@ -421,12 +465,19 @@ export class Room {
     }
   }
 
+  /**
+   * 回合判定。
+   *
+   * 若有人要挑送り札，就先把答案揭晓、进 `choosing` 等他挑（或超时），再由 `finishRound` 定案。
+   * 判定是纯函数，所以「先跑一遍问人、带着答案重跑一遍」两次的胜负与判定完全一致，
+   * 玩家看到的揭晓不会和最终结果对不上。
+   */
   private resolveRound(): void {
     const state = this.state
     const reading = this.reading
-    if (!state || !reading || this.roundPhase === 'revealing') return
+    if (!state || !reading) return
+    if (this.roundPhase === 'revealing' || this.roundPhase === 'choosing') return
     this.clearTimers()
-    this.roundPhase = 'revealing'
 
     const taps: Tap[] = [...this.taps.values()].map((t) => ({
       player: t.player,
@@ -434,7 +485,89 @@ export class Room {
       reactionMs: t.reactionMs,
     }))
 
-    const result = adjudicate(state, reading, taps, this.config)
+    const provisional = adjudicate(state, reading, taps, this.config)
+    // 掉线的人不问——问了也没人答，只会白等满 10 秒
+    const pending = pendingSends(provisional).filter((p) => this.seats[p.player]?.conn)
+
+    if (pending.length === 0) {
+      this.finishRound(taps, provisional)
+      return
+    }
+
+    this.roundPhase = 'choosing'
+    this.okuriWait = {
+      roundNo: reading.roundNo,
+      taps,
+      needed: new Map(pending.map((p) => [p.player, p.count])),
+      choices: { A: [], B: [] },
+      submitted: new Set(),
+    }
+
+    const song = this.catalog.byId.get(reading.songId)
+    this.broadcast({
+      t: 'roundReveal',
+      roundNo: reading.roundNo,
+      kind: reading.kind,
+      revealed: {
+        songId: reading.songId,
+        title: song?.title ?? '',
+        artist: song?.artist ?? '',
+        coverUrl: coverUrl(reading.songId),
+      },
+      taps: provisional.taps.map((t) => this.tapView(t)),
+      winner: provisional.winner,
+      takenCardId: provisional.transfers.find((t) => t.cause === 'take')?.cardId ?? null,
+      pending,
+      deadlineAtServer: Date.now() + OKURI_TIMEOUT_MS,
+    })
+
+    this.after(OKURI_TIMEOUT_MS, () => {
+      if (this.roundPhase === 'choosing') this.finishRound()
+    })
+  }
+
+  /** 玩家挑好了送り札。不合法的条目由规则引擎静默回落，这里只做形状校验 */
+  okuri(player: PlayerId, roundNo: number, cardIds: CardId[]): void {
+    const wait = this.okuriWait
+    if (!wait || wait.roundNo !== roundNo || this.roundPhase !== 'choosing') return
+    if (!wait.needed.has(player) || wait.submitted.has(player)) return
+
+    wait.choices[player] = cardIds.slice(0, wait.needed.get(player) ?? 0)
+    wait.submitted.add(player)
+    this.touch()
+
+    if ([...wait.needed.keys()].every((p) => wait.submitted.has(p))) {
+      this.clearTimers()
+      this.finishRound()
+    }
+  }
+
+  private tapView(t: { player: PlayerId; cardId: CardId; reactionMs: number; verdict: string }) {
+    return {
+      player: t.player,
+      cardId: t.cardId,
+      reactionMs: Math.round(t.reactionMs),
+      verdict: (this.taps.get(t.player)?.clamped ? 'clamped' : t.verdict) as TapVerdict,
+    }
+  }
+
+  /** 带上（可能存在的）送り札选择重跑判定并落库 */
+  private finishRound(taps?: Tap[], precomputed?: RoundResult): void {
+    const state = this.state
+    const reading = this.reading
+    if (!state || !reading || this.roundPhase === 'revealing') return
+    this.clearTimers()
+
+    const wait = this.okuriWait
+    const finalTaps =
+      taps ??
+      wait?.taps ??
+      [...this.taps.values()].map((t) => ({ player: t.player, cardId: t.cardId, reactionMs: t.reactionMs }))
+    const result =
+      precomputed ?? adjudicate(state, reading, finalTaps, this.config, wait?.choices ?? undefined)
+
+    this.okuriWait = null
+    this.roundPhase = 'revealing'
     this.state = applyRound(state, result)
 
     for (const t of result.taps) {
@@ -457,14 +590,9 @@ export class Room {
         songId: reading.songId,
         title: song?.title ?? '',
         artist: song?.artist ?? '',
-        coverUrl: `/cover/${reading.songId}.webp`,
+        coverUrl: coverUrl(reading.songId),
       },
-      taps: result.taps.map((t) => ({
-        player: t.player,
-        cardId: t.cardId,
-        reactionMs: Math.round(t.reactionMs),
-        verdict: (this.taps.get(t.player)?.clamped ? 'clamped' : t.verdict) as TapVerdict,
-      })),
+      taps: result.taps.map((t) => this.tapView(t)),
       winner: result.winner,
       transfers: result.transfers,
       cardsLeft: result.cardsLeft,
@@ -483,6 +611,7 @@ export class Room {
   private endMatch(reason: 'cleared' | 'forfeit' | 'disconnect'): void {
     this.clearTimers()
     this.roundPhase = 'idle'
+    this.okuriWait = null
     const state = this.state
     if (!state) return
     this.state = { ...state, phase: 'over' }

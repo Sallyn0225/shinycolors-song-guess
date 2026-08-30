@@ -16,6 +16,10 @@ export type CardState =
   | 'selected'
   /** 我已出手，判定未回 */
   | 'pending'
+  /** 我挑中要送给对手的牌 */
+  | 'sending'
+  /** 送り札可选的牌，等我挑 */
+  | 'sendable'
   /** 这张就是答案，且被取走了 */
   | 'answer'
   /** 这张是答案，但没人取到 */
@@ -56,6 +60,10 @@ export function KarutaCard({ card, kimariji, state, picks, disabled, enemy, onCl
       : 'border-[color:var(--color-line)] bg-panel hover:border-[color:var(--color-line-lit)]',
     selected: 'border-[#8ea2ff] bg-[rgba(142,162,255,.12)]',
     pending: 'border-[#8ea2ff] bg-[rgba(142,162,255,.14)] ring-2 ring-[#8ea2ff]/40',
+    // 送出去的牌用暖色，和「答案/失误」的红绿分开——这一步不是对错，是取舍
+    sending: 'border-[color:var(--color-houkago)] bg-[rgba(250,131,51,.18)] ring-2 ring-[color:var(--color-houkago)]/40',
+    sendable:
+      'border-[color:var(--color-houkago)]/45 bg-panel hover:border-[color:var(--color-houkago)] hover:bg-[rgba(250,131,51,.10)]',
     answer: 'border-[color:var(--color-correct)] bg-[rgba(61,220,151,.16)]',
     'answer-missed': 'border-dashed border-[color:var(--color-correct)] bg-[rgba(61,220,151,.07)]',
     mistake: 'border-[color:var(--color-wrong)] bg-[rgba(255,77,94,.14)]',

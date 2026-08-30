@@ -25,6 +25,7 @@ async function newSession(difficulty: 'easy' | 'hard' = 'hard') {
     answerSeconds: number
     optionCount: number
     replays: number
+    aacFallback: boolean
   }
 }
 
@@ -136,6 +137,37 @@ describe('音频下发', () => {
     // 全部切片都是硬 CBR，字节数完全相同——文件大小不携带任何曲目信息
     expect(res.rawPayload.length).toBe(151504)
     expect(res.headers['cache-control']).toBe('no-store')
+  })
+
+  // 老 Safari（18.4 以前）放不了 Ogg Opus，兜底走同名的 .m4a
+  it('AAC 兜底与主格式共用同一个 token', async () => {
+    const s = await newSession()
+    const q = await question(s.sessionId, 0)
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/clip/${s.sessionId}/${q.clipToken}.m4a`,
+    })
+    expect(typeof s.aacFallback).toBe('boolean')
+
+    if (s.aacFallback) {
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['content-type']).toBe('audio/mp4')
+      // 补过 free box，字节数同样完全一致
+      expect(res.rawPayload.length).toBe(208_000)
+      expect(res.headers['cache-control']).toBe('no-store')
+    } else {
+      // 没构建兜底时要干净地 404，而不是 500 —— 客户端只会退回主格式
+      expect(res.statusCode).toBe(404)
+    }
+  })
+
+  it('伪造 token 加上 .m4a 一样拿不到音频', async () => {
+    const s = await newSession()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/clip/${s.sessionId}/${'0'.repeat(32)}.m4a`,
+    })
+    expect(res.statusCode).toBe(404)
   })
 })
 

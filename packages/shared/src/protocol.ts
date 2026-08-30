@@ -81,15 +81,30 @@ export interface TransferView {
   cause: 'take' | 'okuri' | 'otetsuki'
 }
 
+/** 此刻才揭晓的答案 */
+export interface RevealView {
+  songId: string
+  title: string
+  artist: string
+  coverUrl: string
+}
+
 export interface RoundResultView {
   roundNo: number
   kind: 'field' | 'karafuda'
-  /** 此刻才揭晓答案 */
-  revealed: { songId: string; title: string; artist: string; coverUrl: string }
+  revealed: RevealView
   taps: TapView[]
   winner: PlayerId | null
   transfers: TransferView[]
   cardsLeft: Record<PlayerId, number>
+}
+
+/** 某一方要挑几张送り札、能从哪些牌里挑 */
+export interface OkuriPending {
+  player: PlayerId
+  count: number
+  /** 第一次选择时的可选集合。要送两张时后一张由展示层自行排除已选的 */
+  candidates: CardId[]
 }
 
 export interface MatchStats {
@@ -142,6 +157,15 @@ export const clientMsgSchema = z.discriminatedUnion('t', [
     /** 相对片段起播的反应时间。服务端会做交叉校验，不会照单全收 */
     reactionMs: z.number().finite(),
   }),
+  /**
+   * 本回合要送出的牌，按顺序。一回合可能要送两张（取敵陣 + 对手お手つき）。
+   * 不合法或不够数时服务端静默回落到自动规则，不会报错也不会卡住回合。
+   */
+  z.object({
+    t: z.literal('okuri'),
+    roundNo: z.number().int().nonnegative(),
+    cardIds: z.array(z.string().max(40)).max(4),
+  }),
   z.object({ t: z.literal('rematch'), agree: z.boolean() }),
 ])
 
@@ -161,17 +185,40 @@ export type ErrCode =
   | 'internal'
 
 export type ServerMsg =
-  | { t: 'welcome'; playerId: PlayerId; tServer: number; resumeToken: string }
+  /** `resumed` = 这次连接接管了原来的座位（带 resumeToken 重连成功），而不是新开一局 */
+  | { t: 'welcome'; playerId: PlayerId; tServer: number; resumeToken: string; resumed: boolean }
   | { t: 'pong'; seq: number; tClient: number; tServer: number }
   | { t: 'room'; room: RoomView }
   | { t: 'error'; code: ErrCode; message: string }
   | { t: 'matchStart'; match: MatchView; memorizeEndsAtServer: number }
-  /** 先发这条让客户端下载解码，**不含任何曲目信息** */
-  | { t: 'roundArm'; roundNo: number; clipToken: string; url: string }
+  /** 先发这条让客户端下载解码，**不含任何曲目信息**。`fallbackUrl` 是 AAC 兜底（老 Safari 放不了 Ogg Opus） */
+  | { t: 'roundArm'; roundNo: number; clipToken: string; url: string; fallbackUrl?: string }
   /** 双方都就绪后才定起播时刻，避免慢速下载的一方被不公平地开始 */
   | { t: 'roundStart'; roundNo: number; startAtServerTime: number; windowMs: number; deadlineMs: number }
+  /**
+   * 只在**有人要挑送り札**时才发：先把答案揭晓，再等人挑，最后才发 roundResult。
+   * 没有送札的回合直接发 roundResult，不走这条——少一次往返，节奏也不被打断。
+   */
+  | {
+      t: 'roundReveal'
+      roundNo: number
+      kind: 'field' | 'karafuda'
+      revealed: RevealView
+      taps: TapView[]
+      winner: PlayerId | null
+      /** 被取走的那张牌，用于在牌场上标出答案 */
+      takenCardId: CardId | null
+      pending: OkuriPending[]
+      deadlineAtServer: number
+    }
   | { t: 'roundResult'; result: RoundResultView; match: MatchView }
-  | { t: 'stateSync'; match: MatchView; round?: { roundNo: number; endsAtServerTime: number } }
+  | {
+      t: 'stateSync'
+      match: MatchView
+      round?: { roundNo: number; endsAtServerTime: number }
+      /** 记忆阶段重连时要拿回倒计时的终点 */
+      memorizeEndsAtServer?: number
+    }
   | { t: 'peer'; playerId: PlayerId; online: boolean; graceEndsAtServer?: number }
   /** 再战投票状态。要双方都同意才会重开，所以必须让人看到对方同意了没有 */
   | { t: 'rematchState'; votes: PlayerId[] }
