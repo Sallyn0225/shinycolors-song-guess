@@ -46,7 +46,7 @@ typography:
     letterSpacing: "0.08em"
   body:
     fontFamily: "'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', sans-serif"
-    fontSize: "calc(15 * var(--u))"
+    fontSize: "max(13px, calc(15 * var(--u)))"
     fontWeight: 400
     lineHeight: 1.7
     letterSpacing: "normal"
@@ -102,7 +102,7 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.none}"
     padding: "0 calc(24 * var(--u)) 0 calc(60 * var(--u))"
-    height: "max(60px, calc(112 * var(--u)))"
+    height: "max(60px, calc(96 * var(--u)))"   # 定高，不是 min-height；窄屏 max(56px, calc(74 * var(--u)))
   karuta-tile:
     backgroundColor: "{colors.surface-lit}"
     textColor: "{colors.ink}"
@@ -225,14 +225,23 @@ components:
 - **Display** (700, `calc(64 * var(--u))`, lh 1)：结算页的分数、房间码这类只出现一次的大数字。
 - **Headline** (700, `calc(36 * var(--u))`, ls 0.2em)：区块标题的 Jost 大写拉丁。窄屏降到 `25u` 且字距收到 0.14em。
 - **Title** (700, `calc(28 * var(--u))`, lh 1.22)：难度名、曲名。窄屏降到 `21u`。
-- **Body** (400, `calc(15 * var(--u))`, lh 1.7)：中文说明正文。
+- **Body** (400, `max(13px, calc(15 * var(--u)))`, lh 1.7)：中文说明正文。
 - **Label** (600, `max(11px, calc(10 * var(--u)))`, ls 0.3em)：片假名小标、统计项名。
+
+选项条上的曲名（`.sc-song`）是单独一档：桌面 `28u`，窄屏 `22u`。它不是 Title——
+Title 是 `28u` 没错，但曲名要跟着选项条的定高一起算，见下面 The Constant-Height Rule。
 
 ### Named Rules
 
-**The Floor Rule.** 最小的两级字号带**真 px 地板**：`--text-2xs` 是 `max(11px, calc(10 * var(--u)))`，
-`--text-xs` 是 `max(12px, calc(11 * var(--u)))`。只跟 `--u` 缩的话，低钳位下它们会掉到 7.8px / 8.6px——
-那不是风格，是读不出来。11px 是功能性文字的下限，12px 是正文的下限。
+**The Floor Rule.** 最小的**四级**字号带**真 px 地板**：`--text-2xs` 是 `max(11px, calc(10 * var(--u)))`，
+`--text-xs` 是 `max(12px, calc(11 * var(--u)))`，`--text-sm` 是 `max(12px, calc(13 * var(--u)))`，
+`--text-base` 是 `max(13px, calc(15 * var(--u)))`。只跟 `--u` 缩的话，低钳位下它们会掉到
+7.8px / 8.6px / 10.1px / 11.7px——那不是风格，是读不出来。
+11px 是功能性文字的下限，12px 是正文的下限。
+
+sm 与 base 的地板是后补的：桌面的 `--u` 改成同时看视口高之后（见 Layout），低钳位从
+「1123 以下的窄窗口」变成「1366×768 这类常见笔记本」的常态，而 `--text-sm` 承的是
+演唱者、难度说明这些**正文**。收紧密度不能收成读不出来。
 
 **The Kana-Over-Latin Rule.** 区块标题永远是两行：上排小号宽字距片假名，下排 Jost 大写拉丁，
 四角各一枚角标把整块框起来。角标是**实心深紫直角三角 + 一条与斜边平行的浅紫窄带**，
@@ -251,23 +260,43 @@ components:
 
 ## Layout
 
-**设计单位。** 官网全站不用 px 只用 vw，单一断点 767px（PC 稿宽 1440 / SP 稿宽 375）。
-直接照搬会让 2560 宽的屏上一切巨大化，所以钳制两端：
+**设计单位。** 官网全站不用 px 只用 vw，单一断点 767px（PC 稿宽 1440×900 / SP 稿宽 375）。
+直接照搬会让 2560 宽的屏上一切巨大化，所以钳制两端；桌面那一条还要**同时受视口高约束**：
 
 ```css
-:root { --u: clamp(0.78px, 0.0694444444vw, 1.16px); }          /* 1440 处恰为 1px */
+:root { --u: clamp(0.78px, min(0.0694444444vw, 0.1111111111vh), 1px); }   /* 1440×900 处恰为 1px */
 @media (max-width: 767px) { :root { --u: clamp(0.82px, 0.2666666667vw, 1.28px); } }
 ```
+
+`0.0694444444vw` 是 `视口宽 / 1440`，`0.1111111111vh` 是 `视口高 / 900`，取 `min()` 就是
+「把 1440×900 的稿等比装进当前视口」。只看宽的旧写法（上钳位 1.16）在 16:9 的屏上必然溢出：
+1920×1080 的视口是 1920×990，宽多 33% 而高只多 10%，按宽放大 16% 之后实测单人猜歌页
+doc 1150 > vp 990。上钳位收回 1 是因为 1440 就是 1:1 还原点，超过它等于让版面比参考稿还大。
+
+窄屏那条**不加 vh 项**：移动端浏览器地址栏收起会改变 `vh`，字号绑上去会在滚动时抖。
+代价是桌面拖动窗口高度会等比改变字号——这是横向早就有的语义在纵向的延伸，不是新行为。
+
+各档实测：1366×678 → 0.78（触底）、1440×810 → 0.9、1536×774 → 0.86、1920×990 → 1.0。
 
 Tailwind 的间距基数接到它上面（`--spacing: calc(4 * var(--u))`），整套间距与字号随视口等比缩放。
 断点对齐到 767/768（`--breakpoint-sm: 768px`），否则 `sm:` 类与 `--u` 的切换点会错开 128px，
 出现「尺寸已经按手机缩了、布局还没换」的夹层。
 
 **不走 `--u` 的三类值：** 触摸热区（真 px，`--u` 低钳位下会掉到 44px 以下）、
-发丝线（永远 1px）、最小两级字号（见上）。
+发丝线（永远 1px）、最小四级字号（见上）。
 
-**容器宽度。** 首页 `calc(1300 * var(--u))`，大厅 `calc(760 * var(--u))`，牌场 `calc(1000 * var(--u))`，
-结算卡 `calc(520 * var(--u))`。都是 `mx-auto` 居中。
+**容器宽度。** 四个命名 token，都是 `mx-auto` 居中：
+
+```css
+--page-main: calc(1120 * var(--u));    /* 首页 / 单人猜歌 / 结算 */
+--page-board: calc(1000 * var(--u));   /* 牌场 */
+--page-narrow: calc(760 * var(--u));   /* 大厅 / 房间 */
+--page-card: calc(520 * var(--u));     /* 牌场结算卡 */
+```
+
+`--page-main` 原来是 `1300u`，1440 宽下内容占 90.3%、两侧各只剩 70px（实测 gutter 4.9%），
+文字排到边没有落脚处。收到 `1120u` 后两侧留白 15%（1440）到 20.8%（1920）。
+再窄就不行——选项条是「整宽横条」的形状语汇，1366 档再收会短到失去这个语义。
 
 **窄屏重排，不是缩小。** 牌场在 768px 以下从 4 列改 3 列：牌宽从 ~81px 涨到 ~109px，
 曲名才放得下——4 列时 12 首里有 6~7 首会被截成「…」。
@@ -277,6 +306,23 @@ Tailwind 的间距基数接到它上面（`--spacing: calc(4 * var(--u))`），�
 
 **The Both-Territories Rule.** 牌场必须一屏装下。1536×1024 上实测 `doc == vp == 1024`，
 390×844 上自陣越过折线的牌为 0。抢牌只有几秒，滚动去找自己的牌等于没得玩。
+
+**The Constant-Height Rule.** 单人猜歌页的高度是**常量**：答题与揭晓两个状态、逐题之间都不许变。
+两处靠 `min-height` 撑的东西因此改成定高：
+
+- `.sc-bar` 桌面 `height: max(60px, calc(96 * var(--u)))`。原来是 `min-height: 112u`，
+  而条内文本块（曲名 `28u` × lh 1.22 × 最多两行 + 演唱者）≈ `92u`——一行曲名的条停在钳位上、
+  两行的被内容顶起来，高度取决于曲名长短。曲名从 `32u` 收到 `28u` 后两行也在 `96u` 之内。
+- `.sc-revealslot` 桌面 `height: calc(64 * var(--u))`，配合揭晓块曲名 `truncate`。
+  原来的 `min-height: 58u` 正好压在最高那一列（「正解」+「+N 速度 +M」）的边上，
+  曲名一折行必然撑高整页（窄屏实测 38u 的槽被顶到 88px）。
+
+窄屏两者都写回 `height: auto` + `min-height`——那里内容本来就要能换行。
+
+**The Safe-Center Rule.** 整屏内容用 `justify-content: safe center` 垂直居中（`.sc-vfit`），
+不用裸的 `center`。裸 `center` 在内容比容器高时把溢出**平均分到两端**，顶上那截跑到视口外
+且滚不回来（滚动条只能往下走），页面头部就此永远够不着。`safe` 在这种情况下自动退回 `flex-start`。
+窄屏显式退回顶端对齐：那里内容本来就比视口高，居中没有意义。
 
 **The Midline Rule.** 场区是 `grid-template-rows: 1fr auto 1fr`，光带落在几何中线上，
 与中央面板多高无关——这条线的全部意义就是「自陣与敵陣之间的那道界线」，不在中线上就是保住了形、丢掉了义。
@@ -365,10 +411,13 @@ active 归零。
 - **折痕**：判定结果以 `correct` / `wrong` 色在带上留下刻痕。
 - **实现**：单个 rAF 循环直写 `style.clipPath` 与 canvas 像素，**绝不每帧 setState**
   （React 18 并发调度会批处理，表现是「有时候没反应」）。带 `role="progressbar"` 与节流的 `aria-valuenow`。
-- **高度跟着频谱走**：频谱带 112u（`mirror` 120u）是柱子的动态范围上限，
+- **高度跟着频谱走**：频谱带（`mirror` 120u）是柱子的动态范围上限，
   但光带线本身是 `bottom: 0`。首页与大厅传 `spectrum={false}`，柱子永远不长出来，
-  那 112u 就整条变成光带上方的空白（实测 139px，Hero 因此看着像浮在左上角）——
+  那一整段就变成光带上方的空白（112u 时实测 139px，Hero 因此看着像浮在左上角）——
   没有频谱时只占光带自己的 3px。`mirror` 不参与这个判断：牌场的光带必须落在场区几何中线上。
+  频谱那一支的**具体高度**由 `.sc-rail-spectrum` 给（桌面 88u / 窄屏 112u），不写在组件里：
+  它是单人猜歌页纵向预算里最大的一块非内容区，要能按断点分档。88u 在 1440 档仍有 79px 峰高，
+  不会退回「摊成栅栏」的老问题。
 
 ### 歌牌 KarutaTile（签名组件）
 

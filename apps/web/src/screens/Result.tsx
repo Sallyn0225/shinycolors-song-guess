@@ -58,7 +58,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   return (
     <main
       className="mx-auto w-full px-6 py-14 sm:px-10"
-      style={{ maxWidth: 'calc(1300 * var(--u))' }}
+      style={{ maxWidth: 'var(--page-main)' }}
     >
       <header className="anim-appear">
         <SectionTitle kana="リザルト" latin={`Result · ${preset.label}`} size="md" />
@@ -202,14 +202,27 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         })}
       </ol>
 
-      <div className="mt-10 flex flex-wrap items-center gap-4 pb-12">
-        <Button variant="primary" size="lg" onClick={onReplay}>
-          再来一局
-          <Icon name="replay" size="calc(17 * var(--u))" />
-        </Button>
-        <Button variant="ghost" size="lg" onClick={onHome}>
-          换个难度
-        </Button>
+      {/*
+        窄屏两个按钮各占半行。原来是 flex-wrap 的自然宽度，实测 375 下两条加 gap 要 333px
+        而行宽只有 327 —— 每个移动宽度都只差 ~7px 就换行（390 差 6.6、414 差 6.7）。
+        单靠收 gap 能挤进去，但只富余 2px，换个回退字体或多一个字就又断，不算修好。
+
+        各占一半之后边缘与页面上其余整宽元素对齐，也就是窄屏本来的语汇。
+        代价是 lg 的 px-10（40px）在半行里放不下「再来一局 + 图标」（内容 91px，
+        半行 155px），所以窄屏收到 px-4；桌面保持 px-10 与自然宽度不变。
+      */}
+      <div className="mt-10 flex items-stretch gap-4 pb-12">
+        <div className="min-w-0 flex-1 sm:flex-none">
+          <Button variant="primary" size="lg" full className="max-sm:px-4" onClick={onReplay}>
+            再来一局
+            <Icon name="replay" size="calc(17 * var(--u))" />
+          </Button>
+        </div>
+        <div className="min-w-0 flex-1 sm:flex-none">
+          <Button variant="ghost" size="lg" full className="max-sm:px-4" onClick={onHome}>
+            换个难度
+          </Button>
+        </div>
       </div>
     </main>
   )

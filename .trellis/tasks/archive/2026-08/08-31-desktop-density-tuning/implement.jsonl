@@ -1,0 +1,5 @@
+{"file": "DESIGN.md", "reason": "The visual language of record: --u scale, container widths, typography hierarchy, OptionBar tokens. Every number this task changes is written down here and must stay consistent."}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "Package map for apps/web and the hard rule that audio.ts / net/ws.ts / api.ts / features/* must not be touched during UI work."}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "Owns the --u sizing rules, the clip-path traps, contrast rules, and the layer-boundary verification command."}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "Shape primitives and styling conventions; needed before changing .sc-* sizing classes or PrismRail's height branch."}
+{"file": "PRODUCT.md", "reason": "Product context for the surface being tuned; keeps density decisions tied to how the game is actually played."}

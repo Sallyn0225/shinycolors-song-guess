@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "The check must confirm the real-px floors (44px tap targets, 11px/12px text) still hold after --u is allowed to reach its low clamp more often."}
+{"file": "DESIGN.md", "reason": "Verify the shipped numbers match what DESIGN.md now claims; drift between the two is the failure mode this task is most likely to leave behind."}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "Confirms the four off-limits modules were not edited as a side effect."}

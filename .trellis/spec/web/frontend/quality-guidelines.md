@@ -121,20 +121,43 @@ and the DOM inspector shows correct text with a correct colour. `#root` carries
 
 ## Sizing: the `--u` design unit
 
-The reference site uses only `vw` with a single 767px breakpoint (PC canvas 1440, SP canvas 375).
-Copying that verbatim makes everything enormous on a 2560px display, so `--u` is clamped at
-both ends and equals exactly `1px` at 1440.
+The reference site uses only `vw` with a single 767px breakpoint (PC canvas 1440×900, SP canvas
+375). Copying that verbatim makes everything enormous on a 2560px display, so `--u` is clamped at
+both ends and equals exactly `1px` at 1440×900.
+
+**The desktop rule is constrained by viewport height as well as width:**
+
+```css
+:root { --u: clamp(0.78px, min(0.0694444444vw, 0.1111111111vh), 1px); }
+@media (max-width: 767px) { :root { --u: clamp(0.82px, 0.2666666667vw, 1.28px); } }
+```
+
+`vw/1440` and `vh/900` under `min()` is "fit the canvas into the viewport" — neither axis can
+overflow. Width alone is not enough: on 16:9 displays the viewport gains far more width than
+height, so a width-driven scale-up overflows vertically every time (1920×1080 measured
+`doc 1150 > vp 990` on the solo play screen). The upper clamp is `1px`, not more: 1440 is the
+1:1 reproduction point, and going past it means rendering larger than the canvas itself.
+
+The narrow rule deliberately has **no `vh` term** — mobile browsers change `vh` when the URL bar
+retracts, and type bound to it would jitter mid-scroll. The accepted desktop cost is that
+resizing the window height rescales type; that is the existing horizontal semantics extended.
 
 Tailwind's spacing base is wired to it (`--spacing: calc(4 * var(--u))`), so the whole
 spacing and type scale follows the viewport for free.
 
 **Do not put these through `--u`:**
 
-- **touch targets** — `min-height` uses real `px` (`max(60px, calc(108 * var(--u)))`);
+- **touch targets** — `min-height` uses real `px` (`max(60px, calc(96 * var(--u)))`);
   under the low clamp a `--u`-derived height drops below 44px
 - **hairlines** — always `1px`
+- **the four smallest type steps** — `--text-2xs` / `--text-xs` / `--text-sm` / `--text-base`
+  all carry real-px floors (11 / 12 / 12 / 13). The low clamp is routine on desktop now that
+  `--u` watches height (1366×768 sits on it), and `--text-sm` carries body copy.
 - Long Japanese titles and wide-tracked Latin headings need their own step-down under 767px;
   see the `.sc-title` / `.sc-song` / `.sc-figure` block in `index.css`.
+
+**Page widths are tokens, not literals:** `--page-main` (1120u), `--page-board` (1000u),
+`--page-narrow` (760u), `--page-card` (520u). Screens set `maxWidth: 'var(--page-main)'`.
 
 ---
 
@@ -224,18 +247,41 @@ over the rail instead (which is also what removes the stage-to-stage jump).
 
 ### Sizes derived only from `--u` have no floor
 
-Three separate failures from the same cause. `--text-2xs`/`--text-xs` at `10u`/`11u` drop to
-7.8px/8.6px at the low clamp. `Button` size `sm` at `32px` clears WCAG 2.5.8 (24px) but not
-2.5.5 (44px). A six-character room code at `0.3em` tracking measures **1.016em per glyph** —
-`68u` renders it 431px wide inside a 340px container and pushes the whole page 66px sideways.
+Four separate failures from the same cause. `--text-2xs`/`--text-xs` at `10u`/`11u` drop to
+7.8px/8.6px at the low clamp; `--text-sm`/`--text-base` at `13u`/`15u` drop to 10.1px/11.7px,
+and `--text-sm` is what artist names and difficulty blurbs are set in. `Button` size `sm` at
+`32px` clears WCAG 2.5.8 (24px) but not 2.5.5 (44px). A six-character room code at `0.3em`
+tracking measures **1.016em per glyph** — `68u` renders it 431px wide inside a 340px container
+and pushes the whole page 66px sideways.
 
 The fixes are all "clamp against something real, not just the unit":
 
 ```css
 --text-2xs: max(11px, calc(10 * var(--u)));   /* functional-text floor */
 --text-xs:  max(12px, calc(11 * var(--u)));   /* body floor */
+--text-sm:  max(12px, calc(13 * var(--u)));   /* body floor — artist names, blurbs */
+--text-base: max(13px, calc(15 * var(--u)));
 .sc-roomcode { font-size: min(calc(96 * var(--u)), 12.5vw); }  /* cap by viewport */
 ```
+
+The `sm`/`base` floors were added when the desktop `--u` started watching viewport height:
+that made the low clamp routine on ordinary laptops rather than a narrow-window edge case.
+Tightening density must not become shrinking body copy out of legibility.
+
+### Screen height is a budget; keep it constant
+
+A screen the player acts on under a clock has to be measurable, not eyeballed. Two rules:
+
+- **Never let content decide a repeated row's height.** `.sc-bar` and `.sc-revealslot` use
+  `height`, not `min-height`, on desktop, so a long song title cannot make one question's page
+  taller than the next one's. Narrow screens write `height: auto` back and keep `min-height`.
+- **Center with `safe center`.** Plain `justify-content: center` splits overflow across *both*
+  ends; the top of the page scrolls out of reach because scrollbars only travel downward.
+  `.sc-vfit` uses `safe center`, which falls back to `flex-start` the moment content overflows.
+
+`.trellis/tasks/08-31-desktop-density-tuning/measure.mjs` is the harness: it drives the real
+pages in Chrome across six viewports and reports `scrollHeight - innerHeight`, per-bar heights,
+gutter ratio and the px floors. Re-run it before claiming a layout change fits.
 
 For touch targets on plain text buttons, grow the box without moving the text, and do not
 reach for `::after` — these buttons usually sit inside a `clip-path` container that would

@@ -101,3 +101,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 5: 桌面端密度与版心收紧，结算页按钮并行
+<!-- trellis-session: v=2 fp=271d6de53f3dd80f -->
+
+**Date**: 2026-08-31
+**Task**: 桌面端密度与版心收紧，结算页按钮并行
+**Branch**: `feat/desktop-density-tuning`
+
+### Summary
+
+修掉电脑端两个问题：版心几乎顶满屏宽（1440 下内容占 90.3%），以及首页与单人猜歌页要下滚。根因是 --u 只看视口宽——稿是 1440x900，而 16:9 的屏视口宽多得远比高多，按宽取到 1.16 上钳位后纵向必然溢出。改成 min(vw/1440, vh/900) 且上钳位收回 1；窄屏不加 vh 项（地址栏收起会抖）。低钳位因此在桌面常态化，给 --text-sm/--text-base 补了真 px 地板（12/13px），因为 sm 承的是正文。版心收成四个命名 token，1300u -> --page-main 1120u。单人猜歌页高度改成常量：.sc-bar 与 .sc-revealslot 从 min-height 改定高、揭晓块曲名 truncate、频谱带下放到 .sc-rail-spectrum(88u)。收紧后内容装得下却仍顶着上边排，加 .sc-vfit 用 safe center 垂直居中（裸 center 会把顶部推出视口且滚不回来）。用 Puppeteer 建了六档视口的测量门（measure.mjs），四档桌面 Start 与 Play 的纵向溢出从 +145~+306 全部归零。基线测量还推翻了两条设计推导：桌面上揭晓并不会撑高页面、选项条也没有高度不齐，出问题的是窄屏——定高仍然做了，把巧合变成约束。另外把结算页的再来一局/换个难度在窄屏并成一行等宽。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a53f427` | feat(web): 桌面端收紧版心与密度，单人猜歌页高度恒定 |
+| `362c43b` | fix(web): 结算页两个收尾按钮在窄屏并成一行 |
+
+### Status
+
+[OK] **Completed**
