@@ -52,8 +52,15 @@ export type DrawOp =
       fit: 'cover' | 'contain'
       /** src 拿不到时改用它。表情正式素材还没做，靠这个兜底 */
       fallback?: string
+      /**
+       * 把不透明的像素整片换成这个颜色，alpha 原样保留。
+       * symbol 只存一份黑色原图，各处按需染色，不必为每个用色再存一个文件。
+       */
+      tint?: string
     }
   | { k: 'hole'; cx: number; cy: number; r: number }
+  /** 四角星／棱镜印记。全站唯一的装饰母题 */
+  | { k: 'mark'; cx: number; cy: number; r: number; color: string; lw: number }
   | { k: 'stamp'; cx: number; cy: number; r: number; main: string; ring: string; color: string; rotate: number }
   | { k: 'barcode'; x: number; y: number; w: number; h: number; seed: number; color: string }
   | { k: 'tick'; x: number; y: number; size: number; state: 'ok' | 'miss' | 'skip' }
@@ -206,8 +213,20 @@ export function collectImageRequests(ops: readonly DrawOp[]): ImageRequest[] {
 // 共用骨架
 // ─────────────────────────────────────────────────────────
 
+interface StubInfo {
+  date: Date
+  seed: number
+  /** 顶部方框里的类别：SOLO / VERSUS */
+  kind: string
+  /** 段位称号 */
+  verdict: string
+  /** 種別一行的值：难度名或「対戦」 */
+  category: string
+}
+
 /** 纸、边框、齿孔、存根、底栏 —— 两种战报完全共用的部分 */
-function pushFrame(ops: DrawOp[], date: Date, seed: number): void {
+function pushFrame(ops: DrawOp[], info: StubInfo): void {
+  const { seed } = info
   ops.push({ k: 'paper', w: CARD_W, h: CARD_H })
 
   // 主票双线边框：外粗内细，是票据印刷最省事也最有效的一个信号
@@ -220,35 +239,106 @@ function pushFrame(ops: DrawOp[], date: Date, seed: number): void {
     ops.push({ k: 'hole', cx: PERF_X, cy, r: 4.5 })
   }
 
-  pushStub(ops, date, seed)
+  pushStub(ops, info)
   pushFooter(ops, seed)
 }
 
-function pushStub(ops: DrawOp[], date: Date, seed: number): void {
-  const sx = STUB.x + STUB.w / 2
+const SL = STUB.x + 9 // 存根内容左边界
+const SR = STUB.x + STUB.w - 9 // 右边界
+const SX = STUB.x + STUB.w / 2 // 中线
 
-  ops.push({ k: 'text', x: sx, y: 58, text: 'BATTLE', font: latin(600, 11), color: INK, align: 'center', tracking: 2.4 })
-  ops.push({ k: 'text', x: sx, y: 74, text: 'REPORT', font: latin(600, 11), color: INK, align: 'center', tracking: 2.4 })
-  ops.push({ k: 'rule', x1: STUB.x + 8, y1: 88, x2: STUB.x + STUB.w - 8, y2: 88, color: INK, lw: 1 })
+/** 顶部那个描边方框标签 */
+function pushStubHead(ops: DrawOp[], kind: string): void {
+  ops.push({ k: 'rect', x: SL, y: 40, w: SR - SL, h: 24, stroke: INK, lw: 1 })
+  ops.push({
+    k: 'text',
+    x: SX,
+    y: 57,
+    text: kind,
+    font: latin(700, 11),
+    color: INK,
+    align: 'center',
+    tracking: 2.2,
+  })
+}
 
-  // 竖排片假名。存根上那一列是这个风格最认得出来的东西
-  ops.push({ k: 'vtext', x: sx, y: 132, text: 'バトルリポート', font: jp(700, 26), color: INK, step: 32 })
-
-  const infoTop = 400
-  const rows: [string, string][] = [
-    ['DATE', dateText(date)],
-    ['NO.', serialText(seed)],
-  ]
-  let y = infoTop
+/** 一组 label / value / 分隔线 */
+function pushStubRows(
+  ops: DrawOp[],
+  rows: readonly [string, string][],
+  top: number,
+  step: number,
+  size: number,
+): number {
+  let y = top
   for (const [k, v] of rows) {
-    ops.push({ k: 'text', x: STUB.x + 8, y, text: k, font: latin(600, 9), color: ACCENT, tracking: 1.6 })
-    ops.push({ k: 'text', x: STUB.x + 8, y: y + 18, text: v, font: latin(600, 12), color: INK })
-    ops.push({ k: 'rule', x1: STUB.x + 8, y1: y + 30, x2: STUB.x + STUB.w - 8, y2: y + 30, color: INK, lw: 0.7 })
-    y += 52
+    ops.push({ k: 'text', x: SL, y, text: k, font: latin(600, 10), color: ACCENT, tracking: 1.6 })
+    ops.push({ k: 'text', x: SL, y: y + size + 5, text: v, font: latin(600, size), color: INK })
+    ops.push({ k: 'rule', x1: SL, y1: y + size + 15, x2: SR, y2: y + size + 15, color: INK, lw: 0.7 })
+    y += step
   }
+  return y - step + size + 15
+}
 
-  // 存根底部的小 wordmark，竖排
-  ops.push({ k: 'vtext', x: sx, y: CARD_H - 210, text: '猜歌', font: jp(700, 20), color: ACCENT, step: 24 })
+/** 底部的竖排 wordmark 与三颗星 */
+function pushStubFoot(ops: DrawOp[], top: number): void {
+  ops.push({ k: 'vtext', x: SX, y: top, text: '猜歌', font: jp(700, 22), color: ACCENT, step: 26 })
+  for (let i = 0; i < 3; i++) {
+    ops.push({ k: 'mark', cx: SX + (i - 1) * 20, cy: top + 74, r: 6, color: ACCENT, lw: 1.2 })
+  }
+}
+
+/**
+ * 存根。版式取「克制」一路：不把主票的数字再列一遍，
+ * 中段交给 symbol，靠字号与节奏撑住整条，而不是靠信息密度。
+ *
+ * 纵向刻意排满：标题、symbol、判定、三行字段、wordmark、星标各占一段，
+ * 空白匀在段与段之间。原来的版本把空白堆在两处（标题下方、编号到底部），
+ * 同样的留白量看着就是「没排完」。
+ */
+function pushStub(ops: DrawOp[], info: StubInfo): void {
+  pushStubHead(ops, info.kind)
+
+  ops.push({ k: 'vtext', x: SX, y: 118, text: 'バトルリポート', font: jp(700, 29), color: INK, step: 35 })
+
+  // 官方 symbol，染成粉色。染色而不是备一份粉色图：这一份黑色原图
+  // 换个颜色还能用在别处，也不必为每个用色再存一个文件。
+  const s = 96
+  ops.push({
+    k: 'image',
+    x: SX - s / 2,
+    y: 372,
+    w: s,
+    h: s,
+    src: '/mark/shiny-symbol.png',
+    fit: 'contain',
+    tint: ACCENT,
+  })
+
+  ops.push({
+    k: 'text',
+    x: SX,
+    y: 514,
+    text: info.verdict,
+    font: jp(700, 18),
+    color: INK,
+    align: 'center',
+  })
+  ops.push({ k: 'rule', x1: SL, y1: 542, x2: SR, y2: 542, color: INK, lw: 1 })
+
+  pushStubRows(
+    ops,
+    [
+      ['DATE', dateText(info.date)],
+      ['NO.', serialText(info.seed)],
+      ['種別', info.category],
+    ],
+    582,
+    72,
+    16,
+  )
+
+  pushStubFoot(ops, 852)
 }
 
 function pushFooter(ops: DrawOp[], seed: number): void {
@@ -376,7 +466,16 @@ export function buildSoloTicket(input: SoloReportInput, m: Measure): DrawOp[] {
   const tier = soloTier(input.score, input.maxScore)
   const seed = barcodeSeed([idText(input.playerId), dateText(input.date), String(input.score), input.difficulty])
 
-  pushFrame(ops, input.date, seed)
+  pushFrame(
+    ops,
+    {
+      date: input.date,
+      seed,
+      kind: 'SOLO',
+      verdict: tier.title,
+      category: preset.label,
+    },
+  )
   pushHeader(ops, input.date)
   pushPlayer(ops, input.playerId, m)
   ops.push({ k: 'rule', x1: CX, y1: 158, x2: CR, y2: 158, color: INK, lw: 0.7 })
@@ -547,7 +646,16 @@ export function buildVersusTicket(input: VersusReportInput, m: Measure): DrawOp[
     String(input.rounds),
   ])
 
-  pushFrame(ops, input.date, seed)
+  pushFrame(
+    ops,
+    {
+      date: input.date,
+      seed,
+      kind: 'VERSUS',
+      verdict: tier.title,
+      category: '対戦',
+    },
+  )
   pushHeader(ops, input.date)
   pushPlayer(ops, input.playerId, m, input.foe.name)
   ops.push({ k: 'rule', x1: CX, y1: 158, x2: CR, y2: 158, color: INK, lw: 0.7 })

@@ -159,6 +159,8 @@ function drawOne(ctx: CanvasRenderingContext2D, op: DrawOp, images: ImageBag): v
       return paintImage(ctx, op, images)
     case 'hole':
       return paintHole(ctx, op)
+    case 'mark':
+      return paintMark(ctx, op)
     case 'stamp':
       return paintStamp(ctx, op)
     case 'barcode':
@@ -250,6 +252,35 @@ function paintVText(ctx: CanvasRenderingContext2D, op: Extract<DrawOp, { k: 'vte
   }
 }
 
+/**
+ * 染色版的图。用 `source-in` 把不透明像素整片换成目标色，alpha 原样留下 ——
+ * 逐像素改 RGB 会把边缘那圈半透明的抗锯齿像素一起改掉，图标缩小后边缘会发脏。
+ *
+ * 按「地址 + 颜色 + 尺寸」缓存：每次重画都重新合成一遍纯属浪费，
+ * 而改 ID 时整张票是要重画的。
+ */
+const tintCache = new Map<string, HTMLCanvasElement>()
+
+function tinted(img: HTMLImageElement, color: string, w: number, h: number): HTMLCanvasElement | null {
+  const key = `${img.src}|${color}|${w}x${h}`
+  const hit = tintCache.get(key)
+  if (hit) return hit
+
+  const cv = document.createElement('canvas')
+  cv.width = Math.max(1, Math.round(w * SCALE))
+  cv.height = Math.max(1, Math.round(h * SCALE))
+  const c = cv.getContext('2d')
+  if (!c) return null
+
+  c.drawImage(img, 0, 0, cv.width, cv.height)
+  c.globalCompositeOperation = 'source-in'
+  c.fillStyle = color
+  c.fillRect(0, 0, cv.width, cv.height)
+
+  tintCache.set(key, cv)
+  return cv
+}
+
 function paintImage(ctx: CanvasRenderingContext2D, op: Extract<DrawOp, { k: 'image' }>, images: ImageBag): void {
   const img = images.get(op.src)
   if (!img) return // 缺图就不画。破图比没图难看得多
@@ -261,7 +292,14 @@ function paintImage(ctx: CanvasRenderingContext2D, op: Extract<DrawOp, { k: 'ima
     const s = Math.min(op.w / iw, op.h / ih)
     const w = iw * s
     const h = ih * s
-    ctx.drawImage(img, op.x + (op.w - w) / 2, op.y + (op.h - h) / 2, w, h)
+    const x = op.x + (op.w - w) / 2
+    const y = op.y + (op.h - h) / 2
+    if (op.tint) {
+      const t = tinted(img, op.tint, w, h)
+      if (t) ctx.drawImage(t, x, y, w, h)
+      return
+    }
+    ctx.drawImage(img, x, y, w, h)
     return
   }
 
@@ -280,6 +318,26 @@ function paintHole(ctx: CanvasRenderingContext2D, op: Extract<DrawOp, { k: 'hole
   ctx.fill()
   ctx.strokeStyle = INK
   ctx.lineWidth = 0.8
+  ctx.stroke()
+}
+
+/**
+ * 四角星。四条边向内凹（控制点落在中心侧），得到的是尖角细长的棱镜星，
+ * 而不是一个方块转 45 度 —— 后者在这套视觉里是「牌」，不是「光」。
+ */
+function paintMark(ctx: CanvasRenderingContext2D, op: Extract<DrawOp, { k: 'mark' }>): void {
+  const { cx, cy, r } = op
+  const w = r * 0.3 // 腰宽：越小越尖
+  ctx.strokeStyle = op.color
+  ctx.lineWidth = op.lw
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(cx, cy - r)
+  ctx.quadraticCurveTo(cx + w, cy - w, cx + r, cy)
+  ctx.quadraticCurveTo(cx + w, cy + w, cx, cy + r)
+  ctx.quadraticCurveTo(cx - w, cy + w, cx - r, cy)
+  ctx.quadraticCurveTo(cx - w, cy - w, cx, cy - r)
+  ctx.closePath()
   ctx.stroke()
 }
 

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { emotePlaceholderSvg, soloTier, versusTier, SOLO_TIERS, type Outcome } from './grade'
+import {
+  emotePlaceholderSvg,
+  soloTier,
+  versusTier,
+  SOLO_TIERS,
+  VERSUS_TIERS,
+  type Outcome,
+} from './grade'
 
 describe('soloTier', () => {
   // 边界值是这种分段函数唯一会出错的地方：写 > 还是 >= 决定了满分算不算最高段
@@ -32,6 +39,18 @@ describe('soloTier', () => {
       expect(t.title.length).toBeGreaterThan(0)
       expect(t.blurb.length).toBeGreaterThan(0)
       expect(t.emote.length).toBeGreaterThan(0)
+    }
+  })
+
+  /*
+    称号会原样印在战报存根的「判定」一行，那条竖栏内容宽只有 122px，
+    18px 的中日文按每字约 18px 算，6 字就到顶。写长一点不会报错，
+    只会安静地顶进齿孔里去。印章的二字判定同理，超过 2 字画笔会自动换小字号。
+  */
+  it('称号不超过 6 字、印章判定不超过 3 字 —— 存根那条竖栏放不下更多', () => {
+    for (const t of [...SOLO_TIERS, ...VERSUS_TIERS]) {
+      expect([...t.title].length, `称号「${t.title}」太长`).toBeLessThanOrEqual(6)
+      expect([...t.stamp].length, `印章「${t.stamp}」太长`).toBeLessThanOrEqual(3)
     }
   })
 })
