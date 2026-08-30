@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  DIFFICULTY_PRESETS,
   KARUTA_DEFAULTS,
   type CardId,
   type CardView,
@@ -37,7 +36,12 @@ type Stage = 'memorize' | 'waiting' | 'live' | 'choosing' | 'reveal' | 'over'
 type RevealMsg = Extract<ServerMsg, { t: 'roundReveal' }>
 
 const OTHER: Record<PlayerId, PlayerId> = { A: 'B', B: 'A' }
-const CLIP_SECONDS = DIFFICULTY_PRESETS[KARUTA_DEFAULTS.difficulty].clipSeconds
+/**
+ * 联机每回合的音频长度 = 抢牌窗口，与服务端判定窗口读同一个常量。
+ * 不要改回 DIFFICULTY_PRESETS[...].clipSeconds —— 那是单机答题的旋钮，
+ * 借用它会让「调单机片段长度」意外改掉联机节奏，且与服务端的 windowMs 脱钩
+ */
+const ROUND_SECONDS = KARUTA_DEFAULTS.roundWindowSeconds
 
 export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: Props) {
   const [match, setMatch] = useState<MatchView | null>(initialMatch)
@@ -129,7 +133,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     }
     if (st !== 'live') return 0
     const left = roundEndsAt.current - performance.now()
-    return Math.max(0, Math.min(1, left / (CLIP_SECONDS * 1000)))
+    return Math.max(0, Math.min(1, left / (ROUND_SECONDS * 1000)))
   }, [])
 
   /*
@@ -193,10 +197,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           // 双方按同步过的时钟换算出同一个起播时刻，
           // 这样比较「相对起播的反应时间」才有意义
           const startLocal = socket.toLocalTime(msg.startAtServerTime)
-          roundEndsAt.current = performance.now() + (startLocal - Date.now()) + CLIP_SECONDS * 1000
+          roundEndsAt.current = performance.now() + (startLocal - Date.now()) + ROUND_SECONDS * 1000
           const at = audio.ctxTimeFor(startLocal)
           void audio
-            .play(a.token, a.url, CLIP_SECONDS, at, a.fallbackUrl)
+            .play(a.token, a.url, ROUND_SECONDS, at, a.fallbackUrl)
             .then(({ startedAtCtxTime }) => {
               startedAtCtx.current = startedAtCtxTime
             })
@@ -614,8 +618,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
               {/*
                 「聴」与秒数并排成一个横向锁定组，不是上下两行 ——
                 面板一高就把镜像的频谱挡掉，一宽就盖住光带收拢的终点。
-                6 秒的窗口只可能是一位数，整组仍在原来的 132u 里。
-                warnAt 给 2 而不是默认的 3：6 秒里报警 3 秒就是半个窗口都在喊。
+                个位数秒的窗口读数只占一位，整组仍在原来的 132u 里；
+                窗口若调到两位数秒，这里要重新量宽度。
+                warnAt 给 2 而不是默认的 3：末段警示超过窗口的四分之一就一直在喊。
               */}
               <div
                 className="flex items-baseline justify-center"
@@ -629,7 +634,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 </span>
                 <Countdown
                   getMsLeft={getLiveMsLeft}
-                  totalSeconds={CLIP_SECONDS}
+                  totalSeconds={ROUND_SECONDS}
                   warnAt={2}
                   size={40}
                   label="本札剩余时间"
@@ -823,7 +828,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
             label={
               stage === 'choosing'
                 ? `自动送出前剩余时间，共 ${KARUTA_DEFAULTS.okuriSeconds} 秒`
-                : `本札剩余时间，共 ${CLIP_SECONDS} 秒`
+                : `本札剩余时间，共 ${ROUND_SECONDS} 秒`
             }
           />
         </div>

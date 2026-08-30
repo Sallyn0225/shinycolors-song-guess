@@ -1,7 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 
 import {
-  DIFFICULTY_PRESETS,
   KARUTA_DEFAULTS,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,

@@ -203,10 +203,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     })
   }
 
-  app.get('/api/karuta/rules', async () => ({
-    ...KARUTA_DEFAULTS,
-    roundWindowSeconds: DIFFICULTY_PRESETS[KARUTA_DEFAULTS.difficulty].clipSeconds,
-  }))
+  // 原样透传。曾经在这里用 hard.clipSeconds 覆盖 roundWindowSeconds，
+  // 等于把「联机窗口独立于单机片段长度」的解耦又绑了回去——调联机窗口改不动接口返回值
+  app.get('/api/karuta/rules', async () => KARUTA_DEFAULTS)
 
   app.get('/api/difficulties', async () =>
     DIFFICULTIES.map((d) => ({ ...DIFFICULTY_PRESETS[d] })),

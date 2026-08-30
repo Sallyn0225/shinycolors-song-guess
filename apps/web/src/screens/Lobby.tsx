@@ -174,7 +174,8 @@ export function Lobby({ onBack }: Props) {
           borderBottom: '1px solid var(--color-divider)',
         }}
       >
-        <Stat label="每回合" value={`${preset.clipSeconds}s`} />
+        {/* 联机的每回合读 roundWindowSeconds，不是单机的 preset.clipSeconds */}
+        <Stat label="每回合" value={`${KARUTA_DEFAULTS.roundWindowSeconds}s`} />
         <Stat label="记忆时间" value={`${KARUTA_DEFAULTS.memorizeSeconds}s`} />
         <Stat label="难度" value={preset.label} />
       </dl>

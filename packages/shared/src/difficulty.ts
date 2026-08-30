@@ -80,7 +80,10 @@ export const REPLAY_PAUSES_TIMER = false
 
 /** 联机「空札领地战」的默认参数 */
 export const KARUTA_DEFAULTS = {
-  /** 联机默认用困难难度：歌牌本来就是抢反应的竞技，片段短才有张力 */
+  /**
+   * 联机标称的难度档，只用于大厅展示与选曲口径；
+   * 联机的节奏由下面的 roundWindowSeconds 决定，不读这一档的 clipSeconds
+   */
   difficulty: 'hard' as Difficulty,
   /** 本局从曲库抽多少首（受易混淆组约束：同组最多取 1 首） */
   poolSize: 30,
@@ -93,11 +96,16 @@ export const KARUTA_DEFAULTS = {
   /** 记忆阶段时长（秒），可自由摆放自陣牌 */
   memorizeSeconds: 30,
   /**
-   * 每回合音频窗口（秒）。
+   * 每回合音频窗口（秒）。同时是播放长度和抢牌时限——联机只有这一个旋钮，
+   * 前端播多久、服务端判多久都读它。
+   *
    * 独立于单机的 clipSeconds —— 抢牌的节奏和单人答题的节奏是两个不同的旋钮，
    * 绑在一起会导致调其中一个就意外改动另一个。
+   *
+   * 从 6 秒放宽到 8：6 秒里要同时完成「认出曲子」和「在自陣/敵陣里找到那张牌」
+   * 两件事，比单机的四选一更吃时间，实测偏紧。
    */
-  roundWindowSeconds: 6,
+  roundWindowSeconds: 8,
   /** 窗口结束后的宽限（秒），到点服务器用手上有的输入结算，永不等待客户端 */
   graceSeconds: 2,
   /**

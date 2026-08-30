@@ -19,10 +19,10 @@ const OKURI_TIMEOUT_MS = KARUTA_DEFAULTS.okuriSeconds * 1000
 const DISCONNECT_GRACE_MS = KARUTA_DEFAULTS.disconnectGraceSeconds * 1000
 
 // apps/web/src/screens/Karuta.tsx
-const CLIP_SECONDS = DIFFICULTY_PRESETS[KARUTA_DEFAULTS.difficulty].clipSeconds
+const ROUND_SECONDS = KARUTA_DEFAULTS.roundWindowSeconds
 
 // apps/server/src/app.ts — /api/karuta/rules just spreads the object out to the client
-app.get('/api/karuta/rules', async () => ({ ...KARUTA_DEFAULTS, roundWindowSeconds: ... }))
+app.get('/api/karuta/rules', async () => KARUTA_DEFAULTS)
 ```
 
 The seconds → milliseconds conversion happens at the consumer. The constants are declared
@@ -37,11 +37,25 @@ they are dials worth turning.
 
 ## Knobs that look duplicated and are not
 
-`DIFFICULTY_PRESETS.hard.clipSeconds` (6s) and `KARUTA_DEFAULTS.roundWindowSeconds` (6s)
-are the same number today and must stay separate variables. One is the pace of answering a
-solo question, the other is the pace of racing for a card. Binding them together means
-tuning either one silently changes the other game mode. The comment in `difficulty.ts` says
-this; do not "simplify" it away.
+`DIFFICULTY_PRESETS.hard.clipSeconds` (6s) and `KARUTA_DEFAULTS.roundWindowSeconds` (8s)
+are separate variables on purpose. One is the pace of answering a solo question, the other
+is the pace of racing for a card. Binding them together means tuning either one silently
+changes the other game mode. The comment in `difficulty.ts` says this; do not "simplify"
+it away.
+
+They were the same number (6s) for a while, and three consumers quietly re-derived the
+online window from `hard.clipSeconds` anyway — `Karuta.tsx`'s `CLIP_SECONDS`, `Lobby.tsx`'s
+"每回合" stat, and the `roundWindowSeconds` override in `/api/karuta/rules`. Nothing failed,
+because both numbers were 6. The coupling only surfaced when the online window moved to 8s:
+the client would have played and counted down 6s while the server judged against an 8s
+`windowMs`. Equal values hide a wrong reference — when two knobs are documented as
+independent, check that every consumer actually reads the one it means, not the one that
+happens to hold the same number.
+
+**Online mode reads exactly one knob for round pacing:** `KARUTA_DEFAULTS.roundWindowSeconds`.
+It is simultaneously the playback length, the client countdown and the server's `windowMs`.
+`KARUTA_DEFAULTS.difficulty` is a display label and song-selection setting; its
+`clipSeconds` is not part of online pacing.
 
 Same shape of reasoning elsewhere in the file:
 
@@ -51,6 +65,9 @@ Same shape of reasoning elsewhere in the file:
 - `hard.clipSeconds` is 6, not 4 or 5. Below ~5 seconds music identification stops testing
   memory and starts testing luck; the difficulty gradient comes from question count, time
   limit, replay budget, distractor strategy and slice position instead.
+- `roundWindowSeconds` is 8, wider than `hard.clipSeconds`, because an online round asks for
+  two things inside one window — identify the song *and* find the matching card on the
+  board — where a solo question only asks for a pick among four printed options.
 - `REPLAY_PAUSES_TIMER = false` makes a replay cost real time. That is what stops
   "just replay twice every question" from being the dominant strategy, and it is why
   `SCORING.replayPenalty` only needs to be 10.
