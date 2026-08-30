@@ -43,11 +43,25 @@
 
 `Start` 的三段（是什么 / 怎么开始 / 音量设定）在目标视口内一屏读完。
 
+### R6 结算页的两个收尾按钮在窄屏并成一行（追加需求）
+
+用户在桌面端的两条反馈交付后追加：移动端结算页的「再来一局」与「换个难度」是上下两行，
+应该并成一行，左「再来一局」右「换个难度」。
+
+实测三档移动宽度都只差约 7px 就能放下（375 需 333px / 行宽 327，390 需 346.6 / 340，
+414 需 367.7 / 361）。仅收 `gap` 能挤进去但只富余 2px，字体回退或多一个字就又断，不算修好。
+做法是窄屏两个按钮各占半行，同时把 `lg` 的 `px-10`(40px) 在窄屏收到 `px-4`——
+半行只有 155px，而「再来一局 + 图标」的内容本身就要 91px。桌面维持自然宽度与 `px-10` 不变。
+
+这一条**放宽了 R5 的第三点**：移动端本轮不再是「一律不动」，而是「不得回退」。
+本次改动只影响 `Result` 的收尾按钮行，不涉及任何窄屏尺寸 token。
+
 ### R5 不碰的东西
 
 - `src/audio.ts`、`src/net/ws.ts`、`src/api.ts`、`src/features/*` 一行都不改（见 `.trellis/spec/web/frontend/index.md` 的「The one rule that overrides taste」）。
 - 不改任何 UI 文案、不改交互流程、不新增或删除任何屏上元素。
-- 移动端（`max-width: 767px`）的观感不得回退。
+- 移动端（`max-width: 767px`）的观感不得回退。尺寸 token 一律不动；R6 是唯一的例外，
+  且只落在 `Result` 的收尾按钮行上。
 
 ## Acceptance Criteria
 
@@ -61,6 +75,7 @@
 - [x] AC6：`.tap-line`、`Button` 各 variant 的可点区域仍 ≥ 44px；`--text-2xs` / `--text-xs` 的计算值仍 ≥ 11px / 12px。
 - [x] AC7：`pnpm -r typecheck`、`pnpm -r test`（含 `apps/web` 的 21 个与 `apps/server` 的 72 个）、`pnpm --filter @scg/web build` 全绿；`git diff --exit-code -- apps/web/src/api.ts apps/web/src/audio.ts apps/web/src/net apps/web/src/features` 无输出。
 - [x] AC8：`DESIGN.md` 的 Layout / Typography / OptionBar 三节与新尺度一致，`.trellis/spec/web/frontend/quality-guidelines.md` 的 `--u` 段落同步更新。
+- [x] AC9（R6）：375 / 390 / 414 三档移动视口下，`Result` 的「再来一局」与「换个难度」在同一行且等宽；1440 档桌面维持原有的自然宽度与左对齐。
 
 所有 AC 由 `measure.mjs` 的 `after.json` / `after-nofonts.json` 裁定，逐条证据：
 
@@ -74,6 +89,7 @@
 | AC6 | `minTap` 恒为 44；`text2xs` 11、`textXs` 12 |
 | AC7 | typecheck / 72 tests / build 全绿；层边界 `git diff --exit-code` 无输出 |
 | AC8 | `DESIGN.md` + `quality-guidelines.md` + `component-guidelines.md` 已同步 |
+| AC9 | 375 / 390 / 414 三档实测两按钮 `top` 相同且等宽（156/156、162/162、172/172）；1440 档仍是 154/131 的自然宽度、同一行 |
 
 字体回退（`--no-fonts`，拦掉 Google Fonts 与所有 woff2）单独跑过一轮，桌面四档结果与
 正常加载完全一致——`.sc-bar` 定高没有被回退字体的行高撑破。
