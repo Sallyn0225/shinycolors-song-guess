@@ -329,6 +329,20 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   const myOkuri = reveal?.pending.find((p) => p.player === me) ?? null
   const okuriDone = myOkuri !== null && okuriPicks.length >= myOkuri.count
 
+  /**
+   * 本回合谁 お手つき 了，各自点错的是哪张。
+   *
+   * 判罚在 game-core：`sendOne(OPPONENT[p], p, 'otetsuki')` —— 犯错方的**对手**
+   * 从自陣挑一张送给犯错方。所以犯错的人这 10 秒里是干等着挨罚的一方，
+   * 界面上却什么都没说：不标那张点错的牌，也不出现「お手つき」四个字。
+   * 空札占 24 回合里的 6 回合，是这局的核心惩罚 —— 罚下来的当下必须说清楚。
+   */
+  const faults = (reveal?.taps ?? []).filter(
+    (t) => t.verdict === 'wrong' || t.verdict === 'otetsuki_karafuda' || t.verdict === 'too_early',
+  )
+  const myFault = faults.find((t) => t.player === me) ?? null
+  const foeFault = faults.find((t) => t.player !== me) ?? null
+
   const chooseOkuri = (cardId: CardId) => {
     if (!reveal || !myOkuri || okuriSent.current) return
     if (!myOkuri.candidates.includes(cardId) || okuriPicks.includes(cardId)) return
@@ -407,6 +421,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
       if (!enemy && okuriPicks.includes(cardId)) return 'sending'
       // 还没挑够就把可选的牌都点亮，否则玩家不知道该点哪里
       if (!enemy && myOkuri && !okuriDone && myOkuri.candidates.includes(cardId)) return 'sendable'
+      // 点错的那张也要在这一刻就标出来。等到 reveal 才标的话，
+      // 挨罚的这 10 秒里玩家根本不知道自己错在哪张牌上
+      if (faults.some((t) => t.cardId === cardId)) return 'mistake'
       return 'idle'
     }
 
@@ -534,10 +551,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   const foeReceded = stage === 'choosing' && !!myOkuri && !okuriDone
 
   /**
-   * 中央信息面板。抽成变量是为了两种摆法共用同一段内容：
-   *   live  —— 压在光带上（面板只有一个「聴」那么宽，光带仍读得出来）
-   *   其余  —— 走正常流排在光带上方
-   * 之前它是相对「場」这一段做 absolute 定位的，而那一段的高度随两侧牌阵行数变化
+   * 中央信息面板。四个阶段共用同一处摆法：浮在光带正中（见 .sc-panelrow）。
+   * live 的 6 秒里它收窄到只剩一个「聴」，好让收拢中的光带仍读得出来。
+   *
+   * 它曾经是相对「場」这一段做 absolute 定位的，而那一段的高度随两侧牌阵行数变化
    *（お手つき / 送り札 会让一方涨到 22 格），牌数一悬殊面板就漂出去压进敵陣。
    */
   const infoPanel = (
@@ -631,24 +648,48 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 <span className="jp-wrap text-sm font-bold text-ink">{revealed.title}</span>
               </div>
 
-              {stage === 'choosing' &&
-                reveal &&
-                (myOkuri && !okuriDone ? (
-                  <>
-                    <p className="mt-1 text-base font-bold text-rose-ink">送り札を選ぶ</p>
-                    <p className="text-xs text-ink-sub">
-                      从自陣挑 {myOkuri.count} 张送给对手
-                      {myOkuri.count > 1 && `（已选 ${okuriPicks.length}/${myOkuri.count}）`}
-                      {' —— '}把最难记的那张丢过去
-                    </p>
-                  </>
-                ) : myOkuri ? (
-                  <p className="mt-1 text-xs text-ink-sub">已送出，等待对手…</p>
-                ) : (
-                  <p className="mt-1 text-xs text-ink-sub">
-                    {names[reveal.pending[0]?.player ?? foe]} 正在挑送り札…
+              {/*
+                挑送り札的这 10 秒也是一次胜负反馈，同样要进 live region ——
+                否则读屏用户在整个惩罚窗口里听不到任何东西，
+                等到 reveal 时牌已经易主了。
+              */}
+              <div role="status" aria-live="polite">
+                {/* 我这一手是 お手つき —— 罚下来的当下就要说，不能拖到 10 秒后的 reveal */}
+                {stage === 'choosing' && myFault && (
+                  <p className="mt-1 text-base font-bold text-wrong">
+                    お手つき
+                    <span className="ml-2 text-xs font-normal text-ink-sub">
+                      {myFault.verdict === 'too_early'
+                        ? '抢跑了'
+                        : myFault.verdict === 'otetsuki_karafuda'
+                          ? '这首是空札，场上没有对应的牌'
+                          : '点错了牌'}
+                    </span>
                   </p>
-                ))}
+                )}
+
+                {stage === 'choosing' &&
+                  reveal &&
+                  (myOkuri && !okuriDone ? (
+                    <>
+                      <p className="mt-1 text-base font-bold text-rose-ink">送り札を選ぶ</p>
+                      <p className="text-xs text-ink-sub">
+                        {/* 为什么轮到我挑：是「对手挨罚」还是「我取了敵陣」—— 性质不同 */}
+                        {foeFault ? `${names[foe]} お手つき，` : ''}
+                        从自陣挑 {myOkuri.count} 张送给对手
+                        {myOkuri.count > 1 && `（已选 ${okuriPicks.length}/${myOkuri.count}）`}
+                        {' —— '}把最难记的那张丢过去
+                      </p>
+                    </>
+                  ) : myOkuri ? (
+                    <p className="mt-1 text-xs text-ink-sub">已送出，等待对手…</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-ink-sub">
+                      {names[reveal.pending[0]?.player ?? foe]} 正在挑
+                      {myFault ? '要罚给你的那张牌' : '送り札'}…
+                    </p>
+                  ))}
+              </div>
 
               {/* 剩余秒数也画在光带上，这里给一个可读的数字兜底 */}
               {stage === 'choosing' && (
@@ -740,11 +781,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         className="sc-field relative my-3 grid flex-1 sm:my-4"
         style={{ gridTemplateRows: '1fr auto 1fr' }}
       >
-        <div className="flex min-h-0 items-end justify-center pb-2">
-          {stage !== 'live' && infoPanel}
-        </div>
+        {/* 四个阶段同一个摆法：浮在光带正中。见 index.css 的 .sc-panelrow */}
+        <div className="sc-panelrow">{infoPanel}</div>
 
-        <div className="relative w-full">
+        <div className="sc-railrow">
           <PrismRail
             getRemaining={getRoundRemaining}
             mode="mirror"
@@ -754,13 +794,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 : `本札剩余时间，共 ${CLIP_SECONDS} 秒`
             }
           />
-          {stage === 'live' && (
-            <div className="absolute inset-0 flex items-center justify-center">{infoPanel}</div>
-          )}
         </div>
 
         {/* 提示落在第三行，永远在光带正下方 —— absolute 定位会让它滑到自陣的牌底下 */}
-        <div className="flex min-h-0 items-start justify-center pt-2">
+        <div className="sc-hintrow">
           {stage === 'live' && (
             <p role="status" className="text-center text-xs text-ink-sub">
               {locked ? '已出手 —— 你选的那张已高亮，等待判定' : '认出来就点对应的牌'}
@@ -820,7 +857,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
             <button
               type="button"
               onClick={onExit}
-              className="py-1 text-xs text-ink-faint transition-colors hover:text-primary"
+              className="tap-line text-xs text-ink-faint transition-colors hover:text-primary"
             >
               放弃这局
             </button>

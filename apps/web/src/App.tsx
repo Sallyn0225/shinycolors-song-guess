@@ -117,7 +117,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setResuming(false)}
-            className="mt-1 py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+            className="tap-line mt-1 text-xs text-ink-faint transition-colors hover:text-primary"
             style={{ letterSpacing: 'var(--tracking-base)' }}
           >
             跳过，回到首页

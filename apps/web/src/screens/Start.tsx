@@ -143,7 +143,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
             </span>
             <span className="jp-wrap mt-1 block text-sm opacity-95">
               歌牌规则：抢牌、送り札、お手つき，外加只会被播放、场上没有对应牌的
-              <b className="font-bold text-accent">空札</b>。先清空自陣者胜。
+              <b className="font-bold text-accent-lit">空札</b>。先清空自陣者胜。
             </span>
           </span>
           <Icon name="next" size="calc(24 * var(--u))" />

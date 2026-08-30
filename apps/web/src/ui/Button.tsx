@@ -17,7 +17,10 @@ const SIZE: Record<Size, string> = {
   lg: 'px-10 py-3.5 text-base',
 }
 
-const MIN_H: Record<Size, string> = { sm: '32px', md: '44px', lg: 'max(48px, calc(62 * var(--u)))' }
+/* 触摸热区一律真 px，不走 --u：--u 触到低钳位时会掉到 44px 以下。
+   sm 曾是 32px —— 过 WCAG 2.5.8 的 24px 下限，但过不了 2.5.5 的 44px，
+   而「我记好了」这种是手机上要抢时间点的主操作，按 44 给。 */
+const MIN_H: Record<Size, string> = { sm: '44px', md: '44px', lg: 'max(48px, calc(62 * var(--u)))' }
 
 /**
  * 平行四边形按钮。左上削一角 —— 官网所有按钮/标签/导航条都是这个形状。

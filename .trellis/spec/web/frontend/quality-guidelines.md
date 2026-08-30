@@ -156,6 +156,69 @@ the 不正解 label, captured after `audio.stop()`. Measure inside the page in a
 (wait, sample, reduce) and assert the state (`h1` reads LISTENING, a 重听 button exists)
 before trusting any capture.
 
+## Layout: measure it, do not look at it
+
+Screenshots show you that something is ugly. They do not show you that a title is 3px from
+truncating, or that six cards sit 40px below the fold on a phone. `tools/ui-audit/probe.mjs`
+drives a real 1v1 with two pages and reports the numbers. In the 2026-08-30 review it found
+four of the six real defects; none of them were visible in a screenshot.
+
+Three layout traps it caught, all of which generalise:
+
+### An absolutely positioned grid child does not occupy a cell
+
+The karuta field is `grid-template-rows: 1fr auto 1fr` so that the rail lands on the
+**geometric midline** between the two territories. Making the panel `position: absolute`
+took it out of cell assignment, and auto-placement promoted the rail into row 1 — the rail
+silently stopped being on the midline while still looking plausible. Pin every child with an
+explicit `grid-row`, and give an absolutely positioned one `grid-row: 1 / -1` so its
+containing block is the whole grid rather than one row.
+
+### `1fr auto 1fr` mirrors the tallest row into empty space
+
+That is the price of the midline guarantee: a 130px panel in row 1 forces 130px of nothing
+in row 3. At 390×844 the two territories take 333px each and only 108px is left — the
+memorize panel inflated the field to 445px and pushed **all twelve** of the player's own
+cards below the fold, during a stage where the 送り札 clock is 3 seconds. Before using this
+pattern, budget the row against the smallest viewport; if it does not fit, float the panel
+over the rail instead (which is also what removes the stage-to-stage jump).
+
+### Sizes derived only from `--u` have no floor
+
+Three separate failures from the same cause. `--text-2xs`/`--text-xs` at `10u`/`11u` drop to
+7.8px/8.6px at the low clamp. `Button` size `sm` at `32px` clears WCAG 2.5.8 (24px) but not
+2.5.5 (44px). A six-character room code at `0.3em` tracking measures **1.016em per glyph** —
+`68u` renders it 431px wide inside a 340px container and pushes the whole page 66px sideways.
+
+The fixes are all "clamp against something real, not just the unit":
+
+```css
+--text-2xs: max(11px, calc(10 * var(--u)));   /* functional-text floor */
+--text-xs:  max(12px, calc(11 * var(--u)));   /* body floor */
+.sc-roomcode { font-size: min(calc(96 * var(--u)), 12.5vw); }  /* cap by viewport */
+```
+
+For touch targets on plain text buttons, grow the box without moving the text, and do not
+reach for `::after` — these buttons usually sit inside a `clip-path` container that would
+clip the pseudo-element away:
+
+```css
+.tap-line { display: inline-flex; align-items: center; min-height: 44px;
+            padding-inline: 9px; margin-inline: -9px; }
+```
+
+## Feedback belongs at the moment of the penalty, not after it
+
+`roundReveal` opens a 10-second window in which the player who committed an お手つき waits
+while their opponent picks the card they will be given. For that whole window the panel said
+only "{opponent} 正在挑送り札…" — the word お手つき never appeared, and `cardStateFor`
+returned early in the `choosing` branch so the mis-tapped card was never marked. The player
+learned what happened after the cards had already changed hands.
+
+空札 is 6 of 24 rounds, and お手つき is the game's central punishment. When a mechanic
+punishes the player, name it while the punishment is happening, mark what caused it, and put
+the text in a live region — the reveal narration arriving later does not cover the window.
+
 ## Colour: check contrast against the surface the text actually lands on
 
 The trap that caught this project twice: tokens were tuned against `--color-ground`, then
@@ -182,6 +245,24 @@ surfaces step up to `--color-ink-sub`.
 On the white ground, `#5ee2ff` (2.4:1), `#e2669b` (3.2:1) and `#a2a2c0` (2.5:1) all fail as
 text. Text uses the deepened companions: `--color-accent-ink`, `--color-rose-ink`,
 `--color-ink-faint` (4.95:1). Body copy is never `--color-primary`.
+
+The rule is symmetric, and the reverse case is the one that got missed: on the dark brand
+gradient, `--color-accent` #5ee2ff measures **3.9:1** against the `--grad-brand-ink` lower
+stop #615f90. Accent text on a dark surface uses `--color-accent-lit` #b9f2ff (4.85:1
+measured). Whenever a token crosses from surface to text, or from a light ground to a dark
+one, recompute — do not assume the pairing inherits.
+
+### The detector's pixel-contrast fallback is an antialiasing artifact
+
+When an ancestor carries `filter` or `backdrop-filter`, the cascade engine cannot resolve the
+background and falls back to per-pixel measurement. Small text is mostly partial-coverage
+pixels, so the numbers come out low across the board and look like a systematic failure.
+
+Prove it with a control from the same page rather than arguing: `--color-ink` on the same
+surface is **16.77:1** in truth and the same method reports median 4.2–7.2. Then re-measure
+with `tools/ui-audit/px-contrast.mjs` (DPR 4, darkest/lightest pixel in the glyph box against
+the surrounding median) and use those numbers. Note it takes the pixel **farthest** from the
+background, not the darkest — light text on a dark surface breaks the naive version.
 
 The 8 unit colours are **data**, not tokens. They may be a solid cap, an edge segment, or a
 thumbnail ring — never text on white (`#fff68d` disappears). Give every solid cap a

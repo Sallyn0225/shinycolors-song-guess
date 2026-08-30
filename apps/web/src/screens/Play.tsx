@@ -344,7 +344,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
         <button
           type="button"
           onClick={onQuit}
-          className="ml-auto py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+          className="tap-line ml-auto text-xs text-ink-faint transition-colors hover:text-primary"
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
           退出本局

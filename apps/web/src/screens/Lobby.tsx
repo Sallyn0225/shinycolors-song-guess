@@ -95,7 +95,7 @@ export function Lobby({ onBack }: Props) {
         <SectionTitle kana="ルーム" latin="Room" size="md" className="anim-appear" />
 
         <p
-          className="latin sc-figure anim-appear mt-6 font-bold text-primary"
+          className="latin sc-roomcode anim-appear mt-6 font-bold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)', lineHeight: 1 }}
         >
           {room.code}
@@ -143,7 +143,7 @@ export function Lobby({ onBack }: Props) {
         <button
           type="button"
           onClick={onBack}
-          className="mt-4 self-start py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+          className="tap-line mt-4 self-start text-xs text-ink-faint transition-colors hover:text-primary"
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
           离开房间
@@ -232,7 +232,7 @@ export function Lobby({ onBack }: Props) {
       <button
         type="button"
         onClick={onBack}
-        className="mt-7 self-start py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+        className="tap-line mt-7 self-start text-xs text-ink-faint transition-colors hover:text-primary"
         style={{ letterSpacing: 'var(--tracking-base)' }}
       >
         返回

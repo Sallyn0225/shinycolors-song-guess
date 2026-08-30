@@ -31,8 +31,12 @@
      p-4 = calc(var(--spacing) * 4) = 16 设计 px。 */
   --spacing: calc(4 * var(--u));
 
-  --text-2xs: calc(10 * var(--u));
-  --text-xs: calc(11 * var(--u));
+  /* 最小的两级带**真 px 地板**，不跟 --u 缩到底。
+     官网稿上片假名小标是 10px、注释是 11px，照搬会在 --u 触到低钳位时掉到
+     7.8px / 8.6px —— 那不是风格，是读不出来。11px 是功能性文字的下限，
+     12px 是正文的下限；1584 以上 --u > 1.1，两级重新跟着视口走。 */
+  --text-2xs: max(11px, calc(10 * var(--u)));
+  --text-xs: max(12px, calc(11 * var(--u)));
   --text-sm: calc(13 * var(--u));
   --text-base: calc(15 * var(--u));
   --text-lg: calc(18 * var(--u));
@@ -61,6 +65,10 @@
      凡是要写字的地方一律用下面这三个压深过的同色系。 */
   --color-accent-ink: #0077a8;
   --color-rose-ink: #c33f7a;
+  /* 反过来的场景：深紫面上要一个「青」的强调字。
+     --color-accent #5ee2ff 压在 --grad-brand-ink 下缘 #615f90 上实测 3.9:1，
+     不达标；提亮到 #b9f2ff 是 4.81:1，仍读作同一个青。 */
+  --color-accent-lit: #b9f2ff;
 
   /* 文字。官网的淡紫在白底上对比度不够，正文一律压到近黑 */
   --color-ink: #191922;
@@ -258,6 +266,21 @@
     outline: none;
   }
 
+  /*
+    纯文本按钮（返回 / 离开房间 / 跳过 / 退出）的触摸热区。
+    视觉上仍是孤零零一行小字，但盒子补到 44px。
+    不用 ::after 扩热区：这类按钮多半在 clip-path 容器里，伪元素会被一起裁掉。
+  */
+  .tap-line {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    /* 横向也补：「返回」这种两个字的按钮宽只有 26px。
+       内边距加、外边距减，盒子长大而文字不挪窝。 */
+    padding-inline: 9px;
+    margin-inline: -9px;
+  }
+
   /* 玻璃面。毛玻璃只加在这里，且不与 filter 同元素 —— 两层合成上下文在移动端会掉帧 */
   .glass {
     background: var(--color-surface);
@@ -291,6 +314,15 @@
   .sc-figure {
     font-size: calc(96 * var(--u));
   }
+  /*
+    房间码是 6 个 0.3em 字距的拉丁大写，实测每字 1.016em —— 整串 6.1em 宽，
+    比结算页那个两三位的数字宽一倍多。只按 --u 缩，390 宽下它排到 431px，
+    容器只有 340px，整页被顶出 66px 横向滚动条。
+    所以再按视口宽封一道顶：12.5vw × 6.1 ≈ 76% 视口宽，两侧留白之内。
+  */
+  .sc-roomcode {
+    font-size: min(calc(96 * var(--u)), 12.5vw);
+  }
 
   /* 限时题里，四个选项必须全部在一屏内 —— 看不见的选项等于不能选。
      窄屏把条高、条间距和揭晓栏一起压下来，保证 4 条不越过折线。 */
@@ -305,6 +337,52 @@
   /* 场区的最小高度。窄屏收窄，否则两块领地在 390 下会被挤出一屏 */
   .sc-field {
     min-height: calc(150 * var(--u));
+  }
+
+  /*
+    中央信息面板：跨满场区三行，绝对定位居中浮在光带上。
+
+    曾经它是网格第一行的常规流子项，贴着光带上沿。两个问题：
+
+    ① `1fr auto 1fr` 保证光带落在几何中线上，代价是**面板有多高，
+       光带下方就镜像出多高的空白**。390x844 上两阵各占 333px，中间只剩
+       108px 额度，而记忆阶段的面板（大号倒计时 + 说明 + 按钮）有 130px：
+       实测场区被撑到 445px，自陣 12 张牌全部掉到折线以下。
+       送り札只有 3 秒，看不见的牌等于不能选。
+    ② 宽屏不会溢出，但光带上方挤着面板、下方是 230px 空白，构图是偏的；
+       而 live 阶段的面板本来就浮在光带上，换阶段时面板会跳一下。
+
+    浮起来之后两条 1fr 都空着，光带仍在中线上，面板也仍以它为中心 ——
+    形和义都保住，且四个阶段的摆法终于是同一个。
+
+    grid-row 必须显式钉死：absolute 的子项不占单元格，自动排布会把光带
+    顶到第一行去。跨 1 / -1 是为了让包含块是整个场区而不是某一行。
+
+    不用 Tailwind 工具类写：工具类在 utilities 层，层序压过 components，
+    这里的 position / align-items 改不动它。
+  */
+  .sc-panelrow {
+    grid-row: 1 / -1;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .sc-railrow {
+    grid-row: 2;
+    position: relative;
+    width: 100%;
+  }
+  .sc-hintrow {
+    grid-row: 3;
+    display: flex;
+    min-height: 0;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: calc(2 * var(--spacing));
   }
 
   .sc-tile-title {
@@ -338,6 +416,9 @@
     }
     .sc-figure {
       font-size: calc(68 * var(--u));
+    }
+    .sc-roomcode {
+      font-size: min(calc(68 * var(--u)), 12.5vw);
     }
     .sc-bar {
       min-height: max(56px, calc(74 * var(--u)));
