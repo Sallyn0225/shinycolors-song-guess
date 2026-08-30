@@ -1,0 +1,11 @@
+VISUAL WORLD (identical across all comps, non-negotiable):
+Design language "Song for Prism". Bright, airy, cool-lavender idol aesthetic. NOT dark mode.
+- Ground: near-white #f7f6fb washed with an extremely faint holographic/iridescent laser-film sheen (pale pink, mint, cyan, butter yellow) plus a barely visible crystal-shard polygon texture at rgba(97,95,144,0.03).
+- Content surfaces: translucent white glass, rgba(255,255,255,0.6), with backdrop blur, so the iridescence shows faintly through.
+- The ONLY brand color is indigo-violet #615f90. The only bright accent is cyan #5ee2ff, with deep sky #00b4f0. Pale lavender #a2a2c0 for dividers. Soft pink #ffbad6 used sparingly.
+- A thin prism rainbow hairline (magenta -> cyan -> yellow -> coral) is the one rainbow element.
+- Shadows are PURPLE drop-shadows rgba(71,68,150,0.25). Never black shadows. No glow.
+- Border-radius is essentially ZERO. All shape comes from clip-path diagonal cuts: parallelograms with a sliced corner for buttons/labels/nav bars, rectangles with top-left AND bottom-right corners sliced for content cards, hexagons for avatars.
+- Typography: Noto Sans JP for Japanese text, Jost geometric sans for uppercase Latin. Very wide letter-spacing (0.1em body, 0.2em Latin caps). Only weights 400/600/700. A small katakana label sits directly above each large uppercase Latin heading, flanked by violet angular corner brackets.
+- Text is high contrast: body copy is near-black on white, violet is used for headings and structure, never for small body text.
+Render as a crisp flat UI design mockup / product screenshot, no browser chrome, no device frame, no photograph, no 3D. Landscape desktop web viewport.

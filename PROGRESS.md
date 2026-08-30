@@ -109,9 +109,12 @@ apps/server/
 apps/web/
   audio.ts                 Web Audio 单例（预取、精确调度、频谱、AAC 兜底）
   net/ws.ts                WS 客户端 + 时钟同步 + 座位凭证
-  components/Stage.tsx     倒计时环 + 频谱可视化（rAF 直写 DOM）
   features/narrate.ts      回合结果的文案生成（纯函数，14 个测试）
   features/karutaBoard.ts  稳定槽位
+  index.css                设计 token、--u 尺寸体系、clip-path 形状原语、动效
+  ui/PrismRail.tsx         「一条光」：倒计时 + 频谱 + 进度折痕 + 两阵界线（rAF 直写 DOM）
+  ui/Backdrop.tsx          虹彩镭射膜 / 晶体碎片 / 前景碎片，纯 CSS+SVG
+  ui/Cut.tsx               斜切容器（阴影与焦点环上提到外层）
 ```
 
 一个回合在两层之间怎么走：
@@ -223,6 +226,21 @@ apps/web/
 - **连接通了不等于座位还在**。服务端重启或宽限到期后，重连会拿到 `welcome{resumed:false}`——此时断线遮罩不会出现（连接确实是好的），如果不主动退出牌场，玩家会对着一个点什么都没反应的棋盘发呆。App 里对这条消息做了「在牌场上就退回首页并说明原因」。
 - **`socket.connect()` 必须幂等**。大厅和重连逻辑都会调它，不加保护会开出第二条 WebSocket 去抢座位。
 - **连接状态是多播不是单个回调槽**。之前 `socket.onStatus = fn` 被大厅和牌场互相覆盖，改成了订阅 + 退订。
+- **固定定位的背景层必须是 `z-index: -1`，不能是 `0`**。按 CSS 绘制顺序，`position: fixed; z-index: 0`
+  排在「非定位元素的行内内容」之后 —— 一层不透明底衬会把标题和纯文本按钮整个盖掉，
+  而被 `filter`（`.cut-shadow`）或定位包住的卡片安然无恙。症状极具迷惑性：
+  DOM 里文字和颜色都对，屏幕上就是没有。
+- **`clip-path` 会一起裁掉 `drop-shadow` 和 `outline`**。所以阴影在父、裁剪在子，
+  焦点环由外层 `:has(:focus-visible)` 代画。漏了第二条 = 键盘用户没有焦点指示，且看不出来。
+- **双切角多边形少写一个收尾顶点，就变成一条贯穿全高的斜边**，会把贴左缘的组合色条切成一个三角。
+- **触摸目标与 hairline 不走 `--u`**。`--u` 在低端被钳制后会把 44px 拉到 44 以下。
+- **同属一个 CSS 属性的两个 Tailwind 工具类会互相覆盖**：`line-clamp-2 block` 里 `block` 赢，
+  截断静默失效，长曲名把选项条撑出一屏 —— 限时题里看不见的选项等于不能选。
+
+前端视觉层已按《Song for Prism》官网设计语言整体重写（白底虹彩 + clip-path 斜切），
+设计依据在 `design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md`，
+方向契约写在 `apps/web/index.html` 的 body 首个注释里，可复用约定在
+`.trellis/spec/web/frontend/quality-guidelines.md`。
 
 ### 服务端
 

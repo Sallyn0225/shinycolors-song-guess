@@ -1,5 +1,9 @@
-import { useState } from 'react'
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
+
+import { Icon } from '../ui/Icon'
+import { PrismRail } from '../ui/PrismRail'
+import { SectionTitle } from '../ui/SectionTitle'
+import { Stat } from '../ui/Stat'
 
 interface Props {
   onStart: (d: Difficulty) => void
@@ -13,99 +17,150 @@ const BLURB: Record<Difficulty, string> = {
   hard: '片段更短、时限更紧，四个选项全是同组合或曲名相近的曲子。',
 }
 
-export function Start({ onStart, onVersus, busy, error }: Props) {
-  const [hover, setHover] = useState<Difficulty | null>(null)
+const KANA: Record<Difficulty, string> = { easy: 'イージー', hard: 'ハード' }
 
+const SLANT = 'calc(46 * var(--u))'
+const NOTCH = 'calc(40 * var(--u))'
+const BAR_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${NOTCH}), calc(100% - ${NOTCH}) 100%, 0 100%)`
+const CAP_CLIP = `polygon(${SLANT} 0, 100% 0, calc(100% - ${SLANT}) 100%, 0 100%)`
+
+/** 与选项条同一套语汇的整宽横条。首页的三个入口都是它 */
+function EntryBar({
+  cap,
+  onClick,
+  disabled,
+  delay,
+  children,
+  solid = false,
+}: {
+  cap: string
+  onClick: () => void
+  disabled?: boolean
+  delay: number
+  children: React.ReactNode
+  solid?: boolean
+}) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-6 py-16">
-      <header className="anim-rise">
-        <div className="prism-flow mb-8 h-px w-24 opacity-80" />
-        <p className="font-mono text-[11px] tracking-[0.32em] text-faint uppercase">
-          The iDOLM@STER Shiny Colors
-        </p>
-        <h1 className="mt-3 font-display text-5xl leading-[1.08] font-extrabold sm:text-6xl">
-          伴奏で、
-          <br />
-          <span className="prism-text">曲を当てる。</span>
-        </h1>
-        <p className="jp-wrap mt-5 max-w-md text-sm leading-relaxed text-muted">
+    <div className="anim-appear flex items-stretch" style={{ animationDelay: `${delay}ms` }}>
+      <span aria-hidden className="cut-shadow-sm shrink-0" style={{ width: 'calc(60 * var(--u))' }}>
+        <span
+          className="block h-full"
+          style={{ background: cap, clipPath: CAP_CLIP, boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)' }}
+        />
+      </span>
+      <span className="cut-shadow min-w-0 flex-1" style={{ marginLeft: 'calc(-36 * var(--u))' }}>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          className="flex w-full flex-col items-start gap-3 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:pr-8"
+          style={{
+            clipPath: BAR_CLIP,
+            background: solid ? 'var(--grad-brand-ink)' : 'var(--color-surface-lit)',
+            backdropFilter: solid ? undefined : 'blur(calc(8 * var(--u)))',
+            minHeight: 'max(72px, calc(118 * var(--u)))',
+            paddingLeft: 'calc(60 * var(--u))',
+            color: solid ? '#fff' : undefined,
+          }}
+        >
+          {children}
+        </button>
+      </span>
+    </div>
+  )
+}
+
+export function Start({ onStart, onVersus, busy, error }: Props) {
+  return (
+    <main
+      className="mx-auto flex min-h-dvh w-full flex-col justify-center px-6 py-14 sm:px-10"
+      style={{ maxWidth: 'calc(1300 * var(--u))' }}
+    >
+      <header className="anim-appear">
+        <SectionTitle kana="ソングゲス" latin="Song Guess" size="lg" />
+        <p
+          className="jp-wrap mt-6 text-base leading-relaxed text-ink-sub"
+          style={{ maxWidth: '46ch' }}
+        >
           听一段没有人声的伴奏，认出它是哪首歌。曲库收录 234 首 off vocal 音源。
         </p>
       </header>
 
-      <section className="mt-12 grid gap-3 sm:grid-cols-2" aria-label="选择难度">
+      <div className="anim-appear mt-8" style={{ animationDelay: '80ms' }}>
+        <PrismRail mode="idle" spectrum={false} />
+      </div>
+
+      <section className="mt-6 flex flex-col" style={{ gap: 'calc(22 * var(--u))' }} aria-label="选择难度">
         {DIFFICULTIES.map((d, i) => {
           const p = DIFFICULTY_PRESETS[d]
-          const lit = hover === d
           return (
-            <button
+            <EntryBar
               key={d}
-              type="button"
-              disabled={busy}
+              cap={d === 'easy' ? 'var(--color-accent)' : 'var(--color-sub-rose)'}
               onClick={() => onStart(d)}
-              onMouseEnter={() => setHover(d)}
-              onMouseLeave={() => setHover(null)}
-              className={[
-                'anim-rise group relative overflow-hidden rounded-2xl border bg-panel p-6 text-left',
-                'transition-all duration-300 disabled:opacity-50',
-                lit
-                  ? 'border-[color:var(--color-line-lit)] -translate-y-1 bg-panel-lit'
-                  : 'border-[color:var(--color-line)]',
-              ].join(' ')}
-              style={{ animationDelay: `${140 + i * 90}ms` }}
+              disabled={busy}
+              delay={140 + i * 90}
             >
-              <span
-                aria-hidden
-                className="prism-flow absolute inset-x-0 top-0 h-[2px] transition-opacity duration-300"
-                style={{ opacity: lit ? 1 : 0.25 }}
-              />
-              <span className="flex items-baseline gap-3">
-                <span className="font-display text-3xl font-extrabold">{p.label}</span>
-                <span className="tnum font-mono text-xs text-faint">{p.questionCount} 题</span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className="block text-2xs font-semibold text-primary"
+                  style={{ letterSpacing: 'var(--tracking-title)' }}
+                >
+                  {KANA[d]}
+                </span>
+                <span
+                  className="sc-title block font-bold text-ink"
+                  style={{ letterSpacing: 'var(--tracking-tight)' }}
+                >
+                  {p.label}
+                </span>
+                <span className="jp-wrap mt-1 block text-sm text-ink-sub">{BLURB[d]}</span>
               </span>
-              <span className="jp-wrap mt-3 block text-[13px] leading-relaxed text-muted">{BLURB[d]}</span>
-
-              <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-[color:var(--color-line)] pt-4">
-                {[
-                  ['片段', `${p.clipSeconds}s`],
-                  ['限时', `${p.answerSeconds}s`],
-                  ['重听', `${p.replays} 次`],
-                ].map(([k, v]) => (
-                  <div key={k}>
-                    <dt className="text-[10px] tracking-wider text-faint">{k}</dt>
-                    <dd className="tnum mt-0.5 font-mono text-sm text-text">{v}</dd>
-                  </div>
-                ))}
+              {/* 这四个数是选难度的唯一依据，窄屏也不能藏 —— 改成紧凑一行 */}
+              <dl className="flex shrink-0 gap-6 sm:gap-7">
+                <Stat label="題数" value={p.questionCount} align="center" size="sm" />
+                <Stat label="片段" value={`${p.clipSeconds}s`} align="center" size="sm" />
+                <Stat label="限时" value={`${p.answerSeconds}s`} align="center" size="sm" />
+                <Stat label="重听" value={p.replays} align="center" size="sm" />
               </dl>
-            </button>
+            </EntryBar>
           )
         })}
+
+        <EntryBar cap="var(--color-primary)" onClick={onVersus} delay={320} solid>
+          <span className="min-w-0 flex-1">
+            <span
+              className="block text-2xs font-semibold opacity-80"
+              style={{ letterSpacing: 'var(--tracking-title)' }}
+            >
+              タイセン
+            </span>
+            <span
+              className="sc-title jp-wrap block font-bold"
+              style={{ letterSpacing: 'var(--tracking-tight)' }}
+            >
+              1v1 空札領地戦
+            </span>
+            <span className="jp-wrap mt-1 block text-sm opacity-95">
+              歌牌规则：抢牌、送り札、お手つき，外加只会被播放、场上没有对应牌的
+              <b className="font-bold text-accent">空札</b>。先清空自陣者胜。
+            </span>
+          </span>
+          <Icon name="next" size="calc(24 * var(--u))" />
+        </EntryBar>
       </section>
 
-      <button
-        type="button"
-        onClick={onVersus}
-        className="anim-rise group relative mt-3 overflow-hidden rounded-2xl border border-[color:var(--color-line)] bg-panel p-5 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--color-line-lit)] hover:bg-panel-lit"
-        style={{ animationDelay: '320ms' }}
-      >
-        <span aria-hidden className="prism-flow absolute inset-y-0 left-0 w-[3px]" />
-        <span className="flex items-baseline gap-3">
-          <span className="font-display text-2xl font-extrabold">1v1 对战</span>
-          <span className="font-mono text-[11px] tracking-widest text-faint">空札領地戦</span>
-        </span>
-        <span className="jp-wrap mt-2 block text-[13px] leading-relaxed text-muted">
-          日本竞技歌牌的规则：抢牌、送り札、お手つき，外加从 234 首曲库里抽出的「空札」——
-          只会被播放、场上没有对应的牌。先清空自陣者胜。
-        </span>
-      </button>
-
       {error && (
-        <p role="alert" className="mt-6 rounded-lg border border-[color:var(--color-wrong)] bg-[rgba(255,77,94,.08)] px-4 py-3 text-sm">
+        <p
+          role="alert"
+          className="cut-slant mt-7 px-5 py-3 text-sm text-wrong"
+          style={{ background: 'rgb(179 18 58 / .1)', boxShadow: 'inset 0 0 0 1px var(--color-wrong)' }}
+        >
           {error}
         </p>
       )}
 
-      <p className="anim-rise mt-10 text-xs text-faint" style={{ animationDelay: '340ms' }}>
+      <p className="anim-appear mt-10 text-xs text-ink-faint" style={{ animationDelay: '340ms' }}>
         点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2 秒延迟。
       </p>
     </main>

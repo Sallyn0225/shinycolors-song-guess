@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   api,
@@ -9,8 +9,11 @@ import {
   type SessionInfo,
 } from '../api'
 import { audio } from '../audio'
-import { Stage } from '../components/Stage'
-import { OptionCard, type OptionState } from '../components/OptionCard'
+import { OptionBar, type OptionState } from '../components/OptionBar'
+import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
+import { PrismRail, type Crease } from '../ui/PrismRail'
+import { SectionTitle } from '../ui/SectionTitle'
 
 interface Props {
   session: SessionInfo
@@ -33,6 +36,10 @@ export function Play({ session, onFinish, onQuit }: Props) {
   const [chosen, setChosen] = useState<number | null>(null)
   const [replaysLeft, setReplaysLeft] = useState(session.replays)
   const [score, setScore] = useState(0)
+  /** 走过的题：留在光带上的折痕 */
+  const [past, setPast] = useState<boolean[]>([])
+  /** 出错后重试本题：自增即可重跑载入 effect */
+  const [reload, setReload] = useState(0)
 
   const deadlineRef = useRef(0)
   const phaseRef = useRef<Phase>('loading')
@@ -40,7 +47,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
 
   const key = (idx: number, token: string) => `${session.sessionId}:${idx}:${token}`
 
-  /** 剩余比例。Stage 在 rAF 里直接调它写 DOM，不经过 React state */
+  /** 剩余比例。PrismRail 在 rAF 里直接调它写 DOM，不经过 React state */
   const getRemaining = useCallback(() => {
     if (phaseRef.current !== 'answering') return phaseRef.current === 'loading' ? 1 : 0
     const left = deadlineRef.current - performance.now()
@@ -82,6 +89,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
         const r = await api.answer(session.sessionId, index, choice)
         setResult(r)
         setScore((s) => s + r.score.total)
+        setPast((p) => [...p, r.correct])
       } catch (e) {
         setError(e instanceof Error ? e.message : '提交失败')
       }
@@ -143,7 +151,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
       cancelled = true
       audio.stop()
     }
-  }, [index, session.sessionId, session.replays, session.total, playClip, fallbackOf])
+  }, [index, reload, session.sessionId, session.replays, session.total, playClip, fallbackOf])
 
   // 截止用一个 timeout 就够，不必每帧检查
   useEffect(() => {
@@ -186,7 +194,14 @@ export function Play({ session, onFinish, onQuit }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, question, submit, replay, next])
 
-  const verdict = result ? (result.correct ? 'correct' : 'wrong') : null
+  // 折痕：答过的每一题在光带上留一道，走过的路一直看得见
+  const creases = useMemo<Crease[]>(() => {
+    const total = session.total
+    return Array.from({ length: total }, (_, i): Crease => {
+      const tone: Crease['tone'] = i < past.length ? (past[i] ? 'good' : 'bad') : 'pending'
+      return { at: (i + 0.5) / total, tone }
+    })
+  }, [past, session.total])
 
   const stateOf = (i: number): OptionState => {
     if (!result) return 'idle'
@@ -196,94 +211,93 @@ export function Play({ session, onFinish, onQuit }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-5 py-6 sm:px-6">
-      <header className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onQuit}
-          className="rounded-lg border border-[color:var(--color-line)] px-3 py-1.5 text-xs text-muted transition-colors hover:border-[color:var(--color-line-lit)] hover:text-text"
-        >
-          退出
-        </button>
-        <div className="flex-1">
-          <div className="h-[3px] w-full overflow-hidden rounded-full bg-[color:var(--color-line)]">
-            <div
-              className="prism-bar h-full transition-[width] duration-500 ease-out"
-              style={{ width: `${((index + (result ? 1 : 0)) / session.total) * 100}%` }}
-            />
-          </div>
+    <main className="mx-auto flex min-h-dvh w-full flex-col px-5 py-4 sm:px-10 sm:py-8"
+          style={{ maxWidth: 'calc(1300 * var(--u))' }}>
+      {/* ── 头 ────────────────────────────────────────────── */}
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <SectionTitle
+          kana={phase === 'revealed' ? 'アンサー' : 'リスニング'}
+          latin={phase === 'revealed' ? 'ANSWER' : 'LISTENING'}
+        />
+        <div className="flex shrink-0 items-baseline gap-5">
+          <p className="latin text-lg font-semibold text-primary" style={{ letterSpacing: 'var(--tracking-base)' }}>
+            {String(index + 1).padStart(2, '0')}
+            <span className="text-ink-faint"> / {String(session.total).padStart(2, '0')}</span>
+          </p>
+          <p className="latin text-2xl font-semibold text-primary" style={{ letterSpacing: 'var(--tracking-tight)' }}>
+            {score}
+          </p>
         </div>
-        <p className="tnum shrink-0 font-mono text-xs text-muted">
-          {index + 1}/{session.total} · <span className="text-text">{score}</span>
-        </p>
       </header>
 
-      <section className="mt-8 sm:mt-10">
-        <Stage
+      {/* ── 一条光 ────────────────────────────────────────── */}
+      <div className="mt-5">
+        <PrismRail
           getRemaining={getRemaining}
-          totalSeconds={session.answerSeconds}
-          mode={phase === 'answering' ? 'countdown' : phase === 'revealed' ? 'reveal' : 'idle'}
-          verdict={verdict}
-        >
-          {phase === 'loading' && <span className="text-xs text-faint">载入中…</span>}
+          creases={creases}
+          mode="top"
+          label={`本题剩余时间，共 ${session.answerSeconds} 秒`}
+        />
+      </div>
 
-          {phase === 'revealed' && result && (
-            <>
+      {/* ── 揭晓：曲名与演唱者 ────────────────────────────── */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="sc-revealslot mt-3 flex items-center gap-4 sm:mt-4"
+      >
+        {phase === 'loading' && <p className="text-sm text-ink-faint">载入中…</p>}
+        {phase === 'revealed' && result && (
+          <>
+            <span className="cut-shadow-sm anim-appear shrink-0">
               <img
                 src={result.song.coverUrl}
                 alt=""
-                className="anim-rise mb-2.5 h-20 w-20 rounded-xl object-cover shadow-[0_8px_28px_rgba(0,0,0,.6)]"
                 loading="eager"
+                className="cut-hex block"
+                style={{ width: 'calc(56 * var(--u))', height: 'calc(56 * var(--u))', objectFit: 'cover' }}
               />
+            </span>
+            <span className="anim-appear min-w-0" style={{ animationDelay: '60ms' }}>
+              <span className="jp-wrap block font-bold text-ink" style={{ fontSize: 'calc(22 * var(--u))' }}>
+                {result.song.title}
+              </span>
+              <span className="jp-wrap block text-sm text-ink-sub">{result.song.artist}</span>
+            </span>
+            <span
+              className="anim-appear ml-auto shrink-0 text-right"
+              style={{ animationDelay: '120ms' }}
+            >
               <span
-                className="anim-rise font-display text-2xl font-extrabold tracking-wide"
+                className="latin block font-bold"
                 style={{
+                  fontSize: 'calc(26 * var(--u))',
+                  letterSpacing: 'var(--tracking-base)',
                   color: result.correct ? 'var(--color-correct)' : 'var(--color-wrong)',
-                  animationDelay: '60ms',
                 }}
               >
                 {result.correct ? '正解' : '不正解'}
               </span>
               {result.correct && (
-                <span
-                  className="tnum anim-rise mt-1 font-mono text-sm text-[color:var(--color-correct)]"
-                  style={{ animationDelay: '120ms' }}
-                >
+                <span className="latin block text-sm text-correct">
                   +{result.score.total}
                   {result.score.speed > 0 && (
-                    <span className="ml-1 text-[11px] text-faint">速度 +{result.score.speed}</span>
+                    <span className="ml-2 text-ink-faint">速度 +{result.score.speed}</span>
                   )}
                 </span>
               )}
-            </>
-          )}
-        </Stage>
-      </section>
+            </span>
+          </>
+        )}
+      </div>
 
-      {phase === 'answering' && (
-        <div className="mt-5 flex justify-center">
-          <button
-            type="button"
-            onClick={() => void replay()}
-            disabled={replaysLeft <= 0}
-            className="rounded-full border border-[color:var(--color-line)] px-5 py-2 text-xs text-muted transition-all hover:border-[color:var(--color-line-lit)] hover:text-text disabled:opacity-35"
-          >
-            ↻ 重听 <span className="tnum font-mono">({replaysLeft})</span>
-            <span className="ml-2 hidden text-faint sm:inline">R</span>
-          </button>
-        </div>
-      )}
-
-      {phase === 'revealed' && result && (
-        <div className="anim-rise mt-5 text-center">
-          <p className="jp-wrap font-display text-xl font-extrabold">{result.song.title}</p>
-          <p className="jp-wrap mt-1 text-sm text-muted">{result.song.artist}</p>
-        </div>
-      )}
-
-      <section className="mt-6 grid gap-2.5 sm:mt-7 sm:grid-cols-2" aria-label="选项">
+      {/* ── 选项 ──────────────────────────────────────────── */}
+      <section
+        className="sc-options mt-2 flex flex-col"
+        aria-label="选项"
+      >
         {question?.options.map((o, i) => (
-          <OptionCard
+          <OptionBar
             key={o.id}
             option={o}
             index={i}
@@ -296,25 +310,45 @@ export function Play({ session, onFinish, onQuit }: Props) {
       </section>
 
       {error && (
-        <p role="alert" className="mt-4 text-center text-xs text-[color:var(--color-wrong)]">
+        <p role="alert" className="mt-5 text-sm text-wrong">
           {error}
         </p>
       )}
 
-      {phase === 'revealed' && (
+      {/* ── 主操作 ────────────────────────────────────────── */}
+      <div className="mt-5 flex items-center gap-4 pb-5 sm:mt-6 sm:pb-6">
+        {/* 出错时重听与下一题都不渲染，不补这一条就是死路：
+            屏幕上只剩一行 alert，玩家除了退出无事可做 */}
+        {phase === 'error' && (
+          <Button variant="primary" size="lg" onClick={() => setReload((n) => n + 1)}>
+            重试本题
+            <Icon name="replay" size="calc(17 * var(--u))" />
+          </Button>
+        )}
+        {phase === 'answering' && (
+          <Button variant="ghost" size="md" onClick={() => void replay()} disabled={replaysLeft <= 0}>
+            <Icon name="replay" size="calc(17 * var(--u))" />
+            重听
+            <span className="latin">({replaysLeft})</span>
+            <span className="ml-1 hidden text-xs text-ink-faint sm:inline">R</span>
+          </Button>
+        )}
+        {phase === 'revealed' && (
+          <Button variant="primary" size="lg" onClick={next} autoFocus className="anim-appear">
+            {index + 1 >= session.total ? '查看结算' : '下一题'}
+            <Icon name="next" size="calc(17 * var(--u))" />
+            <span className="ml-1 text-xs font-normal opacity-70">Enter</span>
+          </Button>
+        )}
         <button
           type="button"
-          onClick={next}
-          autoFocus
-          className="anim-rise mt-5 w-full rounded-xl border border-[color:var(--color-line-lit)] bg-panel py-3.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:bg-panel-lit"
-          style={{ animationDelay: '160ms' }}
+          onClick={onQuit}
+          className="ml-auto py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+          style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {index + 1 >= session.total ? '查看结算' : '下一题'}
-          <span className="ml-2 text-xs font-normal text-faint">Enter</span>
+          退出本局
         </button>
-      )}
-
-      <div className="pb-8" />
+      </div>
     </main>
   )
 }

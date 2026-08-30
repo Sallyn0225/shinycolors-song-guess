@@ -1,0 +1,3 @@
+{"file": "PRODUCT.md", "reason": "产品事实：界面清单、术语、硬性无障碍要求、不可改的非 UI 边界"}
+{"file": "design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md", "reason": "官网设计语言权威记录（人工校订版）；§0 列明自动提取产物中必须忽略的噪声"}
+{"file": "PROGRESS.md", "reason": "前端小节记录了 rAF 倒计时、槽位留空、领地可超 12 张等只在生产复现的坑"}

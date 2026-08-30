@@ -1,0 +1,23 @@
+Screen: the single-player song-quiz answering screen of a Japanese idol music game called "SHINY COLORS SONG GUESS". The player hears a 6-second instrumental and picks the song from four choices.
+
+VISUAL WORLD (identical across all comps, non-negotiable):
+Design language "Song for Prism". Bright, airy, cool-lavender idol aesthetic. NOT dark mode.
+- Ground: near-white #f7f6fb washed with an extremely faint holographic/iridescent laser-film sheen (pale pink, mint, cyan, butter yellow) plus a barely visible crystal-shard polygon texture at rgba(97,95,144,0.03).
+- Content surfaces: translucent white glass, rgba(255,255,255,0.6), with backdrop blur, so the iridescence shows faintly through.
+- The ONLY brand color is indigo-violet #615f90. The only bright accent is cyan #5ee2ff, with deep sky #00b4f0. Pale lavender #a2a2c0 for dividers. Soft pink #ffbad6 used sparingly.
+- A thin prism rainbow hairline (magenta -> cyan -> yellow -> coral) is the one rainbow element.
+- Shadows are PURPLE drop-shadows rgba(71,68,150,0.25). Never black shadows. No glow.
+- Border-radius is essentially ZERO. All shape comes from clip-path diagonal cuts: parallelograms with a sliced corner for buttons/labels/nav bars, rectangles with top-left AND bottom-right corners sliced for content cards, hexagons for avatars.
+- Typography: Noto Sans JP for Japanese text, Jost geometric sans for uppercase Latin. Very wide letter-spacing (0.1em body, 0.2em Latin caps). Only weights 400/600/700. A small katakana label sits directly above each large uppercase Latin heading, flanked by violet angular corner brackets.
+- Text is high contrast: body copy is near-black on white, violet is used for headings and structure, never for small body text.
+Render as a crisp flat UI design mockup / product screenshot, no browser chrome, no device frame, no photograph, no 3D. Landscape desktop web viewport.
+
+STRUCTURE — "COLOR AT THE EDGE ONLY" (the discipline of an iridescent cloud edge: the field stays achromatic, all color is confined to a hairline at the boundary):
+- The entire text field is ACHROMATIC: pure white ground, all text in near-black #1a1a1f or mid gray. No colored text anywhere except the headings.
+- All state and identity color lives in 1-2px EDGE LIGHTS on the boundaries of shapes — narrow iridescent fringes of mint, rose, cyan and violet that hug the diagonal-cut edges of each element, exactly like the spectral rim on a cloud.
+- Top area: a wide horizontal listening stage — a broad achromatic panel with a diagonal-cut top-left corner whose entire outline carries a fine iridescent rim. Inside it, a large near-black monospace countdown "04" at left, and to its right an audio spectrum of ~70 thin vertical bars rendered entirely in mid-gray, with ONLY the tallest bars catching a faint rainbow rim on their tips.
+- Below: four answer rows, each a wide achromatic panel with top-left and bottom-right corners sliced. Their outlines are hairline gray at rest. Row two is the CURRENT/hovered row: its entire outline lights up in a violet #615f90 spectral rim while its interior stays pure white and its text stays near-black.
+- Each row contains: a small tracked gray numeral 1-4; the Japanese song title in bold Noto Sans JP near-black 18px; the artist in gray 12px beneath. Unit identity is expressed NOT by a colored bar but by a short colored segment of the row's own top edge — a 40px stretch of the hairline tinted pink, orange, purple, crimson respectively.
+- The four song titles, exactly: "アルストロメリア", "シャイノグラフィ", "無自覚アプリオリ", "バベルシティ・グレイス". Artists: "アルストロメリア", "放課後クライマックスガールズ", "アンティーカ", "ストレイライト".
+- Top-left: small tracked katakana "リスニング" over uppercase Jost "LISTENING" in violet with angular brackets. Top-right: "07 / 20" and "1240" in near-black monospace.
+- Overall impression: an almost monochrome, extremely calm, very high-contrast interface, where a thin spectral fringe traces every boundary and is the only color present.

@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
+import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
+import { SectionTitle } from '../ui/SectionTitle'
+import { Stat } from '../ui/Stat'
 
 interface Props {
   sessionId: string
@@ -9,11 +13,16 @@ interface Props {
   onHome: () => void
 }
 
-function Verdict({ rate }: { rate: number }) {
-  const line =
-    rate >= 0.9 ? '曲库在你脑子里' : rate >= 0.7 ? '相当熟' : rate >= 0.45 ? '还行' : rate > 0 ? '再听听' : '从头再来'
-  return <span className="prism-text font-display text-2xl font-extrabold">{line}</span>
+function verdictLine(rate: number): string {
+  if (rate >= 0.9) return '曲库在你脑子里'
+  if (rate >= 0.7) return '相当熟'
+  if (rate >= 0.45) return '还行'
+  if (rate > 0) return '再听听'
+  return '从头再来'
 }
+
+const SLANT = 'calc(28 * var(--u))'
+const ROW_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${SLANT}), calc(100% - ${SLANT}) 100%, 0 100%, 0 ${SLANT})`
 
 export function Result({ sessionId, onReplay, onHome }: Props) {
   const [data, setData] = useState<Summary | null>(null)
@@ -28,15 +37,17 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
 
   if (error) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-6">
-        <p className="text-sm text-[color:var(--color-wrong)]">{error}</p>
+      <main className="flex min-h-dvh items-center justify-center px-6">
+        <p role="alert" className="text-sm text-wrong">
+          {error}
+        </p>
       </main>
     )
   }
   if (!data) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-2xl items-center justify-center px-6">
-        <p className="text-sm text-faint">结算中…</p>
+      <main className="flex min-h-dvh items-center justify-center px-6">
+        <p className="text-sm text-ink-faint">结算中…</p>
       </main>
     )
   }
@@ -45,104 +56,150 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   const preset = DIFFICULTY_PRESETS[data.difficulty]
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 py-12 sm:px-6">
-      <header className="anim-rise">
-        <div className="prism-flow mb-7 h-px w-20 opacity-80" />
-        <p className="font-mono text-[11px] tracking-[0.28em] text-faint uppercase">Result · {preset.label}</p>
+    <main
+      className="mx-auto w-full px-6 py-14 sm:px-10"
+      style={{ maxWidth: 'calc(1300 * var(--u))' }}
+    >
+      <header className="anim-appear">
+        <SectionTitle kana="リザルト" latin={`Result · ${preset.label}`} size="md" />
 
-        <div className="mt-4 flex items-end gap-4">
-          <span className="tnum font-mono text-7xl leading-none font-medium">{data.score}</span>
-          <span className="tnum mb-2 font-mono text-2xl text-faint">/ {data.maxScore}</span>
-        </div>
-        <div className="mt-3">
-          <Verdict rate={rate} />
-        </div>
-
-        <dl className="mt-7 grid grid-cols-4 gap-3 border-y border-[color:var(--color-line)] py-4">
-          {[
-            ['答对', `${data.correct}/${data.total}`],
-            ['正确率', `${Math.round(rate * 100)}%`],
-            ['平均用时', `${(data.avgMs / 1000).toFixed(1)}s`],
-            ['片段长度', `${preset.clipSeconds}s`],
-          ].map(([k, v]) => (
-            <div key={k}>
-              <dt className="text-[10px] tracking-wider text-faint">{k}</dt>
-              <dd className="tnum mt-1 font-mono text-base sm:text-lg">{v}</dd>
-            </div>
+        {/* 走过的每一题摊成一排折痕 —— Play 里那条光带的自然延续 */}
+        <div className="mt-7 flex flex-wrap" style={{ gap: 'calc(5 * var(--u))' }}>
+          {data.items.map((item) => (
+            <span
+              key={item.index}
+              title={`第 ${item.index + 1} 题`}
+              className="cut-slant block"
+              style={{
+                width: 'calc(34 * var(--u))',
+                height: 'calc(14 * var(--u))',
+                background:
+                  item.correct === true
+                    ? 'var(--color-accent-deep)'
+                    : item.correct === false
+                      ? 'var(--color-primary-lt)'
+                      : 'rgb(162 162 192 / .25)',
+                ['--cut-sm' as string]: 'calc(6 * var(--u))',
+              }}
+            />
           ))}
+        </div>
+
+        <div className="mt-6 flex items-end gap-5">
+          <span
+            className="latin sc-figure font-bold text-primary"
+            style={{ lineHeight: 0.9 }}
+          >
+            {data.score}
+          </span>
+          <span className="latin mb-3 text-2xl text-ink-faint">/ {data.maxScore}</span>
+          <span
+            className="sc-title jp-wrap mb-3 ml-auto font-bold text-ink" 
+          >
+            {verdictLine(rate)}
+          </span>
+        </div>
+
+        <dl
+          className="mt-8 grid grid-cols-2 gap-6 py-6 sm:grid-cols-4"
+          style={{
+            borderTop: '1px solid var(--color-divider)',
+            borderBottom: '1px solid var(--color-divider)',
+          }}
+        >
+          <Stat label="答对" value={`${data.correct} / ${data.total}`} />
+          <Stat label="正确率" value={`${Math.round(rate * 100)}%`} />
+          <Stat label="平均用时" value={`${(data.avgMs / 1000).toFixed(1)}s`} />
+          <Stat label="片段长度" value={`${preset.clipSeconds}s`} />
         </dl>
 
-        <p className="mt-3 text-xs text-faint">
+        <p className="mt-3 text-xs text-ink-faint">
           得分 = 答对 100 分 + 最高 100 分的速度奖励（越快越高），每次重听 −10 分。
         </p>
       </header>
 
-      <ol className="mt-8 space-y-1.5">
+      <ol className="mt-9 flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
         {data.items.map((item, i) => {
           const ok = item.correct === true
           return (
             <li
               key={item.index}
-              className="anim-rise relative flex items-center gap-3 overflow-hidden rounded-xl border border-[color:var(--color-line)] bg-panel py-3 pr-4 pl-4"
-              style={{ animationDelay: `${Math.min(i * 40, 600)}ms` }}
+              className="anim-appear cut-shadow-sm"
+              style={{ animationDelay: `${Math.min(i * 35, 500)}ms` }}
             >
-              <span
-                aria-hidden
-                className="absolute inset-y-0 left-0 w-[3px]"
-                style={{ background: item.song.unitColor ?? 'var(--color-line-lit)' }}
-              />
-              <img
-                src={`/thumb/${item.song.id}.webp`}
-                alt=""
-                loading="lazy"
-                className={`h-10 w-10 shrink-0 rounded-md object-cover ${ok ? '' : 'grayscale'}`}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="jp-wrap block truncate text-sm font-bold">{item.song.title}</span>
-                <span className="jp-wrap block truncate text-xs text-muted">
-                  {item.chosen && !ok ? `你选了：${item.chosen.title}` : item.song.artist}
-                </span>
-              </span>
-              <span className="hidden shrink-0 text-right sm:block">
-                {item.elapsedMs !== null && (
-                  <span className="tnum block font-mono text-xs text-faint">
-                    {(item.elapsedMs / 1000).toFixed(1)}s
-                    {item.replaysUsed > 0 && <span className="ml-1">↻{item.replaysUsed}</span>}
-                  </span>
-                )}
-                {ok && item.score !== null && (
-                  <span className="tnum block font-mono text-xs text-[color:var(--color-correct)]">
-                    +{item.score}
-                  </span>
-                )}
-              </span>
-              <span
-                className="shrink-0 text-base"
-                style={{ color: ok ? 'var(--color-correct)' : 'var(--color-wrong)' }}
-                aria-label={ok ? '答对' : '答错'}
+              <div
+                className="glass-lit flex items-center gap-4 py-3 pr-6"
+                style={{ clipPath: ROW_CLIP, paddingLeft: 'calc(34 * var(--u))' }}
               >
-                {ok ? '✓' : '✕'}
-              </span>
+                <span
+                  aria-hidden
+                  className="cut-slant block shrink-0"
+                  style={{
+                    width: 'calc(8 * var(--u))',
+                    height: 'calc(30 * var(--u))',
+                    background: item.song.unitColor ?? 'var(--color-primary)',
+                    boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
+                    ['--cut-sm' as string]: 'calc(4 * var(--u))',
+                  }}
+                />
+                <img
+                  src={`/thumb/${item.song.id}.webp`}
+                  alt=""
+                  loading="lazy"
+                  className="cut-hex shrink-0"
+                  style={{
+                    width: 'calc(40 * var(--u))',
+                    height: 'calc(40 * var(--u))',
+                    objectFit: 'cover',
+                    filter: ok ? undefined : 'grayscale(1)',
+                  }}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="jp-wrap block truncate text-sm font-bold text-ink">
+                    {item.song.title}
+                  </span>
+                  <span className="jp-wrap block truncate text-xs text-ink-faint">
+                    {item.chosen && !ok ? `你选了：${item.chosen.title}` : item.song.artist}
+                  </span>
+                </span>
+                <span className="hidden shrink-0 text-right sm:block">
+                  {item.elapsedMs !== null && (
+                    <span className="latin flex items-center justify-end gap-2 text-xs text-ink-faint">
+                      <span>{(item.elapsedMs / 1000).toFixed(1)}s</span>
+                      {item.replaysUsed > 0 && (
+                        <span className="inline-flex items-center gap-0.5" title="重听次数">
+                          <Icon name="replay" size="calc(11 * var(--u))" />
+                          {item.replaysUsed}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {ok && item.score !== null && (
+                    <span className="latin block text-xs font-semibold text-correct">+{item.score}</span>
+                  )}
+                </span>
+                <span
+                  className="shrink-0"
+                  role="img"
+                  aria-label={ok ? '答对' : '答错'}
+                  style={{ color: ok ? 'var(--color-correct)' : 'var(--color-wrong)' }}
+                >
+                  <Icon name={ok ? 'check' : 'cross'} size="calc(18 * var(--u))" />
+                </span>
+              </div>
             </li>
           )
         })}
       </ol>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={onReplay}
-          className="rounded-xl border border-[color:var(--color-line-lit)] bg-panel py-3.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:bg-panel-lit"
-        >
+      <div className="mt-10 flex flex-wrap items-center gap-4 pb-12">
+        <Button variant="primary" size="lg" onClick={onReplay}>
           再来一局
-        </button>
-        <button
-          type="button"
-          onClick={onHome}
-          className="rounded-xl border border-[color:var(--color-line)] py-3.5 text-sm text-muted transition-all hover:border-[color:var(--color-line-lit)] hover:text-text"
-        >
+          <Icon name="replay" size="calc(17 * var(--u))" />
+        </Button>
+        <Button variant="ghost" size="lg" onClick={onHome}>
           换个难度
-        </button>
+        </Button>
       </div>
     </main>
   )

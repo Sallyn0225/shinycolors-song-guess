@@ -3,17 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#05060d" />
+    <meta name="theme-color" content="#f7f6fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- 棱镜：8 个组合色排成的一道光 -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
+    />
+    <!-- 棱镜：白底上一枚被削角的晶体 -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='p' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff68d'/%3E%3Cstop offset='.28' stop-color='%23af011c'/%3E%3Cstop offset='.57' stop-color='%23853998'/%3E%3Cstop offset='.86' stop-color='%23008e74'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%2305060d'/%3E%3Cpath d='M16 6 27 25H5z' fill='url(%23p)'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='p' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff88ff'/%3E%3Cstop offset='.35' stop-color='%2377ffff'/%3E%3Cstop offset='.7' stop-color='%23fff352'/%3E%3Cstop offset='1' stop-color='%23ff7070'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' fill='%23f7f6fb'/%3E%3Cpath d='M9 4h19v19l-5 5H4V9z' fill='none' stroke='%23615f90' stroke-width='2'/%3E%3Crect x='4' y='14.5' width='24' height='3' fill='url(%23p)'/%3E%3C/svg%3E"
     />
     <title>闪耀色彩 猜歌</title>
   </head>
   <body>
+    <!--
+      THESIS: 全局只有一条不断的光带在动 —— 它同时是倒计时、频谱、进度和两阵之间的界线；其余一切静止。
+        拒绝的类目默认：把听觉游戏塞进一堆等大卡片，让每个区块都自带容器、边框和各自的动效。
+      OWN-WORLD: 白底虹彩镭射膜 + 几乎看不见的晶体碎片；内容装在半透明白玻璃里；
+        形状全部由 clip-path 斜切给出（平行四边形 / 双切角 / 六边形 / 两端尖角），border-radius 只有 0 与 6px；
+        唯一主色靛紫 #615f90，唯一亮色青 #5ee2ff，阴影是紫的 rgba(71,68,150,.25)，字距很宽，字重只有 400/600/700。
+      STORY: 玩家戴上耳机，听见一段没有人声的伴奏，在光带收完之前认出它是哪首歌；
+        1v1 时同一条光带变成自陣与敵陣之间的那道界线，收完就是这一札的胜负。
+      FIRST VIEWPORT: 左上片假名小标压着 Jost 大标，右上是题号与分数；
+        视口上三分之一横着一条贯穿全宽的棱镜光带，实时频谱直接从它的上缘长出，光带从两端向中央收；
+        下方四条斜切白玻璃选项条纵向排开，左端各一枚组合色斜帽；主操作（重听 / 下一题）在底部左侧。
+      FORM: 一条光 / The Running Light —— 我七个构图候选里的第 7 位，由骰子发出并由用户锁定。seed dfab6df5
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

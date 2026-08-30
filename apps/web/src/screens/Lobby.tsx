@@ -1,11 +1,33 @@
 import { useEffect, useState } from 'react'
 import { DIFFICULTY_PRESETS, KARUTA_DEFAULTS, type RoomView } from '@scg/shared'
 
-import { socket } from '../net/ws'
 import { audio } from '../audio'
+import { socket } from '../net/ws'
+import { Button } from '../ui/Button'
+import { Field } from '../ui/Field'
+import { PrismRail } from '../ui/PrismRail'
+import { SectionTitle } from '../ui/SectionTitle'
+import { Stat } from '../ui/Stat'
 
 interface Props {
   onBack: () => void
+}
+
+/** 在线状态点。颜色之外还带形状与文字，不只靠颜色编码 */
+function Presence({ online }: { online: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className="block shrink-0"
+      style={{
+        width: 'calc(9 * var(--u))',
+        height: 'calc(9 * var(--u))',
+        background: online ? 'var(--color-correct)' : 'transparent',
+        boxShadow: online ? undefined : 'inset 0 0 0 1.5px var(--color-primary-lt)',
+        clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)',
+      }}
+    />
+  )
 }
 
 export function Lobby({ onBack }: Props) {
@@ -55,129 +77,166 @@ export function Lobby({ onBack }: Props) {
 
   const preset = DIFFICULTY_PRESETS[KARUTA_DEFAULTS.difficulty]
 
+  const shell = (children: React.ReactNode) => (
+    <main
+      className="mx-auto flex min-h-dvh w-full flex-col justify-center px-6 py-14 sm:px-10"
+      style={{ maxWidth: 'calc(760 * var(--u))' }}
+    >
+      {children}
+    </main>
+  )
+
+  // ── 房间内 ────────────────────────────────────────────
   if (room) {
     const me = room.players[room.you]
     const other = room.players[room.you === 'A' ? 'B' : 'A']
-    return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-6 py-12">
-        <div className="prism-flow mb-7 h-px w-20 opacity-80" />
-        <p className="font-mono text-[11px] tracking-[0.28em] text-faint uppercase">Room</p>
-        <p className="tnum mt-2 font-mono text-6xl font-medium tracking-[0.18em]">{room.code}</p>
-        <p className="mt-3 text-sm text-muted">把这个房间码告诉对手，同一局域网直接输入即可加入。</p>
+    return shell(
+      <>
+        <SectionTitle kana="ルーム" latin="Room" size="md" className="anim-appear" />
 
-        <ul className="mt-8 space-y-2">
+        <p
+          className="latin sc-figure anim-appear mt-6 font-bold text-primary"
+          style={{ letterSpacing: 'var(--tracking-title)', lineHeight: 1 }}
+        >
+          {room.code}
+        </p>
+        <p className="mt-4 text-sm text-ink-sub">
+          把这个房间码告诉对手，同一局域网直接输入即可加入。
+        </p>
+
+        <div className="mt-8 flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
           {[me, other].map((p, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-3 rounded-xl border border-[color:var(--color-line)] bg-panel px-4 py-3"
-            >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ background: p?.online ? 'var(--color-correct)' : 'var(--color-faint)' }}
-              />
-              <span className="flex-1 text-sm font-bold">
-                {p ? p.nickname : '等待对手加入…'}
-                {i === 0 && <span className="ml-2 text-xs font-normal text-faint">（你）</span>}
+            <span key={i} className="cut-shadow-sm">
+              <span className="glass-lit cut-bar flex items-center gap-3 px-8 py-4">
+                <Presence online={!!p?.online} />
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
+                  {p ? p.nickname : '等待对手加入…'}
+                  {i === 0 && <span className="ml-2 text-xs font-normal text-ink-faint">（你）</span>}
+                </span>
+                {p?.rttMs != null && <span className="latin text-xs text-ink-faint">{p.rttMs}ms</span>}
+                {p?.ready && (
+                  <span className="text-xs font-bold text-correct" style={{ letterSpacing: 'var(--tracking-base)' }}>
+                    已准备
+                  </span>
+                )}
               </span>
-              {p?.rttMs != null && <span className="tnum font-mono text-xs text-faint">{p.rttMs}ms</span>}
-              {p?.ready && <span className="text-xs text-[color:var(--color-correct)]">已准备</span>}
-            </li>
+            </span>
           ))}
-        </ul>
+        </div>
 
-        <p className="mt-6 text-xs leading-relaxed text-faint">
+        <p className="mt-6 text-xs leading-relaxed text-ink-faint">
           双方 RTT 都公开显示 —— 透明比假装公平更重要。判定按「相对片段起播的反应时间」，
           不是服务器收包时间，所以网络延迟不影响胜负。
         </p>
 
+        <div className="mt-8">
+          <Button
+            variant="primary"
+            size="lg"
+            full
+            disabled={!other}
+            onClick={() => socket.send({ t: 'ready', ready: !me?.ready })}
+          >
+            {!other ? '等待对手…' : me?.ready ? '取消准备' : '准备'}
+          </Button>
+        </div>
         <button
           type="button"
-          disabled={!other}
-          onClick={() => socket.send({ t: 'ready', ready: !me?.ready })}
-          className="mt-7 w-full rounded-xl border border-[color:var(--color-line-lit)] bg-panel py-3.5 text-sm font-bold transition-all enabled:hover:-translate-y-0.5 enabled:hover:bg-panel-lit disabled:opacity-40"
+          onClick={onBack}
+          className="mt-4 self-start py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+          style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {!other ? '等待对手…' : me?.ready ? '取消准备' : '准备'}
-        </button>
-        <button type="button" onClick={onBack} className="mt-3 py-2 text-xs text-faint hover:text-muted">
           离开房间
         </button>
-      </main>
+      </>,
     )
   }
 
-  return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-6 py-12">
-      <div className="prism-flow mb-7 h-px w-20 opacity-80" />
-      <p className="font-mono text-[11px] tracking-[0.28em] text-faint uppercase">1v1 · 空札領地戦</p>
-      <h1 className="mt-3 font-display text-4xl leading-tight font-extrabold">
-        <span className="prism-text">歌牌</span>式对战
-      </h1>
-      <p className="jp-wrap mt-4 text-sm leading-relaxed text-muted">
+  // ── 大厅 ──────────────────────────────────────────────
+  return shell(
+    <>
+      <SectionTitle kana="タイセン" latin="Versus" size="lg" className="anim-appear" />
+      <p className="jp-wrap mt-5 text-sm leading-relaxed text-ink-sub">
         从 234 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards} 首摊在场上（每人自陣{' '}
-        {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首是<b className="text-text">空札</b>
+        {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首是
+        <b className="font-bold text-ink">空札</b>
         —— 只会被播放、场上没有对应的牌，谁点谁お手つき。先清空自陣者胜。
       </p>
 
-      <dl className="mt-6 grid grid-cols-3 gap-3 border-y border-[color:var(--color-line)] py-4">
-        {[
-          ['每回合', `${preset.clipSeconds}s`],
-          ['记忆时间', `${KARUTA_DEFAULTS.memorizeSeconds}s`],
-          ['难度', preset.label],
-        ].map(([k, v]) => (
-          <div key={k}>
-            <dt className="text-[10px] tracking-wider text-faint">{k}</dt>
-            <dd className="tnum mt-1 font-mono text-base">{v}</dd>
-          </div>
-        ))}
+      <div className="anim-appear mt-7" style={{ animationDelay: '80ms' }}>
+        <PrismRail mode="idle" spectrum={false} />
+      </div>
+
+      <dl
+        className="mt-6 grid grid-cols-3 gap-6 py-6"
+        style={{
+          borderTop: '1px solid var(--color-divider)',
+          borderBottom: '1px solid var(--color-divider)',
+        }}
+      >
+        <Stat label="每回合" value={`${preset.clipSeconds}s`} />
+        <Stat label="记忆时间" value={`${KARUTA_DEFAULTS.memorizeSeconds}s`} />
+        <Stat label="难度" value={preset.label} />
       </dl>
 
-      <input
-        type="text"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value.slice(0, 16))}
-        placeholder="昵称"
-        className="mt-7 w-full rounded-xl border border-[color:var(--color-line-lit)] bg-[#10152a] px-4 py-3 text-sm outline-none focus:border-[#8ea2ff]"
-      />
-
-      <button
-        type="button"
-        onClick={create}
-        disabled={!connected}
-        className="mt-3 w-full rounded-xl border border-[#4460c4] bg-[#2f4a9e] py-3.5 text-sm font-bold transition-all enabled:hover:-translate-y-0.5 disabled:opacity-40"
-      >
-        创建房间
-      </button>
-
-      <div className="mt-5 flex gap-2">
-        <input
+      <div className="mt-8 flex flex-col" style={{ gap: 'calc(12 * var(--u))' }}>
+        <Field
           type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
-          placeholder="房间码"
-          className="tnum w-full rounded-xl border border-[color:var(--color-line-lit)] bg-[#10152a] px-4 py-3 text-center font-mono text-lg tracking-[0.3em] outline-none focus:border-[#8ea2ff]"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value.slice(0, 16))}
+          placeholder="昵称"
+          aria-label="昵称"
         />
-        <button
-          type="button"
+        <Button variant="primary" size="lg" full onClick={create} disabled={!connected}>
+          创建房间
+        </Button>
+      </div>
+
+      <div className="mt-7 flex items-stretch gap-3">
+        <div className="min-w-0 flex-1">
+          <Field
+            type="text"
+            code
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
+            placeholder="房间码"
+            aria-label="房间码"
+          />
+        </div>
+        <Button
+          variant="glass"
+          size="lg"
           onClick={join}
           disabled={!connected || code.length !== 6}
-          className="shrink-0 rounded-xl border border-[color:var(--color-line-lit)] bg-panel px-6 text-sm font-bold transition-all enabled:hover:bg-panel-lit disabled:opacity-40"
+          className="shrink-0"
         >
           加入
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 text-center text-sm text-[color:var(--color-wrong)]">
+        <p
+          role="alert"
+          className="cut-slant mt-5 px-5 py-3 text-sm text-wrong"
+          style={{ background: 'rgb(179 18 58 / .1)', boxShadow: 'inset 0 0 0 1px var(--color-wrong)' }}
+        >
           {error}
         </p>
       )}
-      <p className="mt-4 text-center text-xs text-faint">
+
+      <p role="status" aria-live="polite" className="mt-5 flex items-center gap-2 text-xs text-ink-sub">
+        <Presence online={connected} />
         {connected ? `已连接${rtt != null ? ` · ${rtt}ms` : ''}` : '连接中…'}
       </p>
 
-      <button type="button" onClick={onBack} className="mt-6 py-2 text-xs text-faint hover:text-muted">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-7 self-start py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+        style={{ letterSpacing: 'var(--tracking-base)' }}
+      >
         返回
       </button>
-    </main>
+    </>,
   )
 }

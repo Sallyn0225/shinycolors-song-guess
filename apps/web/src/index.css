@@ -1,66 +1,128 @@
-/*
-  Shippori Mincho B1 —— 日文明朝，编辑感，作标题
-  Zen Kaku Gothic New —— 日文黑体，扫读快，作正文与曲名选项
-  DM Mono —— 计时与数字
-  刻意避开 Inter / Roboto / 系统字体。
-*/
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 @import 'tailwindcss';
 
 /*
-  「暗室里的棱镜」
-  闪耀色彩的品牌内核是棱镜与光的折射。而 8 个组合的官方代表色本身就排成一道光谱——
-  所以棱镜不是装饰，棱镜就是这些组合。这道渐变贯穿全局。
-  深色还有个功能性理由：这是听觉游戏，压掉视觉噪音才能专注于听。
+  「Song for Prism」的世界。
+
+  白底上铺一层几乎看不见的虹彩镭射与紫色晶体碎片；内容装在半透明白玻璃里；
+  所有容器用 clip-path 削掉对角，变成平行四边形与六边形；
+  唯一主色是靛紫 #615f90，唯一亮色是青 #5ee2ff；
+  阴影是紫的、圆角几乎没有、字距很宽；元素以模糊转清晰的方式入场。
+
+  依据：design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md（人工校订版）。
+  该目录下工具自动生成的 token 文件含噪声（Cookie 弹窗的红、Swiper 默认色、被误读的 px 尺度），
+  一律不采用。
 */
+
+/* ── 设计单位 ─────────────────────────────────────────
+   官网全站不用 px 只用 vw，单一断点 767px，PC 稿宽 1440 / SP 稿宽 375。
+   直接照搬会让 2560 宽的屏上一切巨大化，所以钳制住两端。
+   1440 处 --u 恰为 1px，即官网的 1:1 还原点。                     */
+:root {
+  --u: clamp(0.78px, 0.0694444444vw, 1.16px);
+}
+@media (max-width: 767px) {
+  :root {
+    --u: clamp(0.82px, 0.2666666667vw, 1.28px);
+  }
+}
+
 @theme {
-  --color-void: #05060d;
-  --color-stage: #0a0d18;
-  --color-panel: #111628;
-  --color-panel-lit: #171d34;
-  --color-line: #1d2440;
-  --color-line-lit: #2e3a5e;
-  --color-text: #eef1f8;
-  --color-muted: #8590ad;
-  --color-faint: #5a6480;
+  /* Tailwind v4 的间距基数接到 --u 上，整套间距工具类随视口等比缩放。
+     p-4 = calc(var(--spacing) * 4) = 16 设计 px。 */
+  --spacing: calc(4 * var(--u));
 
-  /* 8 个组合的官方代表色（来源：アイマスDB，取自公式サイト与 ASOBISTAGE アソビライト） */
-  --color-illumination: #fff68d;
-  --color-houkago: #fa8333;
-  --color-straylight: #af011c;
-  --color-alstroemeria: #ff699e;
-  --color-lantica: #853998;
-  --color-noctchill: #384d98;
-  --color-shhis: #008e74;
-  --color-cometik: #333333;
+  --text-2xs: calc(10 * var(--u));
+  --text-xs: calc(11 * var(--u));
+  --text-sm: calc(13 * var(--u));
+  --text-base: calc(15 * var(--u));
+  --text-lg: calc(18 * var(--u));
+  --text-xl: calc(22 * var(--u));
+  --text-2xl: calc(28 * var(--u));
+  --text-3xl: calc(36 * var(--u));
+  --text-4xl: calc(48 * var(--u));
+  --text-5xl: calc(64 * var(--u));
 
-  --color-correct: #3ddc97;
-  --color-wrong: #ff4d5e;
+  /* 场地 */
+  --color-ground: #f7f6fb;
+  --color-surface: rgb(255 255 255 / 0.62);
+  --color-surface-lit: rgb(255 255 255 / 0.88);
+  --color-divider: #dbdbdb;
 
-  --font-display: 'Shippori Mincho B1', 'Songti SC', serif;
-  --font-sans: 'Zen Kaku Gothic New', 'PingFang SC', sans-serif;
-  --font-mono: 'DM Mono', ui-monospace, monospace;
+  /* 品牌。结构色，不作正文 */
+  --color-primary: #615f90;
+  --color-primary-lt: #a2a2c0;
+  --color-accent: #5ee2ff;
+  --color-accent-deep: #00b4f0;
+  --color-sub-pink: #ffbad6;
+  --color-sub-rose: #e2669b;
 
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* 上面几个亮色是「面」色，在白底上当文字全部达不到 4.5:1。
+     凡是要写字的地方一律用下面这三个压深过的同色系。 */
+  --color-accent-ink: #0077a8;
+  --color-rose-ink: #c33f7a;
+
+  /* 文字。官网的淡紫在白底上对比度不够，正文一律压到近黑 */
+  --color-ink: #191922;
+  --color-ink-sub: #55555f;
+  /* 4.95:1 —— 再浅一点（#7c7c8a 是 4.06:1）就过不了正文对比度 */
+  --color-ink-faint: #6e6e7c;
+
+  /*
+    判定色。这两个值不是对着白底选的，是对着**它们自己的浅色底**选的：
+    正解条 / 失误牌 / 掉线横幅都把同一个色以 12~18% 压成面，再在上面写字，
+    只按 --color-ground 算会全部落在 3.7~4.1:1（实测），一律不达标。
+    现在最差场景（18% 绿面上写绿字）也有 4.7:1，白底上是 6.5~6.9:1。
+  */
+  --color-correct: #0a6b50;
+  --color-wrong: #b3123a;
+
+  --font-jp: 'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', sans-serif;
+  --font-latin: 'Jost', 'Noto Sans JP', sans-serif;
+
+  --tracking-tight: 0.08em;
+  --tracking-base: 0.1em;
+  --tracking-wide: 0.2em;
+  --tracking-title: 0.3em;
+
+  --ease-prism: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+  /* 官网只有一个断点 767px。Tailwind 的 sm: 默认是 640px，
+     不对齐的话 `sm:` 类和 --u / .sc-* 的切换点会错开 128px，
+     出现「尺寸已经按手机缩了、布局还没换」的夹层。 */
+  --breakpoint-sm: 768px;
+}
+
+:root {
+  --grad-brand: linear-gradient(180deg, #615f90 0%, #a2a2c0 100%);
+  /* 白字专用：--grad-brand 的下缘 #a2a2c0 配白字只有 2.4:1，
+     整段规则说明实测 3.03:1。承白字的面必须整条都够深。 */
+  --grad-brand-ink: linear-gradient(180deg, #4b4977 0%, #615f90 100%);
+  --grad-cta: linear-gradient(90deg, #00b4f0 0%, #1fe0d7 100%);
+  /* 棱镜彩虹。官网原样摘录的四条渐变之一，整站的 prism 点题 */
+  --grad-prism: linear-gradient(90deg, #f8f 0%, #7ff 35%, #fff352 70%, #ff7070 100%);
+
+  /* 阴影是紫的，不是黑的。这让斜切形状的阴影跟着 clip-path 走，色调也统一在紫里 */
+  --shadow-sm: drop-shadow(0 calc(1 * var(--u)) calc(2 * var(--u)) rgb(71 68 150 / 0.2));
+  --shadow-md: drop-shadow(0 calc(4 * var(--u)) calc(8 * var(--u)) rgb(71 68 150 / 0.2));
+  --shadow-lg: drop-shadow(0 calc(6 * var(--u)) calc(8 * var(--u)) rgb(71 68 150 / 0.25));
+
+  --dur-fast: 0.3s;
+  --dur-base: 0.4s;
+  --dur-slow: 0.6s;
+
+  --cut-sm: calc(12 * var(--u));
+  --cut-md: calc(20 * var(--u));
+  --cut-lg: calc(40 * var(--u));
+
+  color-scheme: light;
+  /* 浏览器自带的那些表面也归设计系统管 */
+  accent-color: var(--color-accent-deep);
+  caret-color: var(--color-primary);
+  scrollbar-color: var(--color-primary-lt) transparent;
+  scrollbar-width: thin;
 }
 
 @layer base {
-  :root {
-    color-scheme: dark;
-    /* 棱镜：8 个组合色排成的光谱 */
-    --prism: linear-gradient(
-      90deg,
-      #fff68d 0%,
-      #fa8333 14%,
-      #af011c 28%,
-      #ff699e 43%,
-      #853998 57%,
-      #384d98 71%,
-      #008e74 86%,
-      #6b7280 100%
-    );
-  }
-
   html {
     -webkit-tap-highlight-color: transparent;
   }
@@ -68,34 +130,13 @@
   body {
     margin: 0;
     min-height: 100dvh;
-    background: var(--color-void);
-    color: var(--color-text);
-    font-family: var(--font-sans);
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-jp);
+    font-size: var(--text-base);
     font-feature-settings: 'palt' 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
-  }
-
-  /* 舞台：一束顶光 + 极淡的胶片颗粒 */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(120% 80% at 50% -10%, rgba(94, 118, 200, 0.16), transparent 60%),
-      radial-gradient(80% 50% at 50% 110%, rgba(133, 57, 152, 0.1), transparent 65%);
-    z-index: 0;
-  }
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.16;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-    z-index: 0;
   }
 
   #root {
@@ -105,91 +146,293 @@
   }
 
   ::selection {
-    background: rgba(133, 57, 152, 0.5);
+    background: rgb(94 226 255 / 0.45);
+    color: var(--color-ink);
   }
 
+  /* 焦点环默认关掉：斜切容器会把 outline 裁掉，统一由 .cut-shadow 的 :has() 上提代画。
+     没有被裁的元素（输入框、纯文本按钮）在下面单独恢复。 */
+  /* 焦点环也要 3:1（SC 1.4.11）。accent-deep #00b4f0 对白底只有 2.22:1，
+     所以焦点用压深过的 accent-ink。 */
   :focus-visible {
-    outline: 2px solid #8ea2ff;
+    outline: 2px solid var(--color-accent-ink);
     outline-offset: 3px;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+
+  img {
+    display: block;
+  }
+}
+
+/* ── 形状原语 ─────────────────────────────────────────
+   形状感完全由 clip-path 提供，不靠圆角。                      */
+@layer components {
+  /* 平行四边形 —— 按钮、标签、选项条、牌 */
+  .cut-slant {
+    clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% 100%, 0 100%);
+  }
+  /* 反向平行四边形 —— 与上者成对时用，避免一屏全是同一个斜向 */
+  .cut-slant-r {
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut-sm)) 100%, 0 100%);
+  }
+  /* 双切角矩形 —— 内容卡、模态 */
+  .cut-card {
+    clip-path: polygon(
+      var(--cut-lg) 0,
+      100% 0,
+      100% calc(100% - var(--cut-lg)),
+      calc(100% - var(--cut-lg)) 100%,
+      0 100%,
+      0 var(--cut-lg)
+    );
+  }
+  .cut-card-sm {
+    clip-path: polygon(
+      var(--cut-md) 0,
+      100% 0,
+      100% calc(100% - var(--cut-md)),
+      calc(100% - var(--cut-md)) 100%,
+      0 100%,
+      0 var(--cut-md)
+    );
+  }
+  /* 六边形 —— 缩略图 */
+  .cut-hex {
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+  /* 两端尖角长条 —— 状态条、导航条 */
+  .cut-bar {
+    clip-path: polygon(
+      var(--cut-sm) 0,
+      calc(100% - var(--cut-sm)) 0,
+      100% 50%,
+      calc(100% - var(--cut-sm)) 100%,
+      var(--cut-sm) 100%,
+      0 50%
+    );
+  }
+
+  /*
+    坑一：filter: drop-shadow() 与 clip-path 同元素时，落在裁剪区外的阴影会被一起裁掉。
+    官网的做法是阴影在父、裁剪在子 —— 所有斜切容器都套这一层。
+  */
+  .cut-shadow {
+    display: block;
+    filter: var(--shadow-md);
+  }
+  .cut-shadow-sm {
+    display: block;
+    filter: var(--shadow-sm);
+  }
+  .cut-shadow-lg {
+    display: block;
+    filter: var(--shadow-lg);
+  }
+
+  /*
+    坑二：被裁元素上画的 outline 同样会被裁没 —— 等于没有焦点环，直接违反无障碍要求。
+    焦点环上提到 wrapper 上画。
+  */
+  .cut-shadow:has(:focus-visible),
+  .cut-shadow-sm:has(:focus-visible),
+  .cut-shadow-lg:has(:focus-visible) {
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 3px;
+  }
+  .cut-shadow :focus-visible,
+  .cut-shadow-sm :focus-visible,
+  .cut-shadow-lg :focus-visible {
+    outline: none;
+  }
+
+  /* 玻璃面。毛玻璃只加在这里，且不与 filter 同元素 —— 两层合成上下文在移动端会掉帧 */
+  .glass {
+    background: var(--color-surface);
+    backdrop-filter: blur(calc(10 * var(--u)));
+  }
+  .glass-lit {
+    background: var(--color-surface-lit);
+    backdrop-filter: blur(calc(10 * var(--u)));
+  }
+}
+
+/* ── 断点尺寸 ─────────────────────────────────────────
+   官网只有一个断点 767px（PC 稿宽 1440 / SP 稿宽 375）。
+   --u 已经把整体等比缩下去了，但有三处「按比例缩」还不够：
+   大写拉丁标题（宽字距 + 长单词会折行，一折行两侧的尖括号就配不上对）、
+   曲名（日文长标题在 375 宽下会顶到两行，把条撑高）、大数字。
+   这几处单独降一档。                                              */
+@layer components {
+  .sc-title {
+    font-size: calc(28 * var(--u));
+  }
+  .sc-title-sm {
+    font-size: calc(18 * var(--u));
+  }
+  .sc-title-lg {
+    font-size: calc(36 * var(--u));
+  }
+  .sc-song {
+    font-size: calc(32 * var(--u));
+  }
+  .sc-figure {
+    font-size: calc(96 * var(--u));
+  }
+
+  /* 限时题里，四个选项必须全部在一屏内 —— 看不见的选项等于不能选。
+     窄屏把条高、条间距和揭晓栏一起压下来，保证 4 条不越过折线。 */
+  .sc-bar {
+    min-height: max(60px, calc(124 * var(--u)));
+  }
+  /* 标题的角标框。窄屏收窄左右留白 —— 不收的话「LISTENING + 题号」这一行会横向溢出 */
+  .sc-titlebox {
+    padding: calc(var(--tc) * 0.45) calc(var(--tc) * 2.2);
+  }
+
+  .sc-tile-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .sc-options {
+    gap: calc(24 * var(--u));
+  }
+  .sc-revealslot {
+    min-height: calc(58 * var(--u));
+  }
+
+  @media (max-width: 767px) {
+    .sc-title {
+      font-size: calc(21 * var(--u));
+      letter-spacing: 0.14em;
+    }
+    .sc-title-sm {
+      font-size: calc(16 * var(--u));
+      letter-spacing: 0.14em;
+    }
+    .sc-title-lg {
+      font-size: calc(25 * var(--u));
+      letter-spacing: 0.14em;
+    }
+    .sc-song {
+      font-size: calc(22 * var(--u));
+    }
+    .sc-figure {
+      font-size: calc(68 * var(--u));
+    }
+    .sc-bar {
+      min-height: max(56px, calc(74 * var(--u)));
+    }
+    .sc-options {
+      gap: calc(11 * var(--u));
+    }
+    .sc-revealslot {
+      min-height: calc(38 * var(--u));
+    }
+    /* 窄屏牌面改 3 列 4 行，牌宽从 ~81px 涨到 ~114px，
+       曲名才放得下 —— 4 列时 12 首里有 6~7 首会被截成「…」 */
+    .sc-titlebox {
+      padding: calc(var(--tc) * 0.4) calc(var(--tc) * 1.1);
+    }
+    .sc-tile-title {
+      -webkit-line-clamp: 3;
+    }
   }
 }
 
 @layer utilities {
-  .prism-bar {
-    background: var(--prism);
-  }
-  .prism-text {
-    background: var(--prism);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
   .tnum {
     font-variant-numeric: tabular-nums;
   }
-  /* 日文换行：在文节处断，不要把片假名拦腰截断 */
+  /* 日文换行：在文节处断，不要把片假名拦腰截断。
+     这里必须是 break-word 而不是 anywhere —— anywhere 会在任意字符间断行，
+     窄屏下「スマイルシンフォニア」会断成「スマイルシンフォ / ニア」，
+     正是这条注释要避免的事。 */
   .jp-wrap {
     word-break: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     line-break: strict;
+  }
+  .latin {
+    font-family: var(--font-latin);
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* ── 动效 ───────────────────────────────────────── */
-@keyframes rise {
+/* ── 动效 ─────────────────────────────────────────────
+   官网的签名入场是「模糊转清晰」，呼应棱镜聚焦。                  */
+@keyframes sc-appear {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    filter: blur(calc(5 * var(--u)));
   }
   to {
     opacity: 1;
-    transform: none;
+    filter: blur(0);
   }
 }
-@keyframes prism-sweep {
-  from {
-    background-position: 0% 50%;
+@keyframes sc-shudder {
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  to {
-    background-position: 200% 50%;
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
   }
 }
-@keyframes shudder {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(2px); }
-}
-@keyframes halo {
-  0% { opacity: 0.5; transform: scale(0.94); }
-  70% { opacity: 0; transform: scale(1.25); }
-  100% { opacity: 0; transform: scale(1.25); }
+@keyframes sc-halo {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.94);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
 }
 
-.anim-rise {
-  animation: rise 0.5s var(--ease-out-expo) both;
+.anim-appear {
+  animation: sc-appear var(--dur-base) var(--ease-prism) both;
 }
 .anim-shudder {
-  animation: shudder 0.42s ease-out;
+  animation: sc-shudder 0.42s ease-out;
 }
 .anim-halo {
-  animation: halo 0.9s ease-out forwards;
-}
-.prism-flow {
-  background: var(--prism);
-  background-size: 200% 100%;
-  animation: prism-sweep 6s linear infinite;
+  animation: sc-halo 0.9s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .anim-rise,
+  .anim-appear,
   .anim-shudder,
-  .anim-halo,
-  .prism-flow {
+  .anim-halo {
     animation: none !important;
   }
-  * {
+  *,
+  *::before,
+  *::after {
     transition-duration: 0.01ms !important;
   }
 }

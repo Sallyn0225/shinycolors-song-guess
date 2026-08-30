@@ -1,0 +1,21 @@
+Screen: the single-player song-quiz answering screen of a Japanese idol music game called "SHINY COLORS SONG GUESS". The player hears a 6-second instrumental and picks the song from four choices.
+
+VISUAL WORLD (identical across all comps, non-negotiable):
+Design language "Song for Prism". Bright, airy, cool-lavender idol aesthetic. NOT dark mode.
+- Ground: near-white #f7f6fb washed with an extremely faint holographic/iridescent laser-film sheen (pale pink, mint, cyan, butter yellow) plus a barely visible crystal-shard polygon texture at rgba(97,95,144,0.03).
+- Content surfaces: translucent white glass, rgba(255,255,255,0.6), with backdrop blur, so the iridescence shows faintly through.
+- The ONLY brand color is indigo-violet #615f90. The only bright accent is cyan #5ee2ff, with deep sky #00b4f0. Pale lavender #a2a2c0 for dividers. Soft pink #ffbad6 used sparingly.
+- A thin prism rainbow hairline (magenta -> cyan -> yellow -> coral) is the one rainbow element.
+- Shadows are PURPLE drop-shadows rgba(71,68,150,0.25). Never black shadows. No glow.
+- Border-radius is essentially ZERO. All shape comes from clip-path diagonal cuts: parallelograms with a sliced corner for buttons/labels/nav bars, rectangles with top-left AND bottom-right corners sliced for content cards, hexagons for avatars.
+- Typography: Noto Sans JP for Japanese text, Jost geometric sans for uppercase Latin. Very wide letter-spacing (0.1em body, 0.2em Latin caps). Only weights 400/600/700. A small katakana label sits directly above each large uppercase Latin heading, flanked by violet angular corner brackets.
+- Text is high contrast: body copy is near-black on white, violet is used for headings and structure, never for small body text.
+Render as a crisp flat UI design mockup / product screenshot, no browser chrome, no device frame, no photograph, no 3D. Landscape desktop web viewport.
+
+STRUCTURE — "THE BOARD" (a broadcast timetable / setlist board, nothing ever navigates away):
+The whole app is one persistent information board with three fixed regions.
+- LEFT RAIL, about 200px wide, full height, translucent white glass with the top-left corner sliced: a vertical stack of labeled stats, each a tiny violet tracked Jost caps label over a large violet monospace value — "QUESTION 07/20", "SCORE 1240", "REPLAYS 1", "AVG 2.4s", then lower down a small connection row with a green dot and "RTT 24ms". A thin prism-rainbow hairline runs down the rail's right edge.
+- MAIN REGION, center, the largest area: at its top a compact listening stage — a wide horizontal audio spectrum of thin prism-colored bars with a violet countdown numeral "04" set large to its left; below the stage a 2x2 grid of four answer cards, each a translucent white glass rectangle with top-left and bottom-right corners sliced, purple drop-shadow, containing a narrow unit-color bar along its left edge, a violet keycap numeral, the Japanese song title in bold near-black 17px, and the artist in gray 12px.
+- The four song titles, exactly: "アルストロメリア", "シャイノグラフィ", "無自覚アプリオリ", "バベルシティ・グレイス". Artists: "アルストロメリア", "放課後クライマックスガールズ", "アンティーカ", "ストレイライト". Left bars: pink #ff699e, orange #fa8333, purple #853998, crimson #af011c.
+- BOTTOM TICKER, full width, about 72px tall: a horizontal row of 20 small slanted parallelogram slots, one per question. The first six are filled — four in cyan #5ee2ff (correct) and two in pale gray (missed), each showing a tiny numeral. The seventh is outlined in violet and pulsing as "now". The remaining thirteen are empty faint outlines.
+- Information-dense, everything visible at once, strictly aligned to a grid, but calm: only the current question's region is at full contrast, the rest is stepped down in lightness.

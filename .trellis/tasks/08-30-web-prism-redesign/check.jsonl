@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/08-30-web-prism-redesign/prd.md", "reason": "验收标准逐条对照"}
+{"file": ".trellis/tasks/08-30-web-prism-redesign/design.md", "reason": "clip-path 阴影/焦点环两坑、--u 尺寸体系、PrismRail 的 rAF 硬约束"}

@@ -3,12 +3,14 @@ import type { Difficulty, MatchView } from '@scg/shared'
 
 import { api, type SessionInfo } from './api'
 import { audio } from './audio'
-import { Start } from './screens/Start'
+import { socket } from './net/ws'
+import { Karuta } from './screens/Karuta'
+import { Lobby } from './screens/Lobby'
 import { Play } from './screens/Play'
 import { Result } from './screens/Result'
-import { Lobby } from './screens/Lobby'
-import { Karuta } from './screens/Karuta'
-import { socket } from './net/ws'
+import { Start } from './screens/Start'
+import { Backdrop } from './ui/Backdrop'
+import { OverlayMark } from './ui/Overlay'
 
 type Screen =
   | { name: 'start' }
@@ -105,74 +107,83 @@ export default function App() {
     return off
   }, [])
 
-  // 恢复期间不要先闪一下首页 —— 那会让人以为对局已经没了
-  if (resuming && screen.name === 'start') {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-3">
-        <div className="prism-flow h-px w-20 opacity-80" />
-        <p className="text-sm text-muted">正在找回对局…</p>
-        <button
-          type="button"
-          onClick={() => setResuming(false)}
-          className="mt-2 py-2 text-xs text-faint hover:text-muted"
-        >
-          跳过，回到首页
-        </button>
-      </main>
-    )
+  const body = () => {
+    // 恢复期间不要先闪一下首页 —— 那会让人以为对局已经没了
+    if (resuming && screen.name === 'start') {
+      return (
+        <main className="flex min-h-dvh flex-col items-center justify-center gap-4">
+          <OverlayMark />
+          <p className="text-sm text-ink-sub">正在找回对局…</p>
+          <button
+            type="button"
+            onClick={() => setResuming(false)}
+            className="mt-1 py-2 text-xs text-ink-faint transition-colors hover:text-primary"
+            style={{ letterSpacing: 'var(--tracking-base)' }}
+          >
+            跳过，回到首页
+          </button>
+        </main>
+      )
+    }
+
+    switch (screen.name) {
+      case 'lobby':
+        return (
+          <Lobby
+            onBack={() => {
+              socket.send({ t: 'leaveRoom' })
+              socket.close()
+              setScreen({ name: 'start' })
+            }}
+          />
+        )
+      case 'karuta':
+        return (
+          <Karuta
+            initialMatch={screen.match}
+            memorizeEndsAtServer={screen.memorizeEndsAtServer}
+            resumed={screen.resumed}
+            onExit={() => {
+              socket.send({ t: 'leaveRoom' })
+              socket.close()
+              setScreen({ name: 'start' })
+            }}
+          />
+        )
+      case 'play':
+        return (
+          <Play
+            key={screen.session.sessionId}
+            session={screen.session}
+            onFinish={() =>
+              setScreen({
+                name: 'result',
+                sessionId: screen.session.sessionId,
+                difficulty: screen.session.difficulty,
+              })
+            }
+            onQuit={() => setScreen({ name: 'start' })}
+          />
+        )
+      case 'result':
+        return (
+          <Result
+            sessionId={screen.sessionId}
+            onReplay={() => void start(screen.difficulty)}
+            onHome={() => setScreen({ name: 'start' })}
+          />
+        )
+      default:
+        return (
+          <Start onStart={(d) => void start(d)} onVersus={() => setScreen({ name: 'lobby' })} busy={busy} error={error} />
+        )
+    }
   }
 
-  switch (screen.name) {
-    case 'lobby':
-      return (
-        <Lobby
-          onBack={() => {
-            socket.send({ t: 'leaveRoom' })
-            socket.close()
-            setScreen({ name: 'start' })
-          }}
-        />
-      )
-    case 'karuta':
-      return (
-        <Karuta
-          initialMatch={screen.match}
-          memorizeEndsAtServer={screen.memorizeEndsAtServer}
-          resumed={screen.resumed}
-          onExit={() => {
-            socket.send({ t: 'leaveRoom' })
-            socket.close()
-            setScreen({ name: 'start' })
-          }}
-        />
-      )
-    case 'play':
-      return (
-        <Play
-          key={screen.session.sessionId}
-          session={screen.session}
-          onFinish={() =>
-            setScreen({ name: 'result', sessionId: screen.session.sessionId, difficulty: screen.session.difficulty })
-          }
-          onQuit={() => setScreen({ name: 'start' })}
-        />
-      )
-    case 'result':
-      return (
-        <Result
-          sessionId={screen.sessionId}
-          onReplay={() => void start(screen.difficulty)}
-          onHome={() => setScreen({ name: 'start' })}
-        />
-      )
-    default:
-      return (
-        <Start
-          onStart={(d) => void start(d)}
-          onVersus={() => setScreen({ name: 'lobby' })}
-          busy={busy}
-          error={error}
-        />
-      )
-  }
+  return (
+    <>
+      <Backdrop />
+      {body()}
+    </>
+  )
 }
