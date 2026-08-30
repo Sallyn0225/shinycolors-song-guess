@@ -43,3 +43,5 @@ design-extract-output/*
 .specstory/
 CLAUDE.local.md
 AGENTS.local.md
+# 外部 skill 的锁文件，与 .claude/skills/ 配套，跟着 .claude/ 一起不入库
+skills-lock.json
