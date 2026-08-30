@@ -1,0 +1,398 @@
+---
+name: 闪耀色彩 猜歌
+description: 一条光带同时是倒计时、频谱与两阵之间的界线；其余一切静止。
+colors:
+  crystal-violet: "#615f90"
+  crystal-violet-lt: "#a2a2c0"
+  refraction-cyan: "#5ee2ff"
+  refraction-cyan-deep: "#00b4f0"
+  deep-refraction: "#0077a8"
+  pale-refraction: "#b9f2ff"
+  crystal-violet-deep: "#4b4977"
+  sub-pink: "#ffbad6"
+  sub-rose: "#e2669b"
+  rose-ink: "#c33f7a"
+  prism-magenta: "#ff88ff"
+  prism-cyan: "#77ffff"
+  prism-yellow: "#fff352"
+  prism-coral: "#ff7070"
+  ground: "#f7f6fb"
+  surface: "rgb(255 255 255 / 0.62)"
+  surface-lit: "rgb(255 255 255 / 0.88)"
+  divider: "#c2c2d0"
+  ink: "#191922"
+  ink-sub: "#55555f"
+  ink-faint: "#6e6e7c"
+  correct: "#0a6b50"
+  wrong: "#b3123a"
+typography:
+  display:
+    fontFamily: "Jost, 'Noto Sans JP', sans-serif"
+    fontSize: "calc(64 * var(--u))"
+    fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "0.2em"
+  headline:
+    fontFamily: "Jost, 'Noto Sans JP', sans-serif"
+    fontSize: "calc(36 * var(--u))"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "0.2em"
+  title:
+    fontFamily: "'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', sans-serif"
+    fontSize: "calc(28 * var(--u))"
+    fontWeight: 700
+    lineHeight: 1.22
+    letterSpacing: "0.08em"
+  body:
+    fontFamily: "'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', sans-serif"
+    fontSize: "calc(15 * var(--u))"
+    fontWeight: 400
+    lineHeight: 1.7
+    letterSpacing: "normal"
+    fontFeature: "'palt' 1"
+  label:
+    fontFamily: "Jost, 'Noto Sans JP', sans-serif"
+    fontSize: "max(11px, calc(10 * var(--u)))"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0.3em"
+rounded:
+  none: "0"
+spacing:
+  xs: "calc(8 * var(--u))"
+  sm: "calc(12 * var(--u))"
+  md: "calc(16 * var(--u))"
+  lg: "calc(24 * var(--u))"
+  xl: "calc(32 * var(--u))"
+  cut-sm: "calc(12 * var(--u))"
+  cut-md: "calc(20 * var(--u))"
+  cut-lg: "calc(40 * var(--u))"
+components:
+  button-primary:
+    backgroundColor: "{colors.crystal-violet}"
+    textColor: "#ffffff"
+    typography: "{typography.label}"
+    rounded: "{rounded.none}"
+    padding: "calc(14 * var(--u)) calc(40 * var(--u))"
+    height: "max(48px, calc(62 * var(--u)))"
+  button-glass:
+    backgroundColor: "{colors.surface-lit}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.none}"
+    padding: "calc(12 * var(--u)) calc(24 * var(--u))"
+    height: "44px"
+  button-ghost:
+    backgroundColor: "rgb(255 255 255 / 0.5)"
+    textColor: "{colors.crystal-violet}"
+    typography: "{typography.label}"
+    rounded: "{rounded.none}"
+    padding: "calc(6 * var(--u)) calc(16 * var(--u))"
+    height: "44px"
+  field:
+    backgroundColor: "{colors.surface-lit}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.none}"
+    padding: "calc(12 * var(--u)) calc(20 * var(--u))"
+    height: "44px"
+  option-bar:
+    backgroundColor: "{colors.surface-lit}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+    padding: "0 calc(24 * var(--u)) 0 calc(60 * var(--u))"
+    height: "max(60px, calc(112 * var(--u)))"
+  karuta-tile:
+    backgroundColor: "{colors.surface-lit}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+    padding: "calc(6 * var(--u)) calc(8 * var(--u))"
+    height: "max(44px, calc(62 * var(--u)))"
+  panel-glass:
+    backgroundColor: "{colors.surface-lit}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+    padding: "calc(12 * var(--u)) calc(24 * var(--u))"
+---
+
+# Design System: 闪耀色彩 猜歌
+
+## Overview
+
+**Creative North Star: "一条光 / The Running Light"**
+
+全局只有一条不断的光带在动。它同时是倒计时、实时频谱、进度，以及 1v1 里自陣与敵陣之间的那道界线——
+其余一切静止。玩家戴上耳机，听见一段没有人声的伴奏，在光带收完之前认出它是哪首歌。
+这条光带不是装饰件，它是这套系统唯一的动词。
+
+世界是白的。白底上铺一层几乎看不见的虹彩镭射膜与晶体碎片，内容装在半透明白玻璃里，
+所有容器由 `clip-path` 削掉对角——平行四边形、双切角矩形、六边形、两端尖角长条。
+`border-radius` 在整个代码库里出现 **0 次**：形状感完全由斜切给出。
+唯一主色是晶体紫 (#615f90)，唯一亮色是折射青 (#5ee2ff)，阴影是紫的不是黑的，字距很宽，
+字重只有 400 / 600 / 700 三档。入场是从模糊转清晰——像棱镜对上了焦。
+
+明确拒绝的做法：把一个听觉游戏塞进一堆等大卡片，让每个区块都自带容器、边框和各自的动效。
+这套世界里区块之间靠留白与斜切的方向分开，不靠框线。
+
+**Key Characteristics:**
+
+- 一条贯穿全宽的棱镜光带是唯一持续运动的元素
+- 形状由 `clip-path` 斜切给出，圆角为零
+- 白底 + 半透明白玻璃 + 紫色阴影
+- 宽字距的 Jost 大写拉丁压在片假名小标之下
+- 8 个组合的官方代表色只作标识，绝不进入文字
+- 尺寸由单一设计单位 `--u` 驱动，但触摸热区与最小字号有真 px 地板
+
+## Colors
+
+极浅的紫白场地上，一支高饱和的青作唯一亮色；判定色（绿 / 红）是这套克制里仅有的两次提高音量。
+
+### Primary
+
+- **晶体紫 Crystal Violet** (#615f90)：结构色。标题、图标、边框、空态描边、键盘序号。**不作正文。**
+- **浅晶体紫 Crystal Violet Light** (#a2a2c0)：仅作面色与极淡的分隔——对白底只有 2.31:1，任何文字都不能用它。
+- **深晶体紫 Crystal Violet Deep** (#4b4977)：只作 `--grad-brand-ink` 的上端。承白字的面必须整条都够深。
+- **折射青 Refraction Cyan** (#5ee2ff)：自陣的底色调、选中态的填充、棱镜光带的中段。**是面色不是字色。**
+- **深折青 Deep Refraction** (#0077a8)：青色系唯一的文字与描边色。焦点环、选中态边、已就绪。对白底 4.9:1。
+- **浅折青 Pale Refraction** (#b9f2ff)：反过来的场景——深紫渐变面上要一个「青」的强调字时用它。对 #615f90 实测 4.85:1。
+
+### Secondary
+
+- **薄樱粉 Sub Pink** (#ffbad6)：只出现在底衬的虹彩径向渐变里，从不作前景。
+- **玫瑰 Sub Rose** (#e2669b)：送り札的色帽与填充。对白底 3.2:1，同样只作面。
+- **玫瑰墨 Rose Ink** (#c33f7a)：送り札可选牌的描边、「空札」徽标的文字与边。取舍类信息专用，与「对错」的红绿分开。
+
+### Neutral
+
+- **场地白 Ground** (#f7f6fb)：页面底色，也是 `theme-color`。
+- **玻璃面 Surface** (rgb(255 255 255 / 0.62)) 与 **亮玻璃面 Surface Lit** (rgb(255 255 255 / 0.88))：
+  所有内容容器的面。配 `backdrop-filter: blur(calc(10 * var(--u)))`。
+- **分隔线 Divider** (#c2c2d0)：表格与统计区的横线。比官网的 #dbdbdb 深——后者对白底只有 1.29:1，实质不可见。
+- **墨 Ink** (#191922)：正文与数字。
+- **次墨 Ink Sub** (#55555f)：说明文字，以及**所有浅色面上的小字**。
+- **淡墨 Ink Faint** (#6e6e7c)：最弱的辅助文字。对白底 4.95:1——再浅一档（#7c7c8a 是 4.06:1）就不达标。
+
+### Tertiary
+
+- **正解绿 Correct** (#0a6b50) 与 **失误红 Wrong** (#b3123a)：判定色。
+  这两个值不是对着白底选的，是对着**它们自己的浅色底**选的（见下方规则）。
+- **棱镜品红 / 棱镜青 / 棱镜黄 / 棱镜珊瑚** (#ff88ff / #77ffff / #fff352 / #ff7070)：
+  只作 `--grad-prism` 的四个停止色，**不单独出现**。它们是全站唯一的彩虹。
+
+### Gradients
+
+四条渐变，从官网原始 CSS 原样摘录。停止色本身也是 palette 里的 token，不是散落的字面量。
+
+- `--grad-prism`：**棱镜品红 → 棱镜青 → 棱镜黄 → 棱镜珊瑚**（90deg，停止点 0 / 35% / 70% / 100%）
+  ——全站唯一的彩虹，只出现在光带与遮罩顶部那一小段上。
+- `--grad-brand-ink`：**深晶体紫 → 晶体紫**（180deg）——承白字的深紫面。
+- `--grad-brand`：**晶体紫 → 浅晶体紫**（180deg）——**不承白字**，下缘对白只有 2.4:1。
+- `--grad-cta`：**深折射青 → #1fe0d7**（90deg）——强调面。
+
+代码里 `--grad-prism` 写作三位简写（`#f8f` / `#7ff`），与上表的六位等值。
+
+### Named Rules
+
+**The Surface-Not-Text Rule.** 亮色一律是面色。#5ee2ff (2.4:1)、#e2669b (3.2:1)、#a2a2c0 (2.5:1)
+在白底上作文字全部不达标。要写字就换压深过的同色系：`deep-refraction`、`rose-ink`、`ink-faint`。
+这条规则是**双向**的：深紫面上的青字同样要换，用 `pale-refraction`。
+
+**The Tinted-Surface Rule.** 判定色对着**它自己压出来的浅色面**取值，不是对着白底。
+18% 绿面上写绿字最差 4.74:1，16% 玫瑰面上写红字 4.93:1。
+新增任何有色面板之前，先算合成色（token × alpha 叠在 ground 上）再测文字——
+`ink-faint` 在白底上过（4.95:1）、在 12% 玫瑰面上不过（3.86:1）。
+
+**The Unit-Colour-Is-Data Rule.** 8 个组合的官方代表色是既有事实数据，不是设计 token。
+它们只能是一枚实心色帽、一段边缘、或一圈缩略图描边，**绝不作白底上的文字**（#fff68d 会直接消失）。
+每一枚实心色帽补 `inset 0 0 0 1px rgb(0 0 0 / .1)`，浅色组合才读得出来；无归属的曲目回落到
+`crystal-violet` 而不是 `crystal-violet-lt`。
+
+## Typography
+
+**Display Font:** Jost（回落 Noto Sans JP）
+**Body Font:** Noto Sans JP（回落 PingFang SC / Hiragino Sans）
+
+**Character:** 几何无衬线的大写拉丁配日文黑体。拉丁字距拉到 0.2~0.3em，
+日文正文开 `font-feature-settings: 'palt' 1` 收紧标点。字重只有 400 / 600 / 700 三档，
+没有中间态——这套系统靠字距和大小拉开层级，不靠字重的微调。
+
+文案是**中文正文 + 日文术语**：说明性文字用中文保证看得懂，游戏术语（空札 / 送り札 / お手つき /
+自陣 / 敵陣 / 決まり字 / 勝ち・負け・引き分け）与大标题用日文保持气氛。这是确认过的约束。
+
+### Hierarchy
+
+- **Display** (700, `calc(64 * var(--u))`, lh 1)：结算页的分数、房间码这类只出现一次的大数字。
+- **Headline** (700, `calc(36 * var(--u))`, ls 0.2em)：区块标题的 Jost 大写拉丁。窄屏降到 `25u` 且字距收到 0.14em。
+- **Title** (700, `calc(28 * var(--u))`, lh 1.22)：难度名、曲名。窄屏降到 `21u`。
+- **Body** (400, `calc(15 * var(--u))`, lh 1.7)：中文说明正文。
+- **Label** (600, `max(11px, calc(10 * var(--u)))`, ls 0.3em)：片假名小标、统计项名。
+
+### Named Rules
+
+**The Floor Rule.** 最小的两级字号带**真 px 地板**：`--text-2xs` 是 `max(11px, calc(10 * var(--u)))`，
+`--text-xs` 是 `max(12px, calc(11 * var(--u)))`。只跟 `--u` 缩的话，低钳位下它们会掉到 7.8px / 8.6px——
+那不是风格，是读不出来。11px 是功能性文字的下限，12px 是正文的下限。
+
+**The Kana-Over-Latin Rule.** 区块标题永远是两行：上排小号宽字距片假名，下排 Jost 大写拉丁，
+四角各一枚角标把整块框起来。角标是**实心深紫直角三角 + 一条与斜边平行的浅紫窄带**，
+不是细线条，也不是贴着字的大括号。
+
+**The Wide-Tracking Cap Rule.** 宽字距的拉丁串要按视口再封一道顶，不能只靠 `--u`。
+6 个 0.3em 字距的字母实测每字 1.016em——房间码在 390 宽下会排到 431px 而容器只有 340px，
+把整页顶出 66px 横向滚动。`.sc-roomcode` 用 `min(calc(68 * var(--u)), 12.5vw)` 封顶。
+
+## Layout
+
+**设计单位。** 官网全站不用 px 只用 vw，单一断点 767px（PC 稿宽 1440 / SP 稿宽 375）。
+直接照搬会让 2560 宽的屏上一切巨大化，所以钳制两端：
+
+```css
+:root { --u: clamp(0.78px, 0.0694444444vw, 1.16px); }          /* 1440 处恰为 1px */
+@media (max-width: 767px) { :root { --u: clamp(0.82px, 0.2666666667vw, 1.28px); } }
+```
+
+Tailwind 的间距基数接到它上面（`--spacing: calc(4 * var(--u))`），整套间距与字号随视口等比缩放。
+断点对齐到 767/768（`--breakpoint-sm: 768px`），否则 `sm:` 类与 `--u` 的切换点会错开 128px，
+出现「尺寸已经按手机缩了、布局还没换」的夹层。
+
+**不走 `--u` 的三类值：** 触摸热区（真 px，`--u` 低钳位下会掉到 44px 以下）、
+发丝线（永远 1px）、最小两级字号（见上）。
+
+**容器宽度。** 首页 `calc(1300 * var(--u))`，大厅 `calc(760 * var(--u))`，牌场 `calc(1000 * var(--u))`，
+结算卡 `calc(520 * var(--u))`。都是 `mx-auto` 居中。
+
+**窄屏重排，不是缩小。** 牌场在 768px 以下从 4 列改 3 列：牌宽从 ~81px 涨到 ~109px，
+曲名才放得下——4 列时 12 首里有 6~7 首会被截成「…」。
+区块标题的角标框收窄左右留白，否则「LISTENING + 题号」那一行会横向溢出。
+
+### Named Rules
+
+**The Both-Territories Rule.** 牌场必须一屏装下。1536×1024 上实测 `doc == vp == 1024`，
+390×844 上自陣越过折线的牌为 0。抢牌只有几秒，滚动去找自己的牌等于没得玩。
+
+**The Midline Rule.** 场区是 `grid-template-rows: 1fr auto 1fr`，光带落在几何中线上，
+与中央面板多高无关——这条线的全部意义就是「自陣与敵陣之间的那道界线」，不在中线上就是保住了形、丢掉了义。
+代价是**面板有多高、光带下方就镜像出多高的空白**，所以面板一律绝对定位浮在光带上，不占网格行。
+网格里绝对定位的子项不占单元格，因此三行都要显式钉死 `grid-row`，浮起来的那个跨 `1 / -1`。
+
+## Elevation & Depth
+
+**面是平的，影子属于形状。** 所有表面一律平；阴影不表达「悬浮高度」，
+而是让 `clip-path` 削出来的斜角有厚度。所以它跟着形状走，且是紫的不是黑的。
+深度另由两件事给出：半透明白玻璃的 `backdrop-filter`，以及白底上那层几乎看不见的虹彩镭射膜。
+
+### Shadow Vocabulary
+
+- **sm** (`drop-shadow(0 1u 2u rgb(71 68 150 / .2))`)：牌、色帽、输入框、小按钮。
+- **md** (`drop-shadow(0 4u 8u rgb(71 68 150 / .2))`)：选项条、内容卡。
+- **lg** (`drop-shadow(0 6u 8u rgb(71 68 150 / .25))`)：结算卡这类唯一的主体。
+
+### Named Rules
+
+**The Shadow-Belongs-To-The-Shape Rule.** 阴影不是高度，是斜切面的厚度。它画在 `.cut-shadow`
+包装层上而不是被裁元素上——同元素时落在裁剪区外的阴影会被 `clip-path` 一起裁掉。颜色取自主色系而非黑色。
+
+**The Flat-At-Rest Rule.** 静止态一律平。抬升只作为状态回应出现：hover 位移 -1px（300ms，`--ease-prism`），
+active 归零。
+
+## Shapes
+
+`border-radius` 在整个代码库里出现 **0 次**。形状语言完全由 `clip-path` 提供，四个原语：
+
+- **平行四边形** `.cut-slant`：左上削一角。按钮、标签、选项条、输入框底板。反向的 `.cut-slant-r` 与它成对，避免一屏全是同一个斜向。
+- **双切角矩形** `.cut-card` / `.cut-card-sm`：左上、右下各削一角。内容卡、模态、中央信息面板。
+- **六边形** `.cut-hex`：缩略图与封面。
+- **两端尖角长条** `.cut-bar`：状态条、玩家名牌。
+
+切角深度三档：`--cut-sm` 12u、`--cut-md` 20u、`--cut-lg` 40u。
+
+### Named Rules
+
+**The No-Radius Rule.** 不用圆角。一处都不用。要柔化边缘就换切角深度，不要引入 `border-radius`。
+
+**The Closing-Vertex Rule.** 双切角多边形的最后一个顶点 `0 var(--cut)` 不能省。
+省掉之后多边形会从左下角 `(0,100%)` 直接连回 `(cut,0)`，左边变成一条贯穿全高的斜边——
+贴着左缘的组合色条会被整条裁掉，只在底部留一个三角。
+贯穿全高的斜边本身是合法形状（选项条就故意用一条），bug 是**想要切角却写成了全高斜边**。写完数顶点。
+
+**The Lifted-Outline Rule.** 被裁元素上画的 `outline` 会被一起裁没，等于没有焦点环。
+焦点环上提到 `.cut-shadow` 包装层用 `:has(:focus-visible)` 代画，被裁元素自身 `outline: none`。
+任何新的可交互斜切元素都必须套在 `.cut-shadow*` 里，否则它出厂就没有键盘焦点指示。
+
+## Components
+
+### Buttons
+
+- **Shape:** 左上削一角的平行四边形（`--cut-sm` 12u）。无圆角。
+- **Primary:** `--grad-brand-ink` 深紫渐变承白字，`lg` 尺寸最小高 `max(48px, calc(62 * var(--u)))`。
+  注意承白字的面必须**整条都够深**——`--grad-brand` 的下缘 #a2a2c0 配白字只有 2.4:1。
+- **Glass:** `surface-lit` + `backdrop-filter`，墨色文字。次级操作。
+- **Ghost:** 半透明白底 + `inset 0 0 0 1px crystal-violet` 描边。轮廓是非文字对比度，要 3:1，所以用 `crystal-violet`（5.50:1）而不是 `crystal-violet-lt`（2.31:1）。
+- **Outline:** 透明底 + 1.5px 描边。comp 里的主操作形态。
+- **Hover / Focus:** hover `translateY(-1px)`，300ms `--ease-prism`；焦点环 2px `deep-refraction`，offset 3px，画在包装层上。
+- **触摸热区:** 三档尺寸的 `min-height` 分别是 44px / 44px / `max(48px, 62u)`。纯文本按钮（返回、离开房间、放弃这局）用 `.tap-line`：内边距加 9px、外边距减 9px，盒子长到 44px 而文字不挪窝——不能用 `::after` 扩热区，这类按钮多在 `clip-path` 容器里，伪元素会被裁掉。
+
+### Cards / Containers
+
+- **Corner Style:** 左上 + 右下双切角，`--cut-lg` 40u（小号 `--cut-md` 20u）。
+- **Background:** `surface-lit` + `backdrop-filter: blur(calc(10 * var(--u)))`。
+- **Shadow Strategy:** `lg`，画在 `.cut-shadow-lg` 包装层上。
+- **Internal Padding:** `px-8 pt-12 pb-8`——上内边距要多给一截，因为 `--cut-lg`（≈43px）大于 `p-8`（≈34px），左上角切除区会吃掉紧贴顶端的内容。
+
+### Inputs / Fields
+
+- **Style:** 输入框自己**不裁剪**——`clip-path` 会吃掉光标与选中高亮的边缘。形状由外层的斜切底板给出，输入框透明地坐在上面。
+- **静止态:** `inset 0 0 0 1.5px crystal-violet`。边框是非文字对比度，要 3:1。
+- **Focus:** `inset 0 0 0 2px deep-refraction`，300ms 淡入。
+- **最小高度:** 44px。房间码那类输入开 `tracking-[0.3em]`、居中、等宽数字。
+
+### 棱镜光带 PrismRail（签名组件）
+
+这套系统唯一持续运动的元素，也是它的全部动词。一条贯穿容器全宽的细带：
+
+- **时间**：从两端向中央收（`mirror` 模式），或从右向左收（单机）。映射是**线性的，不加缓动**；
+  `clip-path` 上**不能有 transition**——transition 是插值，而这条带的全部意义是它锁在音频时钟上。
+- **频谱**：108 根竖条从光带上缘长出。对数取样 + 实测静态剖面归一 + 帧内相对拐点——
+  拐点随曲目自适应，但是帧全局的，不会反转左右平衡。
+- **折痕**：判定结果以 `correct` / `wrong` 色在带上留下刻痕。
+- **实现**：单个 rAF 循环直写 `style.clipPath` 与 canvas 像素，**绝不每帧 setState**
+  （React 18 并发调度会批处理，表现是「有时候没反应」）。带 `role="progressbar"` 与节流的 `aria-valuenow`。
+
+### 歌牌 KarutaTile（签名组件）
+
+- **Shape:** 双切角，`--cut-sm` 14u。最小高 `max(44px, calc(62 * var(--u)))`。
+- **组合色条**：左缘一段实心色，从切角下沿起（斜切会吃掉左上角），宽 5u，补 `inset 0 0 0 1px rgb(0 0 0 / .12)`。
+- **決まり字**：曲名前 N 个字加粗（`ink`），其余 `ink-faint`。靠字重与明度区分，**不靠另一种颜色**。
+- **状态**：idle / selected / pending / sending / sendable / answer / answer-missed / mistake，
+  各自一组填色与描边。送り札用玫瑰系（取舍），判定用红绿（对错），两套不混。
+- **牌被取走后位置留空**，阵形不重排——玩家背的就是位置。
+
+## Do's and Don'ts
+
+### Do:
+
+- **Do** 让光带承担所有持续运动。它是倒计时、频谱、进度和界线，其余一切静止。
+- **Do** 把阴影画在 `.cut-shadow*` 包装层上，被裁元素自身不带阴影也不带 outline。
+- **Do** 给每个新的可交互斜切元素套 `.cut-shadow*`，否则它出厂就没有焦点环。
+- **Do** 新增有色面板前先算合成色（token × alpha 叠在 `ground` 上），再对着**那个**测文字对比度。
+- **Do** 给触摸热区和最小字号真 px 地板：热区 44px，功能性文字 11px，正文 12px。
+- **Do** 宽字距的拉丁串按视口再封一道顶（`min(calc(N * var(--u)), Xvw)`）。
+- **Do** 在网格里给每个子项显式钉死 `grid-row`——绝对定位的子项不占单元格。
+- **Do** 用 rAF 直写 DOM 驱动一切与音频时钟相关的视觉。
+- **Do** 在惩罚发生的当下点名它（お手つき）、标出引发它的那张牌，并把文字放进 live region。
+- **Do** 让 `prefers-reduced-motion` 关掉入场、抖动、光晕——但**不关**倒计时的收拢与折痕，那是信息不是装饰。
+
+### Don't:
+
+- **Don't** 用 `border-radius`。一处都不用。
+- **Don't** 把亮色（`refraction-cyan`、`sub-rose`、`crystal-violet-lt`）用作文字，无论底色是白还是深紫。
+- **Don't** 把 8 个组合的代表色写成文字或当作设计 token——它们是数据，只作色帽、边段、缩略图描边。
+- **Don't** 给动画中的 `clip-path` 加 transition，也不要给时间映射加缓动。
+- **Don't** 每帧 `setState`。
+- **Don't** 在同一个元素上同时写 `clip-path` 和 `filter: drop-shadow()`，或指望被裁元素上的 `outline` 还在。
+- **Don't** 省掉双切角多边形的最后一个顶点。
+- **Don't** 把 `line-clamp-*` 和 `block` 写在一起——两者都设 `display`，`block` 会赢，钳制静默失效。
+- **Don't** 给 `position: fixed` 的底衬层用 `z-index: 0`；必须是负值，否则它会盖住普通文字（卡片正常、标题和纯文本按钮凭空消失）。
+- **Don't** 让牌场的阵形重排或位置漂移——位置就是玩法。
+- **Don't** 在播放期间让界面抢注意力。屏幕上唯一该看的是「还剩多久」和「现在在播吗」。
