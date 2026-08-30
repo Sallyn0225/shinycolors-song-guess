@@ -18,6 +18,7 @@ import { SlotMap } from '../features/karutaBoard'
 import { computeKimariji } from '../features/kimariji'
 import { narrateRound } from '../features/narrate'
 import { Button } from '../ui/Button'
+import { Countdown } from '../ui/Countdown'
 import { Icon } from '../ui/Icon'
 import { Overlay, OverlayMark } from '../ui/Overlay'
 import { PrismRail } from '../ui/PrismRail'
@@ -56,7 +57,6 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   /** 送り札阶段：服务端先揭晓答案，再等人挑牌 */
   const [reveal, setReveal] = useState<RevealMsg | null>(null)
   const [okuriPicks, setOkuriPicks] = useState<CardId[]>([])
-  const [okuriLeft, setOkuriLeft] = useState(0)
   const okuriSent = useRef(false)
   /** 自己的连接状态。断了就整屏挡住——这时点什么都到不了服务器 */
   const [online, setOnline] = useState(() => socket.connected)
@@ -131,6 +131,13 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     const left = roundEndsAt.current - performance.now()
     return Math.max(0, Math.min(1, left / (CLIP_SECONDS * 1000)))
   }, [])
+
+  /*
+    数字每帧问同一对 ref。光带与秒数读的是同一个截止时刻，
+    所以不会出现「光带还剩一截、数字已经 0」这种两处打架的情况。
+  */
+  const getLiveMsLeft = useCallback(() => Math.max(0, roundEndsAt.current - performance.now()), [])
+  const getOkuriMsLeft = useCallback(() => Math.max(0, okuriEndsAt.current - performance.now()), [])
 
   // ── 消息处理 ─────────────────────────────────────────
   useEffect(() => {
@@ -312,15 +319,13 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     return () => window.clearInterval(t)
   }, [peerGraceEnds])
 
-  // 挑送り札的倒计时。到点服务端会替我送「自陣待得最久的那张」，所以必须让人看到还剩多久
+  // 挑送り札的截止时刻。到点服务端会替我送「自陣待得最久的那张」，所以必须让人看到还剩多久。
+  // 秒数由 Countdown 在 rAF 里直接写 DOM —— 这一段两片牌阵都在屏上，
+  // 每 200ms setState 一次等于整局最吃紧的 10 秒里把整个牌场重渲染 50 遍
   useEffect(() => {
     if (stage !== 'choosing' || !reveal) return
     const endsLocal = socket.toLocalTime(reveal.deadlineAtServer)
     okuriEndsAt.current = performance.now() + (endsLocal - Date.now())
-    const tick = () => setOkuriLeft(Math.max(0, Math.ceil((endsLocal - Date.now()) / 1000)))
-    tick()
-    const t = window.setInterval(tick, 200)
-    return () => window.clearInterval(t)
   }, [stage, reveal])
 
   // ── 交互 ─────────────────────────────────────────────
@@ -606,16 +611,30 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
 
           {stage === 'live' && (
             <>
-              <p
-                className="font-bold text-primary"
-                style={{
-                  fontSize: 'calc(28 * var(--u))',
-                  lineHeight: 1.1,
-                  letterSpacing: 'var(--tracking-wide)',
-                }}
+              {/*
+                「聴」与秒数并排成一个横向锁定组，不是上下两行 ——
+                面板一高就把镜像的频谱挡掉，一宽就盖住光带收拢的终点。
+                6 秒的窗口只可能是一位数，整组仍在原来的 132u 里。
+                warnAt 给 2 而不是默认的 3：6 秒里报警 3 秒就是半个窗口都在喊。
+              */}
+              <div
+                className="flex items-baseline justify-center"
+                style={{ gap: 'calc(10 * var(--u))' }}
               >
-                聴
-              </p>
+                <span
+                  className="font-bold text-primary"
+                  style={{ fontSize: 'calc(22 * var(--u))', lineHeight: 1 }}
+                >
+                  聴
+                </span>
+                <Countdown
+                  getMsLeft={getLiveMsLeft}
+                  totalSeconds={CLIP_SECONDS}
+                  warnAt={2}
+                  size={40}
+                  label="本札剩余时间"
+                />
+              </div>
               {locked && <p className="text-2xs text-accent-ink">已出手</p>}
             </>
           )}
@@ -691,10 +710,23 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   ))}
               </div>
 
-              {/* 剩余秒数也画在光带上，这里给一个可读的数字兜底 */}
+              {/*
+                这 10 秒是全局最紧的一个计时，到点服务端就替你送。
+                秒数在光带上只读得出走势，所以这里把它写成数字 —— 并且是这一行的主语。
+                它落在上面那个 aria-live 区之外：每秒播一遍会把整个惩罚窗口的播报淹掉。
+              */}
               {stage === 'choosing' && (
-                <p className="latin mt-1 text-xs text-ink-sub">
-                  {okuriLeft}s 后自动送出自陣待得最久的那张
+                <p className="mt-1 text-xs text-ink-sub">
+                  {/* 走正常内联流而不是 flex 一行：Countdown 本身是 inline-flex，
+                      基线自然对齐，而且 320 宽下这句话还能换行 —— flex 行不换，会顶出横向滚动 */}
+                  <Countdown
+                    getMsLeft={getOkuriMsLeft}
+                    totalSeconds={KARUTA_DEFAULTS.okuriSeconds}
+                    size={26}
+                    label="自动送出前剩余时间"
+                    className="mr-1"
+                  />
+                  后自动送出自陣待得最久的那张
                 </p>
               )}
 

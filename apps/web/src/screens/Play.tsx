@@ -11,6 +11,7 @@ import {
 import { audio } from '../audio'
 import { OptionBar, type OptionState } from '../components/OptionBar'
 import { Button } from '../ui/Button'
+import { Countdown } from '../ui/Countdown'
 import { Icon } from '../ui/Icon'
 import { PrismRail, type Crease } from '../ui/PrismRail'
 import { SectionTitle } from '../ui/SectionTitle'
@@ -53,6 +54,9 @@ export function Play({ session, onFinish, onQuit }: Props) {
     const left = deadlineRef.current - performance.now()
     return Math.max(0, left / (session.answerSeconds * 1000))
   }, [session.answerSeconds])
+
+  /** 剩余毫秒。数字与光带读同一个 deadlineRef，两者不可能对不上 */
+  const getMsLeft = useCallback(() => Math.max(0, deadlineRef.current - performance.now()), [])
 
   /** 曲库有兜底副本时才把它交给音频引擎；没有就别去试，只会白等一次 404 */
   const fallbackOf = useCallback(
@@ -232,13 +236,31 @@ export function Play({ session, onFinish, onQuit }: Props) {
       </header>
 
       {/* ── 一条光 ────────────────────────────────────────── */}
-      <div className="mt-5">
+      {/*
+        秒数就落在光带的收拢点上：光带是从两端向中央收的，所以这一刻该看的两件事
+        ——「还剩多久」与「现在在播吗」—— 在视线里是同一个位置，不用来回扫。
+        18u 的下边距是让开折痕（12u）；数字压在频谱上，ink 对任何一根棱镜色柱都在 10:1 以上。
+      */}
+      <div className="relative mt-5">
         <PrismRail
           getRemaining={getRemaining}
           creases={creases}
           mode="top"
           label={`本题剩余时间，共 ${session.answerSeconds} 秒`}
         />
+        {phase === 'answering' && (
+          <div
+            className="pointer-events-none absolute inset-x-0 flex justify-center"
+            style={{ bottom: 'calc(18 * var(--u))' }}
+          >
+            <Countdown
+              getMsLeft={getMsLeft}
+              totalSeconds={session.answerSeconds}
+              size={56}
+              label="本题剩余时间"
+            />
+          </div>
+        )}
       </div>
 
       {/* ── 揭晓：曲名与演唱者 ────────────────────────────── */}
