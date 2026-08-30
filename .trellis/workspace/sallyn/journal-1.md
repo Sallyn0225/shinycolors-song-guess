@@ -54,3 +54,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: 移除误入曲库的人声版 リフレクトサイン (2022 Ver.)
+<!-- trellis-session: v=2 fp=e0582294d8d70dbe -->
+
+**Date**: 2026-08-30
+**Task**: 移除误入曲库的人声版 リフレクトサイン (2022 Ver.)
+**Branch**: `main`
+
+### Summary
+
+曲库里混进一首带人声的音源，与正常的 off vocal 版几乎同名、只多一个 (2022 Ver.) 后缀。全库唯一一首 ID3 title 缺 ' (Off Vocal)' 后缀的——那正是它有人声的信号，但 stripOffVocal 当年把后缀写成可选、当数据特例兼容掉了，于是它走完整条 pipeline 进了曲库。曲库 234→233 首、切片 1404→1398 个。用户明确决定不收紧正则：素材准入是人工判断，不该由正则兜底。执行中最大的坑是 pipeline 只写不删——删源目录后重跑构建不会清理旧切片，而切片文件名是随机 id，唯一映射记录在 manifest.private.json 的 sliceIndex 里，一旦重写就再也查不出孤儿是谁的，所以必须先取证再动手。清理后磁盘 1398 = manifest 1398，零孤儿；analyze/slice 233/233 全缓存命中，零重编码、其余 233 首 sliceId 逐一未变。另一个坑是我自己踩的：取证快照含完整 1398 条 sliceId→songId 映射，而 .gitignore 排除 assets/ 却包含 .trellis/tasks/，差点把答案表提交上去，提交前销毁。两个坑都写回了 asset-secrecy.md 与 pipeline-guidelines.md。顺带修正既有数字错误：text.ts 注释称 Migratory Echoes 有 10 个版本（实际 9 个）。核实过『96 首 artist 填成作曲者』这一统计不受影响——被删曲的 artist 是演唱者 Team.Luna，与作曲 Lauren Kaori/家原正樹 不重合，故只改分母 96/234→96/233。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a02a215` | fix(assets): 移除误入曲库的人声版 リフレクトサイン (2022 Ver.) |
+
+### Status
+
+[OK] **Completed**
