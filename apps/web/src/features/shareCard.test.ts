@@ -283,6 +283,21 @@ describe('buildVersusTicket', () => {
     expect(loss).toContain('惜败')
   })
 
+  // 校正提示是可选区块。印章写死位置的话，没有它的那一局下半张会空出
+  // 一百多像素 —— 排版不该隐含依赖一个可能不出现的块
+  it('印章跟着内容底部走：有校正框时比没有时更靠下', () => {
+    const v = versus()
+    const stampY = (input: VersusReportInput) =>
+      buildVersusTicket(input, m).find((o): o is Extract<DrawOp, { k: 'stamp' }> => o.k === 'stamp')!
+        .cy
+
+    const without = stampY(v)
+    const withBox = stampY({ ...v, mine: { ...v.mine, clamped: 2 } })
+    expect(withBox).toBeGreaterThan(without)
+    // 但不能压到底栏那条线上
+    expect(withBox + 54).toBeLessThan(964)
+  })
+
   it('对手昵称出现在表头与对阵行', () => {
     const t = texts(buildVersusTicket(versus({ foe: { ...versus().foe, name: '玄野' } }), m))
     expect(t.filter((s) => s.includes('玄野')).length).toBeGreaterThanOrEqual(2)

@@ -619,9 +619,13 @@ export function buildVersusTicket(input: VersusReportInput, m: Measure): DrawOp[
     })
   })
 
+  // 表格最后一行的分隔线所在，也是「没有校正提示时」的内容底部
+  let bottom = tableTop + 68 + (rows.length - 1) * rowH + 20
+
   // ── 校正公示。页面上已经公示了，图上不写就等于换个地方把它藏起来
   const clampedTop = tableTop + 68 + rows.length * rowH + 28
   if (input.mine.clamped > 0 || input.foe.clamped > 0) {
+    bottom = clampedTop + 34
     ops.push({
       k: 'rect',
       x: CX,
@@ -654,6 +658,12 @@ export function buildVersusTicket(input: VersusReportInput, m: Measure): DrawOp[
     })
   }
 
-  pushStamp(ops, tier, 886)
+  /*
+    印章跟着内容底部走，不写死。
+    校正提示是可选区块（只在服务端真校正过时才有），写死位置的话，
+    没有它的那一局下半张就空出一百多像素 —— 排版不该隐含依赖一个可能不出现的块。
+    上限 892 是为了不压到底栏那条线。
+  */
+  pushStamp(ops, tier, Math.min(bottom + 94, 892))
   return ops
 }
