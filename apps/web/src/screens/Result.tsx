@@ -63,22 +63,32 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
       <header className="anim-appear">
         <SectionTitle kana="リザルト" latin={`Result · ${preset.label}`} size="md" />
 
-        {/* 走过的每一题摊成一排折痕 —— Play 里那条光带的自然延续 */}
-        <div className="mt-7 flex flex-wrap" style={{ gap: 'calc(5 * var(--u))' }}>
+        {/*
+          走过的每一题摊成一条折痕带 —— Play 里那条光带的自然延续。
+          必须 nowrap：光带给自己立的规矩是「任何宽度只缩放不换行」，
+          这里若用会换行的独立色片，就是在结算页上把那条规矩自己破掉。
+          判定色也用同一套（correct / wrong），否则「答对」在 Play、光带、结算是三种颜色。
+        */}
+        <div
+          className="mt-7 flex w-full flex-nowrap items-end"
+          style={{ gap: 'calc(4 * var(--u))', height: 'calc(16 * var(--u))' }}
+          role="img"
+          aria-label={`逐题结果：共 ${data.total} 题，答对 ${data.correct} 题`}
+        >
           {data.items.map((item) => (
             <span
               key={item.index}
               title={`第 ${item.index + 1} 题`}
-              className="cut-slant block"
+              className="cut-slant block min-w-0 flex-1"
               style={{
-                width: 'calc(34 * var(--u))',
-                height: 'calc(14 * var(--u))',
+                height: item.correct === null ? 'calc(7 * var(--u))' : '100%',
+                alignSelf: 'flex-end',
                 background:
                   item.correct === true
-                    ? 'var(--color-accent-deep)'
+                    ? 'var(--color-correct)'
                     : item.correct === false
-                      ? 'var(--color-primary-lt)'
-                      : 'rgb(162 162 192 / .25)',
+                      ? 'var(--color-wrong)'
+                      : 'rgb(162 162 192 / .3)',
                 ['--cut-sm' as string]: 'calc(6 * var(--u))',
               }}
             />

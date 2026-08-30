@@ -68,7 +68,12 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
             clipPath: CAP_CLIP,
             // 浅色组合（イルミネ的 #fff68d）在白底上会消失，补一圈极淡内描边保底
             boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
-            filter: gray ? 'grayscale(1)' : undefined,
+            /*
+              落选项不能用 grayscale：藏青、深红这些会被洗成近黑的重条，
+              视觉重量反而压过正确答案那一条 —— 和牌场里敵陣抢过自陣是同一个病。
+              要退到后景就得真的变淡。
+            */
+            opacity: gray ? 0.3 : 1,
           }}
         />
       </span>
@@ -103,6 +108,7 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
                 height: 'calc(58 * var(--u))',
                 objectFit: 'cover',
                 filter: gray ? 'grayscale(1)' : undefined,
+                opacity: gray ? 0.55 : 1,
               }}
             />
           ) : (

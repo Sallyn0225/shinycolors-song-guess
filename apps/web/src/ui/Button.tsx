@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
-type Variant = 'primary' | 'glass' | 'ghost' | 'quiet'
+type Variant = 'primary' | 'glass' | 'ghost' | 'outline' | 'quiet'
 type Size = 'sm' | 'md' | 'lg'
 
 interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
@@ -14,10 +14,10 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className
 const SIZE: Record<Size, string> = {
   sm: 'px-4 py-1.5 text-xs',
   md: 'px-6 py-3 text-sm',
-  lg: 'px-8 py-3.5 text-base',
+  lg: 'px-10 py-3.5 text-base',
 }
 
-const MIN_H: Record<Size, string> = { sm: '32px', md: '44px', lg: '48px' }
+const MIN_H: Record<Size, string> = { sm: '32px', md: '44px', lg: 'max(48px, calc(62 * var(--u)))' }
 
 /**
  * 平行四边形按钮。左上削一角 —— 官网所有按钮/标签/导航条都是这个形状。
@@ -40,14 +40,20 @@ export function Button({
         ? 'glass-lit text-ink'
         : variant === 'ghost'
           ? 'text-primary'
-          : 'text-ink-sub'
+          : variant === 'outline'
+            ? 'text-primary'
+            : 'text-ink-sub'
 
   const bg =
     variant === 'primary'
       ? { background: 'var(--grad-brand-ink)' }
       : variant === 'ghost'
-        ? { boxShadow: 'inset 0 0 0 1px var(--color-primary-lt)', background: 'rgb(255 255 255 / .5)' }
-        : undefined
+        ? // 轮廓是「非文字对比度」，要 3:1。primary-lt 只有 2.31:1，用 primary（5.50:1）
+          { boxShadow: 'inset 0 0 0 1px var(--color-primary)', background: 'rgb(255 255 255 / .5)' }
+        : variant === 'outline'
+          ? // comp 的主操作是描边不填充的平行四边形，不是浅玻璃小片
+            { boxShadow: 'inset 0 0 0 1.5px var(--color-primary)', background: 'transparent' }
+          : undefined
 
   return (
     <span

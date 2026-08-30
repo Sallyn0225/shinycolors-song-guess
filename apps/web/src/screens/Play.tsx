@@ -219,12 +219,13 @@ export function Play({ session, onFinish, onQuit }: Props) {
           kana={phase === 'revealed' ? 'アンサー' : 'リスニング'}
           latin={phase === 'revealed' ? 'ANSWER' : 'LISTENING'}
         />
-        <div className="flex shrink-0 items-baseline gap-5">
-          <p className="latin text-lg font-semibold text-primary" style={{ letterSpacing: 'var(--tracking-base)' }}>
+        {/* comp 里计数器与标题是上缘的一对锚点，不是脚注 —— 字号与跨度都要跟上 */}
+        <div className="flex shrink-0 items-baseline" style={{ gap: 'calc(28 * var(--u))' }}>
+          <p className="latin sc-title font-semibold text-primary" style={{ letterSpacing: 'var(--tracking-wide)' }}>
             {String(index + 1).padStart(2, '0')}
             <span className="text-ink-faint"> / {String(session.total).padStart(2, '0')}</span>
           </p>
-          <p className="latin text-2xl font-semibold text-primary" style={{ letterSpacing: 'var(--tracking-tight)' }}>
+          <p className="latin sc-title font-bold text-primary" style={{ letterSpacing: 'var(--tracking-tight)' }}>
             {score}
           </p>
         </div>
@@ -326,7 +327,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           </Button>
         )}
         {phase === 'answering' && (
-          <Button variant="ghost" size="md" onClick={() => void replay()} disabled={replaysLeft <= 0}>
+          <Button variant="outline" size="lg" onClick={() => void replay()} disabled={replaysLeft <= 0}>
             <Icon name="replay" size="calc(17 * var(--u))" />
             重听
             <span className="latin">({replaysLeft})</span>

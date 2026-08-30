@@ -31,12 +31,13 @@ export function Field({ className = '', code = false, style, ...rest }: Props) {
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 transition-[box-shadow] duration-300"
-          style={{ boxShadow: 'inset 0 0 0 1px var(--color-primary-lt)' }}
+          // 输入框静止态的边框同样是非文字对比度，要 3:1
+          style={{ boxShadow: 'inset 0 0 0 1.5px var(--color-primary)' }}
         />
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 peer-focus:opacity-100"
-          style={{ boxShadow: 'inset 0 0 0 2px var(--color-accent-deep)' }}
+          style={{ boxShadow: 'inset 0 0 0 2px var(--color-accent-ink)' }}
         />
       </span>
     </span>

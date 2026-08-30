@@ -51,8 +51,8 @@ const TILE_CLIP = `polygon(${CUT} 0, 100% 0, 100% calc(100% - ${CUT}), calc(100%
 /** state → 填色与描边。送り札用粉玫瑰系，与「对错」的红绿分开 —— 那一步是取舍不是判定 */
 const TONE: Record<CardState, { bg: string; edge: string; dashed?: boolean }> = {
   idle: { bg: 'var(--color-surface-lit)', edge: 'inset 0 0 0 1px rgb(162 162 192 / .5)' },
-  selected: { bg: 'rgb(0 180 240 / .14)', edge: 'inset 0 0 0 2px var(--color-accent-deep)' },
-  pending: { bg: 'rgb(0 180 240 / .2)', edge: 'inset 0 0 0 2px var(--color-accent-deep)' },
+  selected: { bg: 'rgb(0 119 168 / .12)', edge: 'inset 0 0 0 2px var(--color-accent-ink)' },
+  pending: { bg: 'rgb(0 119 168 / .18)', edge: 'inset 0 0 0 2.5px var(--color-accent-ink)' },
   sending: { bg: 'rgb(226 102 155 / .2)', edge: 'inset 0 0 0 2px var(--color-sub-rose)' },
   // 1.5px、55% 透明的玫瑰描边对牌面只有 1.01:1 —— 等于没标。
   // 送り札是「从哪些牌里挑」的分区信息，必须一眼分得出可选与不可选。

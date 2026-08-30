@@ -515,7 +515,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         style={{
           fontSize: 'calc(26 * var(--u))',
           lineHeight: 1,
-          color: mine ? 'var(--color-accent-deep)' : 'var(--color-primary)',
+          color: mine ? 'var(--color-accent-ink)' : 'var(--color-primary)',
         }}
       >
         {left[who]}
@@ -720,16 +720,29 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         style={{ background: 'rgb(97 95 144 / .05)', opacity: foeReceded ? 0.45 : 1 }}
         aria-label="敵陣"
       >
-        {nameplate(foe, false)}
+        {/* 牌多到要滚动时（お手つき 会把一方堆到 22 张），对手还剩几张必须一直看得见 */}
+        <div className="sticky top-0 z-10" style={{ background: 'rgb(240 239 246 / .92)' }}>
+          {nameplate(foe, false)}
+        </div>
         <div className="mt-2">{grid(foeSlots, true, (slot, e) => tap(slot, true, e))}</div>
       </section>
 
       {/* ── 場：一条光就是两阵之间的界线 ─────────────────── */}
+      {/*
+        三行网格：1fr / auto / 1fr。
+        上下两行恒等高，所以中间那行（光带）**永远落在场区的几何中线上**，与面板多高无关。
+        面板仍是常规流子项，不可能溢出到牌阵里；面板变高时两条 1fr 会对称地一起长。
+        —— 之前用 flex + justify-center，面板一进流就把光带整体压下去 60px，
+        而 mirror 模式下这条线的全部意义就是「自陣与敵陣之间的那道界线」，
+        不在中线上就是保住了形、丢掉了义。
+      */}
       <section
-        className="relative my-3 flex flex-1 flex-col items-center justify-center sm:my-4"
-        style={{ minHeight: 'calc(150 * var(--u))', gap: 'calc(8 * var(--u))' }}
+        className="sc-field relative my-3 grid flex-1 sm:my-4"
+        style={{ gridTemplateRows: '1fr auto 1fr' }}
       >
-        {stage !== 'live' && infoPanel}
+        <div className="flex min-h-0 items-end justify-center pb-2">
+          {stage !== 'live' && infoPanel}
+        </div>
 
         <div className="relative w-full">
           <PrismRail
@@ -746,12 +759,14 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           )}
         </div>
 
-        {/* 提示走正常流，永远在光带正下方 —— absolute 定位会让它滑到自陣的牌底下 */}
-        {stage === 'live' && (
-          <p role="status" className="text-center text-xs text-ink-sub">
-            {locked ? '已出手 —— 你选的那张已高亮，等待判定' : '认出来就点对应的牌'}
-          </p>
-        )}
+        {/* 提示落在第三行，永远在光带正下方 —— absolute 定位会让它滑到自陣的牌底下 */}
+        <div className="flex min-h-0 items-start justify-center pt-2">
+          {stage === 'live' && (
+            <p role="status" className="text-center text-xs text-ink-sub">
+              {locked ? '已出手 —— 你选的那张已高亮，等待判定' : '认出来就点对应的牌'}
+            </p>
+          )}
+        </div>
       </section>
 
       {/* ── 自陣 ───────────────────────────────────────── */}

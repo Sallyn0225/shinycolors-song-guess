@@ -46,7 +46,8 @@
   --color-ground: #f7f6fb;
   --color-surface: rgb(255 255 255 / 0.62);
   --color-surface-lit: rgb(255 255 255 / 0.88);
-  --color-divider: #dbdbdb;
+  /* #dbdbdb 对白底只有 1.29:1，结算表的分隔线实质不可见 */
+  --color-divider: #c2c2d0;
 
   /* 品牌。结构色，不作正文 */
   --color-primary: #615f90;
@@ -294,11 +295,16 @@
   /* 限时题里，四个选项必须全部在一屏内 —— 看不见的选项等于不能选。
      窄屏把条高、条间距和揭晓栏一起压下来，保证 4 条不越过折线。 */
   .sc-bar {
-    min-height: max(60px, calc(124 * var(--u)));
+    min-height: max(60px, calc(112 * var(--u)));
   }
   /* 标题的角标框。窄屏收窄左右留白 —— 不收的话「LISTENING + 题号」这一行会横向溢出 */
   .sc-titlebox {
     padding: calc(var(--tc) * 0.45) calc(var(--tc) * 2.2);
+  }
+
+  /* 场区的最小高度。窄屏收窄，否则两块领地在 390 下会被挤出一屏 */
+  .sc-field {
+    min-height: calc(150 * var(--u));
   }
 
   .sc-tile-title {
@@ -308,7 +314,7 @@
     overflow: hidden;
   }
   .sc-options {
-    gap: calc(24 * var(--u));
+    gap: calc(20 * var(--u));
   }
   .sc-revealslot {
     min-height: calc(58 * var(--u));
@@ -346,6 +352,9 @@
        曲名才放得下 —— 4 列时 12 首里有 6~7 首会被截成「…」 */
     .sc-titlebox {
       padding: calc(var(--tc) * 0.4) calc(var(--tc) * 1.1);
+    }
+    .sc-field {
+      min-height: calc(104 * var(--u));
     }
     .sc-tile-title {
       -webkit-line-clamp: 3;
