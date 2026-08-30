@@ -10,7 +10,9 @@ let app: FastifyInstance
 let baseUrl: string
 
 beforeAll(async () => {
-  app = await buildApp()
+  // 整个套件都从 127.0.0.1 建几十个房间，用生产配额会在第十几个用例上撞限流。
+  // 限流本身由 quota.test.ts 和下面「房间配额」一节单独验证，这里要的是不碍事。
+  app = await buildApp({ rooms: { max: 1000, maxPerIp: 1000, createPerMin: 1000 } })
   await app.listen({ port: 0, host: '127.0.0.1' })
   const addr = app.server.address()
   const port = typeof addr === 'object' && addr ? addr.port : 0

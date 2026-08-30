@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { DIFFICULTIES, DIFFICULTY_PRESETS, KARUTA_DEFAULTS, type Difficulty } from '@scg/shared'
 
 import { ASSETS_ROOT, Catalog } from './catalog.js'
-import { SERVER_CONFIG, coverUrl } from './config.js'
+import { SERVER_CONFIG, coverUrl, type RoomQuotas } from './config.js'
 import { SoloSessionStore } from './soloSessions.js'
 import { Hub, type Socket } from './ws/hub.js'
 
@@ -53,7 +53,17 @@ function formatOf(token: string): { token: string; format: ClipFormat } {
     : { token, format: 'opus' }
 }
 
-export async function buildApp(): Promise<FastifyInstance> {
+export interface BuildAppOptions {
+  /**
+   * 覆盖房间配额。生产环境不传，走 `SERVER_CONFIG.rooms`。
+   *
+   * 存在的意义是测试：正常对局的用例要宽松额度才跑得完，
+   * 而验证限流的用例要极紧额度才触发得了 —— 靠环境变量做不到在同一个进程里两者并存。
+   */
+  rooms?: Partial<RoomQuotas>
+}
+
+export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: false,
     // 反代后面才认 X-Forwarded-*；直接暴露时开它等于让任何人伪造来源 IP
@@ -98,14 +108,16 @@ export async function buildApp(): Promise<FastifyInstance> {
   })
 
   // ── 联机 1v1 ───────────────────────────────────────────
-  const hub = new Hub(catalog)
+  const hub = new Hub(catalog, { ...SERVER_CONFIG.rooms, ...opts.rooms })
   await app.register(fastifyWebsocket)
 
   await app.register(async (scope) => {
     // @fastify/websocket v11 直接把 WebSocket 作为第一个参数传进来
-    scope.get('/ws', { websocket: true }, (socket) => {
+    scope.get('/ws', { websocket: true }, (socket, req) => {
       const s = socket as unknown as Socket
-      hub.connect(s)
+      // 按 IP 的房间配额全靠这个值。**没开 TRUST_PROXY 时它是反代自己的地址**，
+      // 所有连接会挤进同一个配额桶——更严格，但会误伤，见 DEPLOY.md
+      hub.connect(s, req.ip)
 
       /**
        * 协议级心跳。

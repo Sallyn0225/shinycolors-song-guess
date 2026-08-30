@@ -9,7 +9,10 @@ import {
   type MatchStats,
   type MatchView,
   type PlayerId,
+  type RoomStatus,
+  type RoomSummary,
   type RoomView,
+  type RoomVisibility,
   type RoundResultView,
   type ServerMsg,
   type TapVerdict,
@@ -87,8 +90,28 @@ interface OkuriWait {
  * 规则全部委托给 `@scg/game-core` 的纯函数；这一层只负责传输、计时和权威状态，
  * 所以规则本身可以脱离网络单测。
  */
+export interface RoomOptions {
+  /** 已经过 `sanitizeRoomName` 的房间名。Room 不再做清洗，拿到什么就显示什么 */
+  name: string
+  visibility: RoomVisibility
+  /**
+   * 建房者来源 IP，仅供 Hub 做每 IP 配额。
+   *
+   * **永远不下发**：不在 `roomView()` 里，也不在 `summary()` 里。
+   * 列表是匿名可读的公开面，放进去的每个字段都等于公开。
+   */
+  creatorIp: string
+  code?: string
+  config?: KarutaConfig
+}
+
 export class Room {
   readonly code: string
+  readonly name: string
+  readonly visibility: RoomVisibility
+  readonly creatorIp: string
+  /** 建房时刻。用于列表排序与「等待太久自动关闭」的回收判断 */
+  readonly createdAt = Date.now()
   readonly matchId = randomUUID()
   private readonly seats: Record<PlayerId, Seat | null> = { A: null, B: null }
 
@@ -112,19 +135,24 @@ export class Room {
 
   lastActivity = Date.now()
 
+  private readonly config: KarutaConfig
+
   constructor(
     private readonly catalog: Catalog,
-    private readonly config: KarutaConfig = {
+    opts: RoomOptions,
+  ) {
+    this.name = opts.name
+    this.visibility = opts.visibility
+    this.creatorIp = opts.creatorIp
+    this.code = opts.code ?? newRoomCode()
+    this.config = opts.config ?? {
       poolSize: KARUTA_DEFAULTS.poolSize,
       fieldCards: KARUTA_DEFAULTS.fieldCards,
       karafuda: KARUTA_DEFAULTS.karafuda,
       tieEpsilonMs: KARUTA_DEFAULTS.tieEpsilonMs,
       minHumanReactionMs: KARUTA_DEFAULTS.minHumanReactionMs,
       windowMs: KARUTA_DEFAULTS.roundWindowSeconds * 1000,
-    },
-    code: string = newRoomCode(),
-  ) {
-    this.code = code
+    }
   }
 
   // ── 座位 ──────────────────────────────────────────────
@@ -135,6 +163,39 @@ export class Room {
 
   get allOffline(): boolean {
     return (['A', 'B'] as const).every((p) => this.seats[p] === null || this.seats[p]?.conn === null)
+  }
+
+  get playerCount(): number {
+    return (['A', 'B'] as const).filter((p) => this.seats[p] !== null).length
+  }
+
+  /**
+   * 列表状态。
+   *
+   * 判「已开局」看的是 `state !== null`，不是 `phase !== 'lobby'` ——
+   * `MatchState.phase` 的取值里根本没有 `'lobby'`（那是 `RoomView` 才有的相位），
+   * 对局一旦开始 `state` 就非空，结束后停在 `'over'` 也仍然算在局中。
+   */
+  get status(): RoomStatus {
+    if (this.state) return 'playing'
+    return this.playerCount >= 2 ? 'full' : 'waiting'
+  }
+
+  /** 房主昵称。A 座走了就顺延到 B 座，空房间返回空串（这种房间马上会被清扫） */
+  get hostNickname(): string {
+    return this.seats.A?.nickname ?? this.seats.B?.nickname ?? ''
+  }
+
+  /** 列表条目。**不含 creatorIp、不含任何对局内容** */
+  summary(): RoomSummary {
+    return {
+      code: this.code,
+      name: this.name,
+      host: this.hostNickname,
+      players: this.playerCount,
+      status: this.status,
+      createdAt: this.createdAt,
+    }
   }
 
   join(nickname: string, conn: Connection): { playerId: PlayerId; resumeToken: string } | null {
@@ -207,6 +268,16 @@ export class Room {
     for (const p of ['A', 'B'] as const) this.send(p, msg)
   }
 
+  /**
+   * 告诉房里的人「这个房间没了」。
+   *
+   * 只发消息、不改状态：调用方（`Hub.dropRoom`）紧接着就会 `dispose()`，
+   * 在这里再动一遍座位或定时器只会让两处的清理逻辑互相打架。
+   */
+  broadcastClosed(reason: 'idle'): void {
+    this.broadcast({ t: 'roomClosed', reason })
+  }
+
   /** 每人收到的 MatchView 里 `you` 不同，所以要逐人生成 */
   private broadcastMatch(build: (p: PlayerId) => ServerMsg): void {
     for (const p of ['A', 'B'] as const) if (this.seats[p]) this.send(p, build(p))
@@ -215,6 +286,8 @@ export class Room {
   roomView(you: PlayerId): RoomView {
     return {
       code: this.code,
+      name: this.name,
+      visibility: this.visibility,
       you,
       players: {
         A: this.playerView('A'),
