@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Difficulty, MatchView } from '@scg/shared'
+import type { Difficulty, MatchView, RoomView } from '@scg/shared'
 
 import { api, type SessionInfo } from './api'
 import { audio } from './audio'
@@ -8,6 +8,7 @@ import { Karuta } from './screens/Karuta'
 import { Lobby } from './screens/Lobby'
 import { Play } from './screens/Play'
 import { Result } from './screens/Result'
+import { Room } from './screens/Room'
 import { Start } from './screens/Start'
 import { Backdrop } from './ui/Backdrop'
 import { OverlayMark } from './ui/Overlay'
@@ -17,6 +18,7 @@ type Screen =
   | { name: 'play'; session: SessionInfo }
   | { name: 'result'; sessionId: string; difficulty: Difficulty }
   | { name: 'lobby' }
+  | { name: 'room'; room: RoomView }
   | { name: 'karuta'; match: MatchView; memorizeEndsAtServer: number; resumed: boolean }
 
 /** 找回座位的等待上限。到点还没恢复就当新会话，别让人一直卡在恢复界面 */
@@ -84,7 +86,13 @@ export default function App() {
           break
         case 'room':
           setResuming(false)
-          setScreen((prev) => (prev.name === 'start' ? { name: 'lobby' } : prev))
+          // 守卫仍然是为了「重连时别把牌场顶掉」。条件放宽到也接受 lobby ——
+          // 现在建房/进房成功正是从大厅切到房间屏的那一步
+          setScreen((prev) =>
+            prev.name === 'start' || prev.name === 'lobby' || prev.name === 'room'
+              ? { name: 'room', room: msg.room }
+              : prev,
+          )
           break
         case 'stateSync':
           setResuming(false)
@@ -131,9 +139,21 @@ export default function App() {
         return (
           <Lobby
             onBack={() => {
-              socket.send({ t: 'leaveRoom' })
               socket.close()
               setScreen({ name: 'start' })
+            }}
+          />
+        )
+      case 'room':
+        return (
+          <Room
+            key={screen.room.code}
+            initialRoom={screen.room}
+            // 离开房间回大厅，**不断开 socket** —— 断了要重连、列表要重订阅，
+            // 而这一步用户想做的只是「换一间房」
+            onLeave={() => {
+              socket.send({ t: 'leaveRoom' })
+              setScreen({ name: 'lobby' })
             }}
           />
         )
