@@ -6,14 +6,24 @@
 
 ## What this package is
 
-Four source files, ~450 lines, zero behaviour:
+Four source files, ~550 lines, and exactly one function with behaviour:
 
 ```
-src/protocol.ts     ClientMsg / ServerMsg, the view types, the zod schema
+src/protocol.ts     ClientMsg / ServerMsg, the view types, the zod schema, sanitizeRoomName
 src/difficulty.ts   DIFFICULTY_PRESETS, KARUTA_DEFAULTS
 src/scoring.ts      SCORING constants + ScoreBreakdown
 src/index.ts        barrel: export * from each of the above
 ```
+
+`sanitizeRoomName` is the exception to "no behaviour", and the bar it had to clear is worth
+recording: it lives here **only because both ends must apply the identical rule** — the web
+input gives live feedback, the server stores the result, and any drift between the two
+produces "looked fine in the box, came back different". It is a pure string function with no
+I/O, in the same category as `encode()`. `src/protocol.test.ts` (13 tests) covers it; that is
+why this package now has a `test` script at all.
+
+Do not treat it as a licence to move logic here. The next candidate needs the same argument:
+both ends must run the same code, and the code touches nothing but its arguments.
 
 It is imported by **every** other package (`@scg/web`, `@scg/server`, `@scg/game-core`,
 `@scg/prepare-audio`). A change here is a change to all four at once — that is the whole

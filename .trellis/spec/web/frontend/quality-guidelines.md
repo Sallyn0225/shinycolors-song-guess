@@ -28,9 +28,9 @@ If a signature genuinely blocks you, stop and record it in the task's `prd.md`. 
 
 ---
 
-## `clip-path` — three traps, all of which fail silently
+## `clip-path` — four traps, all of which fail silently
 
-The visual world is built entirely on diagonal `clip-path` cuts. Three things break in ways
+The visual world is built entirely on diagonal `clip-path` cuts. Four things break in ways
 that look like something else entirely.
 
 ### 1. A missing closing vertex turns a corner cut into a full-height diagonal
@@ -64,6 +64,45 @@ Shadow goes on the **parent**, clip goes on the **child**. `ui/Cut.tsx` and the
 
 Any new clipped interactive element must sit inside a `.cut-shadow*` wrapper, or it ships
 with no keyboard focus indicator.
+
+### 4. `inset box-shadow` draws a *rectangle's* border, so a clipped element gets a broken one
+
+This is the one that ships and survives review, because at a glance it reads as "there is a
+border". On a 44px `.cut-slant` field (`--cut-sm` ≈ 9.4px), measured off a screenshot:
+
+| Where | What actually rendered |
+|---|---|
+| top edge | starts at x ≈ 9.4 — the corner before the cut has nothing |
+| the diagonal | **34px of it with no border at all**; nothing draws that edge |
+| left edge | clipped down to a ~7px stub at the bottom-left, at a right angle to the shape |
+
+The stub is what people notice and report. The missing diagonal is the actual defect.
+
+Use `.cut-ring` + a shape variant instead (`index.css`):
+
+```tsx
+<span className="glass-lit cut-slant relative">
+  <span aria-hidden className="cut-ring cut-ring-slant"
+        style={{ '--ring': '1.5px', '--ring-color': 'var(--color-primary)' }} />
+</span>
+```
+
+Three things about that CSS are load-bearing, and each was arrived at by breaking it:
+
+- **The middle is punched out with `evenodd`, not filled.** A solid shape behind the glass
+  tints the whole surface by `1 - alpha` of the stroke colour (12% at `surface-lit`).
+- **The outer contour bleeds 1px past the element.** The ring sits *inside* the clipped
+  element (so hover transforms and `peer-*` selectors still work), which means the diagonal
+  would be antialiased twice — 50% × 50% = 25% coverage, and the diagonal renders visibly
+  paler than the horizontal edges. Bleeding past the parent's edge leaves one AA pass.
+- **The contour returns to its start before the seam, and the inner ring is traversed in
+  reverse.** Skip either and exactly one edge disappears while the other three look fine:
+  inner traversed forwards → the closing segment crosses the top band and **the whole top
+  border vanishes**; inner reached without closing the outer first → **the diagonal vanishes**.
+
+Same root cause, different symptom: a hollow diamond built from an `inset` shadow (the
+`Presence` dot) renders as four disconnected specks — it reads as a spinner. Build hollow
+shapes from two stacked solid clipped elements instead (`ui/Presence.tsx`).
 
 ---
 

@@ -48,8 +48,10 @@ Consequences to respect:
 - Call `clearTimers()` *before* transitioning phase, not after.
 - Never call `setTimeout` directly in `room.ts`. A timer outside the set survives
   `dispose()` and keeps a finished room alive.
-- `Hub`'s sweeper (`setInterval(..., 15_000)`) is the one exception, and it calls
-  `.unref?.()` so it cannot hold the process open. Do the same for any new interval.
+- `Hub`'s sweeper (`setInterval(..., SWEEP_MS)`, 5s) and its room-list flush timer
+  (`setTimeout(..., LIST_FLUSH_MS)`, 250ms) are the two exceptions, and both call
+  `.unref?.()` so neither can hold the process open. Do the same for any new timer in
+  `hub.ts`.
 
 ---
 
@@ -150,6 +152,66 @@ promptly. Do not remove it because "we already have a ping".
 
 `Hub` allows 60 messages per second per connection (`RATE_WINDOW_MS`/`RATE_MAX`) and answers
 `{ code: 'rate_limited' }` beyond that — the client's 2s ping plus taps is nowhere near it.
-Rooms are swept when empty or after `ROOM_TTL_MS` (30 min) of inactivity; every state-
-changing method calls `this.touch()`. If you add one that does not, the room can be
-collected mid-match.
+
+**Per-connection limiting cannot carry a public deployment.** "Open a socket, create a room,
+disconnect, repeat" defeats it completely: every connection is fresh. Anything that must be
+budgeted across reconnects is keyed by IP instead, in `ws/quota.ts`, and therefore
+**depends on `TRUST_PROXY=1`** — without it `req.ip` is the proxy's own address and every
+player shares one bucket. That degrades safely (stricter, not looser) but does misfire, so it
+is documented in `DEPLOY.md` rather than left to be discovered.
+
+The checks in `createRoom` run in a fixed order, and the order carries meaning: global
+capacity (`server_busy`) before per-IP holdings and rate (`too_many_rooms`), so that an
+overloaded server tells everyone the same thing instead of letting each caller conclude they
+personally were throttled.
+
+`joinRoom` counts **failures** only, and refuses before looking up the code once the bucket is
+full. This is the actual guarantee behind a "private" room: 32^6 is about 1.07 billion codes,
+but without a failure limit that is a few hours of brute force, not a lifetime.
+
+## Four ways a room ends
+
+`ROOM_TTL_MS` alone is not enough once rooms are publicly listed. All four live in `sweep()`:
+
+| Condition | Bound | Why it exists |
+|---|---|---|
+| `isEmpty` — every seat released | next sweep (≤5s) | normal "leave room" |
+| `stale` — `ROOM_TTL_MS` since last activity | 30 min | original catch-all |
+| `waitedTooLong` — `waiting` past `waitingTtlMs` | 15 min | nobody ever came; host is told via `roomClosed` |
+| `abandoned` — `allOffline` past `abandonedTtlMs` | 65s | **the one the list forced** |
+
+`abandoned` is the subtle one. `disconnect()` only detaches the connection — the seat is held
+for the reconnect grace — so a room whose players both vanished is neither empty nor stale,
+and `lastActivity` freezes at the last `detach()` because nobody is left to ping. Before the
+room list this merely wasted a little memory; afterwards it **advertises a dead room as
+joinable for half an hour**. `abandonedTtlMs` must stay above
+`KARUTA_DEFAULTS.disconnectGraceSeconds`, or reclaiming the room cancels the reconnect promise.
+
+`waitedTooLong` measures from `createdAt`, not `lastActivity`: a host sitting in their own
+room pings every 2s and would otherwise never time out.
+
+## Keeping the list honest
+
+`Room` does not know the list exists — it exposes `status` / `summary()` and nothing more.
+`Hub` finds out that something changed by two routes, and needs both:
+
+1. **Explicit** `markListDirty()` on the transitions Hub itself handles (create, join, leave,
+   ready, room dropped).
+2. **A signature diff in `sweep()`**, because `ready → 開局` and `matchEnd` happen inside
+   `Room` with Hub nowhere on the call stack.
+
+Giving `Room` an `onChange` callback would be tidier and is the wrong trade: it means adding a
+call at six separate transitions, and a missed one is a room frozen at the wrong status in
+everyone's list, with nothing failing. The diff cannot miss.
+
+Pushes are coalesced through a single 250ms timer, and seating a player sets
+`listening = false` — people inside a room do not need the lobby feed, and that is where the
+broadcast volume would otherwise be.
+
+## Look-ups by token, not by scan
+
+`hello` resolves a `resumeToken` through `Hub.bySeatToken`, not by walking every room calling
+`reattach`. With a bounded-but-large room count the scan is wasted work, and worse, `reattach`
+broadcasts on success — so the scan's correctness rested on an unwritten assumption that
+tokens never collide. The index makes that explicit. `dropRoom()` is the single exit for a
+room precisely so the index, the timers and the map are cleared together.

@@ -18,12 +18,45 @@ fiction — see `apps/server/src/ws/hub.ts`, which `safeParse`s every frame and 
 server, so a hand-written union is enough and cheaper.
 
 When you add a client message, add it to `clientMsgSchema` — not to a separate type. The
-`ClientMsg` type is `z.infer<typeof clientMsgSchema>`, so the schema *is* the type and the
+`ClientMsg` type is `z.input<typeof clientMsgSchema>`, so the schema *is* the type and the
 two cannot drift.
+
+`z.input`, not `z.infer`: `createRoom.visibility` carries `.default('private')`, and a
+defaulted field is optional going out and guaranteed coming in. `ClientMsg` describes what a
+client may *send*, so it must be the input type. The server never uses it — `hub.ts` reads
+`safeParse(...).data`, which zod already types as the output.
 
 Give every field a bound. The existing entries all do: `z.string().max(200)` for
 `resumeToken`, `.max(40)` for card ids, `.max(64)` for a layout array, `.max(5000)` on a
-reported RTT. An unbounded string in a WebSocket message is an allocation attack.
+reported RTT, `.max(64)` on a raw room name. An unbounded string in a WebSocket message is an
+allocation attack.
+
+---
+
+## Defaults must fail towards "less exposed"
+
+`createRoom.visibility` defaults to `private`. That direction is not a style preference: a
+client that omits the field — an old build, a hand-rolled script, a bug — must not have its
+room published to every stranger holding the URL. Any future field that gates exposure gets
+the same treatment, and `packages/shared/src/protocol.test.ts` asserts it explicitly so the
+default cannot be flipped by accident.
+
+The same reasoning splits validation in two. `name` is bounded at `.max(64)` in zod but
+normalised by `sanitizeRoomName` afterwards, not rejected at 24. Clipping first would read
+"24 visible characters plus a few zero-width" as over-length and refuse a legitimate name;
+zod is the allocation guard, the sanitiser is the semantic one.
+
+## What a list entry may carry
+
+`RoomSummary` is read by anyone, anonymously, without joining. Every field on it is
+published. `Room.creatorIp` exists for per-IP quotas and is deliberately absent from both
+`summary()` and `roomView()`; `apps/server/src/ws/lobby.test.ts` pins the exact key set so a
+future field cannot be added there without someone noticing.
+
+Private rooms never appear in `roomList` and are not counted in its totals. That is the
+entire technical meaning of "private" — see `JOIN_FAIL_PER_MIN` in
+[the server's realtime guidelines](../../server/backend/realtime-guidelines.md) for the other
+half, which is what stops the 6-character code from being enumerated.
 
 ---
 

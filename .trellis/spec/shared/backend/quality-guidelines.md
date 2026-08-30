@@ -59,8 +59,13 @@ source directly (no `dist`), a wrong type here surfaces as a compile error in
 - Adding a field to a `*View` interface without asking whether it leaks the answer. Run
   through [Protocol and Contracts](./protocol-and-contracts.md) first.
 - Adding a client message type to `ClientMsg` by hand instead of to `clientMsgSchema`.
-  `ClientMsg` is `z.infer<...>`; a hand-added member either does not compile or silently
-  bypasses validation.
+  `ClientMsg` is derived from the schema; a hand-added member either does not compile or
+  silently bypasses validation.
+- Reaching for `z.infer` when a field has `.default()`. `ClientMsg` is `z.input<...>`,
+  not `z.infer` (= `z.output`): a defaulted field is *optional* on the sending side and
+  *required* after parsing. Senders (`apps/web/src/net/ws.ts`, `room.test.ts`) need the
+  input type; `hub.ts` reads `safeParse(...).data`, which is already the output type.
+  Switching `ClientMsg` to the output type makes every existing caller stop compiling.
 - Importing anything from `@scg/game-core` here. The dependency runs the other way
   (`packages/game-core/package.json` depends on `@scg/shared`); a back-import is a cycle.
 - Collapsing two constants that happen to hold the same number. See

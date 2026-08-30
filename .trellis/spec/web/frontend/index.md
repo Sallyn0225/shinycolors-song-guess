@@ -13,14 +13,20 @@ src/api.ts        typed fetch wrappers for the solo REST API
 src/audio.ts      AudioEngine singleton — Web Audio, decode cache, output-latency correction
 src/net/ws.ts     GameSocket singleton — WebSocket, clock sync, reconnect, seat token
 src/features/     pure logic: kimariji, karutaBoard (SlotMap), narrate  — 21 tests live here
-src/components/   OptionBar, KarutaTile — game-specific, stateless
-src/ui/           Backdrop, Button, Cut, Field, Icon, Overlay, PrismRail, SectionTitle, Stat
-src/screens/      Start, Lobby, Play, Karuta, Result — one per screen, own the state
+src/components/   OptionBar, KarutaTile, RoomCard — game-specific, stateless
+src/ui/           Backdrop, Button, Countdown, Cut, Field, Icon, Overlay, Presence,
+                  PrismRail, SectionTitle, Stat, VolumeControl
+src/screens/      Start, Lobby, Room, Play, Karuta, Result — one per screen, own the state
 src/index.css     the entire design system: tokens, shape primitives, .sc-* sizing, animations
 ```
 
 The visual language is documented in `DESIGN.md`; current status and known gaps in
 `PROGRESS.md`. Neither is duplicated here.
+
+`Lobby` and `Room` are two screens rather than one because their lifetimes differ, not because
+of line count: the lobby subscribes to the room list and must stay usable while the socket is
+down; the room owns seats and readiness and is explicitly unsubscribed by the server the
+moment you sit. Merged, the list subscription would keep running inside a match.
 
 ---
 
