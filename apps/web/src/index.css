@@ -281,6 +281,32 @@
     margin-inline: -9px;
   }
 
+  /*
+    音量滑杆。原生 input 透明地压在**画出来**的轨道上，跟输入框是同一个做法 ——
+    clip-path 会把原生控件自己的绘制吃掉，所以形状交给下面那层，
+    input 只负责它白送的那些东西：拖动、方向键、Home/End、以及读屏软件认得的 slider 语义。
+
+    这里只做两件事：拆掉原生外观，和把滑块宽度钉成与画出来的那枚一致 ——
+    对不齐的话，画的滑块会在两端各差半个身位，越靠边越明显。
+  */
+  .sc-range {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    margin: 0;
+  }
+  .sc-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--thumb-w);
+    height: 100%;
+  }
+  .sc-range::-moz-range-thumb {
+    width: var(--thumb-w);
+    height: 100%;
+    border: 0;
+    background: transparent;
+  }
+
   /* 玻璃面。毛玻璃只加在这里，且不与 filter 同元素 —— 两层合成上下文在移动端会掉帧 */
   .glass {
     background: var(--color-surface);

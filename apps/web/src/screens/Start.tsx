@@ -4,6 +4,7 @@ import { Icon } from '../ui/Icon'
 import { PrismRail } from '../ui/PrismRail'
 import { SectionTitle } from '../ui/SectionTitle'
 import { Stat } from '../ui/Stat'
+import { VolumeControl } from '../ui/VolumeControl'
 
 interface Props {
   onStart: (d: Difficulty) => void
@@ -160,9 +161,18 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         </p>
       )}
 
-      <p className="anim-appear mt-10 text-xs text-ink-faint" style={{ animationDelay: '340ms' }}>
-        点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2 秒延迟。
-      </p>
+      {/*
+        音量和耳机提示是同一件事的两半，放一组。
+        位置在三个入口之后是有意的：这一页的动作集只有那三条，
+        音量是**设定**不是入口，不该长成第四条横条去跟它们抢。
+      */}
+      <div className="anim-appear mt-10" style={{ animationDelay: '340ms' }}>
+        <VolumeControl />
+        <p className="jp-wrap mt-5 text-xs text-ink-faint" style={{ maxWidth: '60ch' }}>
+          点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2
+          秒延迟。松开音量滑块会试听一声，设定记在这台设备上。
+        </p>
+      </div>
     </main>
   )
 }

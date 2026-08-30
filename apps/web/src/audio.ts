@@ -22,6 +22,29 @@ const LEAD_SEC = 0.06
 const FADE_IN_SEC = 0.025
 const FADE_OUT_SEC = 0.06
 
+/**
+ * 音量变更的 ramp 时间常数。
+ * 15ms：跟手到察觉不出延迟，又足够长到不留阶跃 —— 直接写 `gain.value`
+ * 会在两个采样之间硬跳，听感是「刺啦」的 zipper noise。
+ */
+const VOLUME_RAMP_TAU = 0.015
+/** 试听音的长度与峰值。这是一声参考，不是提示音，压在 0.22 免得盖过随后的音乐 */
+const PREVIEW_SEC = 0.26
+const PREVIEW_PEAK = 0.22
+
+/**
+ * 滑杆位置 → 线性增益。
+ *
+ * 平方律，不是直通。响度感知接近对数，线性映射会把整条行程的可用部分
+ * 全挤在底部四分之一里：滑到一半时线性增益 0.5 只低 6dB，听上去几乎没变小，
+ * 于是玩家只能在 0~25% 那一小段里找音量。平方之后一半处是 −12dB，
+ * 正好是「小了一半」落的地方，整条行程才是均匀好用的。
+ */
+function gainFor(level: number, muted: boolean): number {
+  if (muted || level <= 0) return 0
+  return level * level
+}
+
 export class AudioEngine {
   private ctx: AudioContext | null = null
   private master: GainNode | null = null
@@ -36,6 +59,13 @@ export class AudioEngine {
   private readonly inflight = new Map<string, Promise<AudioBuffer>>()
   /** 这台设备解不了 Opus，已切到 AAC 兜底 */
   private preferFallback = false
+  /**
+   * 音量偏好。存在引擎自己身上而不是 master 上，因为 master 要等 `unlock()`
+   * 里 AudioContext 建好才存在，而偏好在那之前（页面一加载）就该读进来了。
+   * 引擎不认识 localStorage —— 谁调用 `setVolume` 谁负责持久化。
+   */
+  private level = 1
+  private muted = false
 
   get unlocked(): boolean {
     return this.ctx !== null && this.ctx.state === 'running'
@@ -49,6 +79,9 @@ export class AudioEngine {
     if (!this.ctx) {
       this.ctx = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: 'interactive' })
       this.master = this.ctx.createGain()
+      // 偏好在这之前就已经读进来了（见 main.tsx），这里补上即可。
+      // 漏掉这一句的表现是：设过音量、刷新、第一题恢复成满音量
+      this.master.gain.value = gainFor(this.level, this.muted)
       // 可视化挂在 master 之后：画面直接由正在播放的音频驱动，不是假动画
       this.analyser = this.ctx.createAnalyser()
       this.analyser.fftSize = 256
@@ -63,6 +96,70 @@ export class AudioEngine {
     s.buffer = this.ctx.createBuffer(1, 1, SAMPLE_RATE)
     s.connect(this.ctx.destination)
     s.start(0)
+  }
+
+  /** 当前滑杆位置 0~1。注意不是增益，见 gainFor() */
+  get volume(): number {
+    return this.level
+  }
+
+  get isMuted(): boolean {
+    return this.muted
+  }
+
+  /**
+   * 设定音量。**可以在 `unlock()` 之前调用** —— 值先记下来，
+   * 等 AudioContext 建好时一并生效。页面刚加载时正是这种情形。
+   */
+  setVolume(level: number, muted = this.muted): void {
+    this.level = Math.min(1, Math.max(0, level))
+    this.muted = muted
+    const ctx = this.ctx
+    const master = this.master
+    if (!ctx || !master) return
+    // setTargetAtTime 而不是赋值：拖动时每几毫秒来一次，硬赋值会一路 zipper noise
+    master.gain.setTargetAtTime(gainFor(this.level, this.muted), ctx.currentTime, VOLUME_RAMP_TAU)
+  }
+
+  /**
+   * 试听一声当前音量。
+   *
+   * 首页调音量时没有任何东西在播，没有这一声就是在盲调 ——
+   * 定完了也不知道定成了多大，进了第一题才发现要重来。
+   * 走 master，所以听到的响度就是正式播放的响度。
+   *
+   * 调用点必须在**真实用户手势**的调用栈里（拖动、按键都算）：它会顺手 unlock()。
+   */
+  async previewTone(): Promise<void> {
+    // 真曲子正在播时不要插一脚
+    if (this.isPlaying) return
+    if (!this.ctx) await this.unlock()
+    const ctx = this.ctx
+    const master = this.master
+    if (!ctx || !master) return
+
+    const t0 = ctx.currentTime + 0.01
+    const env = ctx.createGain()
+    env.gain.setValueAtTime(0.0001, t0)
+    env.gain.linearRampToValueAtTime(PREVIEW_PEAK, t0 + 0.012)
+    env.gain.exponentialRampToValueAtTime(0.0001, t0 + PREVIEW_SEC)
+    env.connect(master)
+
+    // 基频加一层八度泛音。纯正弦听着像系统提示音，与这套世界的调子对不上；
+    // 加了泛音才像一件乐器
+    for (const [hz, amp] of [
+      [660, 1],
+      [1320, 0.32],
+    ] as const) {
+      const osc = ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(hz, t0)
+      const partial = ctx.createGain()
+      partial.gain.value = amp
+      osc.connect(partial).connect(env)
+      osc.start(t0)
+      osc.stop(t0 + PREVIEW_SEC + 0.02)
+    }
   }
 
   private remember(key: string, buf: AudioBuffer): void {
