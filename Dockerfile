@@ -8,7 +8,10 @@ ARG NODE_IMAGE=node:22-bookworm-slim
 # deps —— 装全部依赖（含 dev，前端构建要 vite/tsc）
 # ─────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS deps
-ENV PNPM_HOME=/pnpm PATH=$PNPM_HOME:$PATH
+# 必须分成两条 ENV：同一条 ENV 里 $PNPM_HOME 还没定义，
+# PATH 会被展开成不含它的值（buildkit 会报 UndefinedVar）
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 WORKDIR /app
 
@@ -37,7 +40,8 @@ RUN pnpm --filter @scg/web build
 # runtime —— 只带 prod 依赖 + 源码 + 前端产物
 # ─────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS runtime
-ENV PNPM_HOME=/pnpm PATH=$PNPM_HOME:$PATH \
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH \
     NODE_ENV=production \
     PORT=5179 \
     HOST=0.0.0.0
