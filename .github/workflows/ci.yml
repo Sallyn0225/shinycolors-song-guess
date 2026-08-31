@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 类型检查是全量的，不受曲库影响
+      - name: Typecheck（全部包）
+        run: pnpm -r typecheck
+
+      # ────────────────────────────────────────────────────────────
+      # 测试边界：这里**故意不是** `pnpm -r test`。
+      #
+      # apps/server 的 4 个测试文件走 buildApp() → Catalog.load()，
+      # 会去读 assets/manifest.private.json 与 manifest.public.json：
+      #
+      #   src/app.test.ts        src/ambience.test.ts
+      #   src/ws/lobby.test.ts   src/ws/room.test.ts
+      #
+      # 而 assets/ 是 1.7GB 商业音源的派生物，不入库也不该入库
+      # （见 NOTICE）。CI 上没有曲库，这 4 个必然失败，
+      # 且按 .trellis/spec/server/backend/quality-guidelines.md 的说法，
+      # 「失败是环境问题不是代码问题」。
+      #
+      # 剩下 12 个测试文件都是自洽的，在这里全跑。
+      # 想让那 4 个也进 CI，需要造一份合成曲库 fixture ——
+      # 那要动测试基础设施，尚未做。
+      # ────────────────────────────────────────────────────────────
+      - name: Test（不依赖曲库的包）
+        run: pnpm --filter "!@scg/server" -r test
+
+      - name: Test（server 中不依赖曲库的部分）
+        run: pnpm --filter @scg/server exec vitest run src/ws/quota.test.ts
+
+      # 前端构建不需要 assets/：apps/web/public 的素材已入库。
+      # 这一步同时验证了镜像构建里的 build 阶段能过
+      - name: Build web
+        run: pnpm --filter @scg/web build

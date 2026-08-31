@@ -1,0 +1,72 @@
+# 部署说明见 DEPLOY.md 的「Docker Compose 部署」一节。
+#
+# 首次使用：cp .env.example .env 并填好 DOMAIN / ACME_EMAIL，
+# 再把构建好的 assets/ 放到本文件同级目录。
+
+services:
+  app:
+    # 生产：拉 GHCR 上由 Actions 构建好的镜像（VPS 是 2C4G/5Mbps，
+    # 不适合每次部署都在上面跑 pnpm install + vite build）。
+    # 想本地构建就跑 `docker compose build`。
+    image: ${APP_IMAGE:-ghcr.io/sallyn0225/shinycolors-song-guess:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    # 用 tini 做 PID 1 收养孤儿进程。CMD 里已经是 exec 形式的 node，
+    # SIGTERM 能直达，这里只是兜底
+    init: true
+
+    # **故意不映射端口到宿主机**。比设 HOST=127.0.0.1 更彻底——
+    # 端口根本不进宿主机的网络命名空间，只有同一个 compose 网络里的 caddy 连得上。
+    expose:
+      - "5179"
+
+    environment:
+      # 容器内仍监听 0.0.0.0，否则同网络的 caddy 连不进来
+      HOST: 0.0.0.0
+      PORT: "5179"
+      # 有 Caddy 在前，必须开。不开的话 req.ip 是反代自己的地址，
+      # 按 IP 的三项房间配额会从「每人」退化成「全局」——不报错，
+      # 表现是几个人一起玩时有人建不了房。论证见 DEPLOY.md
+      TRUST_PROXY: "1"
+
+    volumes:
+      # 曲库不进镜像：228MB 的商业音源派生物，且每次改代码重建都要重落一层。
+      # **只读**——服务端只读不写，只读挂载是免费的加固
+      - ./assets:/app/assets:ro
+
+    healthcheck:
+      # 打 /api/health 而不是探端口：它返回曲目数，
+      # 所以「健康」等于曲库确实挂载成功了。忘了挂 assets 时容器会明确不健康，
+      # 而不是起来了却是个空壳
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5179/api/health').then(r=>{if(!r.ok)process.exit(1);return r.json()}).then(j=>process.exit(j.songs>0?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?请在 .env 里设置 DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 证书必须持久化。不持久化的话每次重启都重新申请，
+      # 很快会撞上 Let's Encrypt 的速率限制然后彻底签不出来
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

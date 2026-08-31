@@ -1,0 +1,58 @@
+# 构建上下文。不写这个文件，光传上下文就有 2GB+。
+
+# ── 硬要求，不是体积优化 ─────────────────────────────
+# assets/ 是运行时**只读挂载**进来的（见 docker-compose.yml）。
+# 进了镜像就等于把 228MB 的商业音源派生物打进镜像仓库，
+# 而且每次改代码重建都要重新落一遍这一层。
+assets/
+
+# 源音源 1.7GB。服务端根本不读它，assets/ 已经是派生物
+songs/
+
+# ── 构建产物与依赖：容器内重新装/重新构建 ──────────
+node_modules/
+**/node_modules/
+apps/*/dist/
+packages/*/dist/
+**/*.tsbuildinfo
+.vite/
+coverage/
+
+# ── 素材源文件：入库的都是转好的成品 ────────────────
+emoji/
+opening-greeting/
+bg-video.mp4
+design-extract-output/
+brand/
+
+# ── 版本控制与 CI ───────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ── 开发期目录 ──────────────────────────────────────
+.trellis/
+.claude/
+.agents/
+.pi/
+.zcode/
+.cursor/
+.codex/
+.gemini/
+.impeccable/
+.playwright-mcp/
+skills-lock.json
+
+# ── 文档：不参与构建 ────────────────────────────────
+*.md
+!apps/web/public/**/*.md
+
+# ── 部署产物自身 ────────────────────────────────────
+Dockerfile
+.dockerignore
+docker-compose.yml
+Caddyfile
+.env
+.env.*
+!.env.example
