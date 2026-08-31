@@ -18,15 +18,15 @@
 
 | 逻辑名 | 用途 | 来源包 | 原始路径 |
 |--------|------|--------|----------|
-| click.wav | 按钮 / 入口点击 | Kenney UI Audio | Audio/click2.ogg |
-| tick.wav | 倒计时 3-2-1（供 play-countdown 任务调用） | Kenney UI Audio | Audio/rollover2.ogg |
-| go.wav | 倒计时结束 / 起跑（供 play-countdown 任务调用） | Kenney UI Audio | Audio/rollover1.ogg |
-| correct.wav | 揭晓正解 | Interface SFX Pack 1 | Ogg/Confirm_tones/style3/confirm_style_3_001.ogg |
-| wrong.wav | 揭晓不正解 | Interface SFX Pack 1 | Ogg/Error_tones/style3/error_style_3_001.ogg |
-| fanfare.wav | 结算页进场 | Interface SFX Pack 1 | Ogg/Confirm_tones/style1/confirm_style_1_001.ogg |
+| click.m4a | 按钮 / 入口点击 | Kenney UI Audio | Audio/click2.ogg |
+| tick.m4a | 倒计时 3-2-1（供 play-countdown 任务调用） | Kenney UI Audio | Audio/rollover2.ogg |
+| go.m4a | 倒计时结束 / 起跑（供 play-countdown 任务调用） | Kenney UI Audio | Audio/rollover1.ogg |
+| correct.m4a | 揭晓正解 | Interface SFX Pack 1 | Ogg/Confirm_tones/style3/confirm_style_3_001.ogg |
+| wrong.m4a | 揭晓不正解 | Interface SFX Pack 1 | Ogg/Error_tones/style3/error_style_3_001.ogg |
+| fanfare.m4a | 结算页进场 | Interface SFX Pack 1 | Ogg/Confirm_tones/style1/confirm_style_1_001.ogg |
 
-裁剪时长：correct.wav 由原约 6s（含尾部静音垫）裁到实声 0.72s；
-wrong.wav 裁到 0.77s；fanfare.wav 裁到 1.31s（结算音要克制，不做长奏）。
+裁剪时长：correct.m4a 由原约 6s（含尾部静音垫）裁到实声 0.72s；
+wrong.m4a 裁到 0.77s；fanfare.m4a 裁到 1.31s（结算音要克制，不做长奏）。
 
 ## 来源包
 
