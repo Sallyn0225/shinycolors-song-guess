@@ -236,6 +236,43 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
       cacheControl: true,
       maxAge: '365d',
       immutable: true,
+
+      /**
+       * 优先发构建期压好的 `.br`（`apps/web/scripts/precompress.mjs` 生成）。
+       *
+       * 运行时压缩用的是 brotli 默认质量 4 —— 那个默认值是对的，因为它压的是
+       * **每一次请求**，2C4G 上不能用 11 级。但这些产物是不可变的静态文件，
+       * 构建时压一次就能用到下次发版。实测同一个 JS：q4 → 101,956，q11 → 86,216。
+       *
+       * 两个插件在这里是**互补而不是打架**的：命中 `.br` 时本插件会自己带上
+       * `content-encoding: br`，而 `@fastify/compress` 的 onSend 见到已有的
+       * Content-Encoding 就直接放行；没有 `.br`（比如客户端不支持 br，
+       * 或某类文件没被预压）时本插件回落到原文件，再由运行时压缩接手。
+       *
+       * **只在这一处开。** `/cover` 与 `/thumb` 是 webp，已经是压缩格式，
+       * 给它们开只会让每个请求多一次注定失败的 `.br` 探路。
+       */
+      preCompressed: true,
+
+      /**
+       * 命中 `.br` 时补 `Vary: Accept-Encoding`。
+       *
+       * **这一条不是可选的加固，是 `preCompressed` 带来的正确性缺口。**
+       * 开了它之后同一个 URL 会按 `Accept-Encoding` 返回不同字节，而
+       * `@fastify/static` 自己不加 Vary；平时补这个头的是 `@fastify/compress`，
+       * 可它见到已有的 `content-encoding` 就直接放行了 —— 于是两个插件
+       * 各自都合理，交界处却漏出一个没有 Vary 的可变响应。
+       *
+       * 后果要有共享缓存才会显形：把 br 的响应体发给不支持 br 的客户端，
+       * 对方拿到一坨乱码。当前 Caddy 不做缓存所以是潜伏的，
+       * 但一旦前面挂上 CDN 就会立刻中招。
+       *
+       * 只在 `.br` 上加：其余文件（webp/m4a/mp4）本来就不随编码变化，
+       * 给它们加只会平白拆散缓存键。
+       */
+      setHeaders(res, filePath) {
+        if (filePath.endsWith('.br')) res.setHeader('vary', 'accept-encoding')
+      },
     })
 
     const indexHtml = path.join(SERVER_CONFIG.webRoot, 'index.html')
