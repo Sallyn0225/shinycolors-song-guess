@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验收要照它的「Layout: measure it, do not look at it」与「Verification before reporting done」两节走,不靠肉眼"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "新增滚动容器的焦点环、热区、a11y 基线按它核"}
+{"file": ".trellis/tasks/08-31-page-width-and-result-layout/prd.md", "reason": "A1–A11 十一条验收标准的原文"}
+{"file": ".trellis/tasks/08-31-page-width-and-result-layout/measure.mjs", "reason": "六档量测门,A2/A3/A4/A5/A6/A9 由它的输出裁定"}

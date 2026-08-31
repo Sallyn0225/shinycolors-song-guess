@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "包总览与「四模块禁区」这条压过一切的规则"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "clip-path 陷阱、--u 尺寸体系、对比度规则 —— 本次改动同时碰到这三项"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "形状原语与 a11y 基线,新增滚动容器要照它的焦点环与热区规矩"}
+{"file": "DESIGN.md", "reason": "--page-main 的取值史与「再窄就不行」的结论,本次要按实测修订它"}

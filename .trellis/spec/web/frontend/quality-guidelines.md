@@ -341,8 +341,9 @@ A screen the player acts on under a clock has to be measurable, not eyeballed. T
   ends; the top of the page scrolls out of reach because scrollbars only travel downward.
   `.sc-vfit` uses `safe center`, which falls back to `flex-start` the moment content overflows.
 
-`.trellis/tasks/08-31-page-width-and-result-layout/measure.mjs` is the harness (superseding the
-copy under `08-31-desktop-density-tuning`, which predates the splash screen): it drives the real
+`.trellis/tasks/archive/2026-08/08-31-page-width-and-result-layout/measure.mjs` is the harness
+(superseding the copy under `08-31-desktop-density-tuning`, which predates the splash screen —
+note that one is archived at the same depth, not at the path this file used to give): it drives the real
 pages in Chrome across six viewports and reports `scrollHeight - innerHeight`, per-bar heights,
 gutter ratio, the px floors, and — since the result-page work — list box vs list content height
 and the document-space bottom of the actions row. Re-run it before claiming a layout change fits.
