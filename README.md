@@ -1,5 +1,7 @@
 # シャニソン当てクイズ / 闪耀色彩猜歌
 
+[![CI](https://github.com/Sallyn0225/shinycolors-song-guess/actions/workflows/ci.yml/badge.svg)](https://github.com/Sallyn0225/shinycolors-song-guess/actions/workflows/ci.yml)
+
 听一段**去掉人声的伴奏**，认出它是哪首歌。
 
 曲库是 244 首《偶像大师 闪耀色彩》的 off vocal 音源，切成 1464 个 15 秒片段。
@@ -51,6 +53,19 @@ pnpm --filter @scg/web dev          # vite
 ```
 
 局域网开黑到这一步就够了，不需要反代和 TLS。
+
+### 部署到服务器
+
+有一套 Docker Compose 方案：镜像由 GitHub Actions 构建推 GHCR，曲库以**只读挂载**
+的方式喂进容器（不进镜像）。一台 2C4G 的机器绰绰有余——真正的约束是带宽而不是 CPU。
+
+```bash
+cp .env.example .env      # 填 DOMAIN，或对接你已有的反代
+docker compose up -d
+```
+
+完整步骤、反向代理的三条硬要求、以及**哪些目录不要传上服务器**，见
+[DEPLOY.md](DEPLOY.md)。
 
 ## 架构
 
