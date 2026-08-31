@@ -3,7 +3,7 @@
  * 不用 unicode 字形（✓ ✕ ↻）充数：它们的字重、光学重心随字体变，跟设计系统对不齐。
  */
 
-type Name =
+export type IconName =
   | 'check'
   | 'cross'
   | 'replay'
@@ -14,8 +14,10 @@ type Name =
   | 'swap'
   | 'volume'
   | 'mute'
+  | 'music'
+  | 'music-off'
 
-const PATHS: Record<Name, string> = {
+const PATHS: Record<IconName, string> = {
   check: 'M4 12.5 9.5 18 20 6',
   cross: 'M6 6l12 12M18 6L6 18',
   // 重听：一圈开口箭头
@@ -30,10 +32,18 @@ const PATHS: Record<Name, string> = {
   volume: 'M3 9.5h3.5l5-4v13l-5-4H3Z M15 9.6a3.6 3.6 0 0 1 0 4.8 M18 6.9a7.4 7.4 0 0 1 0 10.2',
   // 静音：同一个喇叭体，声波换成一个叉 —— 与 cross 同一套语汇
   mute: 'M3 9.5h3.5l5-4v13l-5-4H3Z M16.2 9.7l4.8 4.6M21 9.7l-4.8 4.6',
+  // 背景音乐：两个符头 + 连梁的八分音符。
+  // 符头是圆的，与 replay 的弧同理——「零圆角」管的是版面上的**面**，不是图标内部的形
+  music: 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+  // 关掉：同一个音符加一道贯穿斜杠。
+  // 这里不沿用 mute 的「叉」——喇叭只占左半边，右边空着才放得下叉；
+  // 音符占满整格，叉会糊在符干上，贯穿斜杠才读得出来
+  'music-off':
+    'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M4 4l16 16',
 }
 
 interface Props {
-  name: Name
+  name: IconName
   /** 边长，默认跟随字号 */
   size?: string | number
   className?: string
