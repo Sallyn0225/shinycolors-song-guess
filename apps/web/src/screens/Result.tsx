@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
 import { soloTier } from '../features/grade'
 import { buildSoloTicket } from '../features/shareCard'
+import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
 import { GradeBadge } from '../ui/GradeBadge'
 import { Icon } from '../ui/Icon'
@@ -26,6 +27,17 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   // 开导出框的时刻。战报上的日期与条码种子都取这一刻，
   // 于是改 ID 重画时它们不会跟着变
   const [shareAt, setShareAt] = useState<Date | null>(null)
+
+  // 进场一声结算音，挂载即播。属一次性的欢迎音——StrictMode 在 dev 下会把
+  // 挂载 effect 跑两遍，ref 在同一实例内跨两遍存活，所以只响一次。
+  // 真正的重新挂载（再来一局打完回到这里）ref 归零、再响一声，那是对的：
+  // 新一局的结算就该再宣告一次
+  const fanfared = useRef(false)
+  useEffect(() => {
+    if (fanfared.current) return
+    fanfared.current = true
+    sfx.play('fanfare')
+  }, [])
 
   useEffect(() => {
     api

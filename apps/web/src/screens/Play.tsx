@@ -10,10 +10,12 @@ import {
 } from '../api'
 import { audio } from '../audio'
 import { OptionBar, type OptionState } from '../components/OptionBar'
+import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
 import { Countdown } from '../ui/Countdown'
 import { Icon } from '../ui/Icon'
 import { PrismRail, type Crease } from '../ui/PrismRail'
+import { ReadyCountdown } from '../ui/ReadyCountdown'
 import { SectionTitle } from '../ui/SectionTitle'
 
 interface Props {
@@ -22,7 +24,7 @@ interface Props {
   onQuit: () => void
 }
 
-type Phase = 'loading' | 'answering' | 'revealed' | 'error'
+type Phase = 'loading' | 'countdown' | 'answering' | 'revealed' | 'error'
 
 /** 超时用的哨兵：一个必然不匹配任何选项的下标 */
 const TIMED_OUT = -1
@@ -45,12 +47,20 @@ export function Play({ session, onFinish, onQuit }: Props) {
   const deadlineRef = useRef(0)
   const phaseRef = useRef<Phase>('loading')
   phaseRef.current = phase
+  /**
+   * countdown 阶段的接回点。ReadyCountdown 自持定时器、播完 go 才调它把 async 链放行；
+   * cleanup 也调它放行——放行后立刻撞 cancelled 检查，退出本局不会漏到 api.begin。
+   * 放在这里而不是组件里，是因为「等倒计时走完再起表」是载入链的一环，不是组件的事
+   */
+  const countdownDoneRef = useRef<(() => void) | null>(null)
 
   const key = (idx: number, token: string) => `${session.sessionId}:${idx}:${token}`
 
   /** 剩余比例。PrismRail 在 rAF 里直接调它写 DOM，不经过 React state */
   const getRemaining = useCallback(() => {
-    if (phaseRef.current !== 'answering') return phaseRef.current === 'loading' ? 1 : 0
+    // countdown 同 loading：表未起，光带满格，开播瞬间才从满开始收拢
+    if (phaseRef.current !== 'answering')
+      return phaseRef.current === 'loading' || phaseRef.current === 'countdown' ? 1 : 0
     const left = deadlineRef.current - performance.now()
     return Math.max(0, left / (session.answerSeconds * 1000))
   }, [session.answerSeconds])
@@ -94,6 +104,9 @@ export function Play({ session, onFinish, onQuit }: Props) {
         setResult(r)
         setScore((s) => s + r.score.total)
         setPast((p) => [...p, r.correct])
+        // 揭晓的听觉证据与视觉同源：只看 r.correct。超时走同一分支，
+        // r.correct 为 false 自然是 wrong —— 不为它另判一次
+        sfx.play(r.correct ? 'correct' : 'wrong')
       } catch (e) {
         setError(e instanceof Error ? e.message : '提交失败')
       }
@@ -122,6 +135,21 @@ export function Play({ session, onFinish, onQuit }: Props) {
           .prefetch(key(q.index, q.clipToken), clipUrl(session.sessionId, q.clipToken), fallbackOf(q.clipToken))
           .catch(() => {})
         if (cancelled) return
+
+        // 第一题开播前垫 3-2-1。必须夹在 prefetch 之后、begin 之前：
+        // begin 是服务端显式起表，倒计时若排它后面就等于白送三秒答题时间。
+        // index > 0 不垫——节奏由玩家自己点「下一题」控制，已有缓冲
+        if (index === 0) {
+          phaseRef.current = 'countdown'
+          setPhase('countdown')
+          // 等组件走完 3 格（每格一声 tick、末尾一声 go）。中途退出本局时
+          // cleanup 会先调 resolver 放行，放行后这条链只撞 cancelled，不会漏到 begin
+          await new Promise<void>((resolve) => {
+            countdownDoneRef.current = resolve
+          })
+          countdownDoneRef.current = null
+          if (cancelled) return
+        }
 
         const { deadlineMs } = await api.begin(session.sessionId, index)
         if (cancelled) return
@@ -153,6 +181,9 @@ export function Play({ session, onFinish, onQuit }: Props) {
 
     return () => {
       cancelled = true
+      // 倒计时半途退出：放行 await 的链（它只会撞 cancelled 检查），并把接回点撤掉
+      countdownDoneRef.current?.()
+      countdownDoneRef.current = null
       audio.stop()
     }
   }, [index, reload, session.sessionId, session.replays, session.total, playClip, fallbackOf])
@@ -321,8 +352,10 @@ export function Play({ session, onFinish, onQuit }: Props) {
       </div>
 
       {/* ── 选项 ──────────────────────────────────────────── */}
+      {/* relative 仅为承接倒计时覆盖层。倒计时期间选项已在位（disabled）：
+          开播瞬间只揭掉覆盖层，页面不跳动，视线也不用换位置 */}
       <section
-        className="sc-options mt-2 flex flex-col"
+        className="sc-options relative mt-2 flex flex-col"
         aria-label="选项"
       >
         {question?.options.map((o, i) => (
@@ -336,6 +369,13 @@ export function Play({ session, onFinish, onQuit }: Props) {
             onPick={() => void submit(i)}
           />
         ))}
+        {phase === 'countdown' && (
+          <ReadyCountdown
+            seconds={3}
+            onDone={() => countdownDoneRef.current?.()}
+            label="即将开始"
+          />
+        )}
       </section>
 
       {error && (

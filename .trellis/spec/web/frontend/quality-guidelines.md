@@ -45,10 +45,12 @@ Two rules generalise from it:
 - **Additive only.** A getter that hands back an existing object changes no scheduling,
   no latency compensation, no fallback path. `git diff -- src/audio.ts` showed `17 insertions,
   0 deletions` — if a deletion appears, the change is no longer additive and needs re-thinking.
-- **No subscription mechanism in the forbidden module.** The bypass chain must follow the mute
-  toggle, but `audio.ts` did not grow an observer for it. Instead the two call sites that
+- **No subscription mechanism in the forbidden module.** The bypass chains must follow the
+  mute toggle, but `audio.ts` did not grow an observer for it. Instead the two call sites that
   already change mute (`main.tsx` on load, `VolumeControl.commit()`) call `ambience.setMuted()`
-  explicitly. Two visible call sites beat an implicit subscription inside a module nobody may edit.
+  **and** `sfx.setMuted()` explicitly — every consumer of `audio.bypass` must be synchronised
+  at both call sites; adding a third bypass consumer means adding a third call at each site.
+  Two visible call sites beat an implicit subscription inside a module nobody may edit.
 
 ---
 
