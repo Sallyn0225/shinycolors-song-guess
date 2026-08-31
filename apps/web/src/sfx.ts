@@ -106,7 +106,14 @@ class Sfx {
     let inflight = this.pending.get(name)
     if (!inflight) {
       inflight = (async () => {
-        const res = await fetch(`/sfx/${name}.wav`)
+        // AAC 而不是 WAV：同样的六段音效 298KB → 47KB。
+        //
+        // **单一格式，没有 opus 兜底**，和曲库切片那套双格式刻意不同。
+        // 那边用 opus 是因为音乐足够长、码率优势能兑现；这里六段加起来两秒半，
+        // opus 只比 AAC 再省 8KB，不值得让文件数翻倍、再引入一套
+        // 「先试 opus 解不了再换」的分支。AAC 本来就是这个项目里最兼容的那个格式
+        // （greet 与切片的兜底都是它），所有能跑 decodeAudioData 的浏览器都认。
+        const res = await fetch(`/sfx/${name}.m4a`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         // decodeAudioData 会 detach 传入的 ArrayBuffer，副本留给失败重试
         const bytes = await res.arrayBuffer()

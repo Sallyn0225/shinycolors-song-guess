@@ -6,21 +6,32 @@
 
 ## 当前文件
 
-960×540 · 24fps · 无音轨 · 64s · 4.0MB（519kbps）。源片是 720p30 有声、65.6MB。
+640×360 · 24fps · 无音轨 · **32s** · 650KB（约 166kbps）。源片是 720p30 有声、65.6MB。
 
 ```bash
-ffmpeg -y -i <源片>.mp4 -an \
-  -vf "scale=960:540:flags=lanczos,fps=24,hqdn3d=3:2:6:6" \
-  -c:v libx264 -preset veryslow -crf 38 \
+ffmpeg -y -i <源片>.mp4 -an -t 32 \
+  -vf "scale=640:360:flags=lanczos,fps=24,hqdn3d=3:2:6:6" \
+  -c:v libx264 -preset veryslow -crf 42 \
   -pix_fmt yuv420p -profile:v main -level 4.0 -g 48 \
   -movflags +faststart apps/web/public/bg/loop.mp4
 ```
 
+> 曾经是 960×540 / crf 38 / 64s / 4.0MB。部署到 5Mbps 的 VPS 之后重压到 650KB
+> （**−84%**），因为它一个人就占了冷启动的绝大部分字节。
+>
+> 三个杠杆里**减半片长是最划算的那个**：同样的每帧画质，字节直接减半。
+> 实测 640×360 下 crf42/32s 是 650KB，而 crf46/64s 要 1.0MB —— 后者更大、
+> 每帧还更糊。代价只是循环周期 64s→32s，而这段片子的既定要求就是
+> 「读不出是哪一支 MV」（见 `ui/Backdrop.tsx`），重复得更频繁无从察觉。
+>
+> 四档实测：854×480/crf42 = 2.35MB，640×360/crf42 = 1.48MB，
+> 640×360/crf46 = 1.00MB，640×360/crf42/32s = 0.65MB。
+
 逐项理由：
 
 - `-an` 背景视频不该有声，留着只是白占体积。
-- `540p / crf 38` 画面要过一层 blur 再过一层遮罩才见人，720p 的细节全部浪费。
-  同一段片子 720p/crf30 是 10.2MB，肉眼分不出差别。
+- `360p / crf 42` 画面要过一层 blur 再过一层遮罩才见人，更高的分辨率与码率全部浪费。
+  同一段片子 720p/crf30 是 10.2MB，肉眼分不出差别；540p/crf38 的 4.0MB 同样分不出。
 - `hqdn3d` 去噪不是为了好看，是为了压缩率：这类 MV 剪辑的噪点吃掉的码率比画面本身还多。
 - `-g 48` 两秒一个关键帧，循环接缝处不会卡一下。
 - `+faststart` moov 前置，边下边播；漏了它首屏要等整个文件到齐。

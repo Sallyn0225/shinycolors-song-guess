@@ -12,7 +12,7 @@
   "assignee": "sallyn",
   "createdAt": "2026-08-31",
   "completedAt": null,
-  "branch": "feat/response-compression",
+  "branch": "feat/bandwidth-slimming",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,

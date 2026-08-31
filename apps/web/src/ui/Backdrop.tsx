@@ -79,20 +79,50 @@ function VideoLayer() {
   const ref = useRef<HTMLVideoElement>(null)
   /*
     拿到第一帧之前 <video> 画出来是**黑**的，不是透明的。这层铺满整屏，
-    在慢网上那 4MB 到齐之前首屏就是一整块黑 —— 比没有视频难看得多。
+    在慢网上那几百 KB 到齐之前首屏就是一整块黑 —— 比没有视频难看得多。
     所以先 opacity:0，等 canplay 再淡进来。
   */
   const [ready, setReady] = useState(false)
 
+  /*
+    src 推迟到 window.load 之后才挂上，也就是**推迟的是下载，不是这一层**。
+
+    在 5Mbps 的线上这不是微调：冷访问的关键路径是 JS+CSS 约 110KB（br 之后），
+    视频是 650KB。一起抢带宽的话，那 110KB 要等到六倍的时间之后才到齐，
+    首屏可交互被一段纯装饰的底衬拖住。
+
+    推迟本身零代价 —— 这一层在 canplay 前本来就是 opacity:0，而它底下那五层
+    CSS/SVG 底衬零字节、立刻就在。**底衬自己就是 poster**，
+    不需要再单独做一张静帧（做了反而又多一个要下载的文件）。
+
+    只推迟 src 而不是整个 <VideoLayer>：`Backdrop` 里 VEIL、--color-ground
+    的取舍全挂在同一个 `on` 上，推迟整层会让这几层在 load 时一起翻转，闪一下。
+    没有 src 的 <video> 是透明的，挂在那里不占任何视觉。
+
+    用 load 事件而不是 requestIdleCallback：后者 Safari 17 才有，
+    而这个项目的兼容下限一直照顾到更老的 Safari（见 audio.ts 的 AAC 兜底）。
+  */
+  const [src, setSrc] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    const go = () => setSrc('/bg/loop.mp4')
+    // 已经 load 完（二次访问走缓存时常见），下一拍就开始，不必干等
+    if (document.readyState === 'complete') {
+      const t = setTimeout(go, 0)
+      return () => clearTimeout(t)
+    }
+    window.addEventListener('load', go, { once: true })
+    return () => window.removeEventListener('load', go)
+  }, [])
+
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || !src) return
     el.muted = true
     // 缓存命中时 canplay 可能在 effect 跑之前就过去了，补一次现场检查
     if (el.readyState >= 3) setReady(true)
     // 自动播放被拒不是错误，只是这台设备上没有动效，静静地留在首帧即可
     void el.play().catch(() => {})
-  }, [])
+  }, [src])
 
   return (
     <video
@@ -105,7 +135,7 @@ function VideoLayer() {
       playsInline
       preload="auto"
       disablePictureInPicture
-      src="/bg/loop.mp4"
+      {...(src ? { src } : {})}
       onCanPlay={() => setReady(true)}
       style={{
         ...FIXED,
