@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/compress": "^9.2.0",
     "@fastify/static": "^8.0.4",
     "@fastify/websocket": "^11.0.1",
     "@scg/game-core": "workspace:*",
@@ -20,9 +21,9 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/ws": "^8.5.13",
-    "ws": "^8.18.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "ws": "^8.18.0"
   }
 }
