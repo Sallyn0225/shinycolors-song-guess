@@ -89,6 +89,31 @@ Shadow goes on the **parent**, clip goes on the **child**. `ui/Cut.tsx` and the
 Any new clipped interactive element must sit inside a `.cut-shadow*` wrapper, or it ships
 with no keyboard focus indicator.
 
+**`mask-image` does exactly the same thing, and hides it better.** A mask's painting area is
+the border-box by default, so an `outline` — which is drawn *outside* the border-box — lands
+outside the mask and is composited to nothing. The tell that makes this worse than the
+`clip-path` version: every programmatic check still passes.
+
+```js
+getComputedStyle(el).outline      // "rgb(0, 119, 168) solid 2px"   ← present
+el.matches(':focus-visible')      // true                           ← matching
+// and the screenshot shows no ring at all
+```
+
+The result-page scroll area (`.sc-resultlist`, faded top and bottom with `mask-image`) was
+written as a single focusable layer and passed both assertions above; only the screenshot
+showed the ring was gone. The fix is the same shape as the `clip-path` one — lift the ring to
+a wrapper that carries no mask:
+
+```css
+.sc-resultlist-frame:has(:focus-visible) { outline: 2px solid var(--color-accent-ink); outline-offset: 3px }
+.sc-resultlist:focus-visible            { outline: none }
+```
+
+Generalised: **any focusable element carrying `mask-*` needs its focus ring on an unmasked
+ancestor**, and this class of defect cannot be caught by asserting computed styles — it needs
+a rendered capture.
+
 ### 4. `inset box-shadow` draws a *rectangle's* border, so a clipped element gets a broken one
 
 This is the one that ships and survives review, because at a glance it reads as "there is a
@@ -180,8 +205,21 @@ spacing and type scale follows the viewport for free.
 - Long Japanese titles and wide-tracked Latin headings need their own step-down under 767px;
   see the `.sc-title` / `.sc-song` / `.sc-figure` block in `index.css`.
 
-**Page widths are tokens, not literals:** `--page-main` (1120u), `--page-board` (1000u),
+**Page widths are tokens, not literals:** `--page-main` (900u), `--page-board` (1000u),
 `--page-narrow` (760u), `--page-card` (520u). Screens set `maxWidth: 'var(--page-main)'`.
+
+`--page-main` went 1300u → 1120u → 900u. The last step was driven by **horizontal scan
+distance**, not by a gutter target: at 1120u the 1366 viewport gives an 874px column, and the
+home screen's difficulty bar puts its name at the left end and its four stats at the right,
+about 600px apart. Because the token is one value read by three screens, the whole change was
+one line. DESIGN.md carries the measured before/after table; two facts from it are worth
+keeping here:
+
+- **A narrower column did not make anything taller.** `scrollHeight` on Start and Play was
+  identical at 1120u and 900u on all four desktop viewports, because `.sc-bar` and
+  `.sc-revealslot` are fixed-height and the blurbs still fit one line.
+- **The column width is not the token's px value.** At 1440×810 `--u` is 0.9 (height-bound),
+  so `900u` renders 810px. Compute gutters from a measurement, never from the literal.
 
 ---
 
@@ -303,9 +341,31 @@ A screen the player acts on under a clock has to be measurable, not eyeballed. T
   ends; the top of the page scrolls out of reach because scrollbars only travel downward.
   `.sc-vfit` uses `safe center`, which falls back to `flex-start` the moment content overflows.
 
-`.trellis/tasks/08-31-desktop-density-tuning/measure.mjs` is the harness: it drives the real
+`.trellis/tasks/08-31-page-width-and-result-layout/measure.mjs` is the harness (superseding the
+copy under `08-31-desktop-density-tuning`, which predates the splash screen): it drives the real
 pages in Chrome across six viewports and reports `scrollHeight - innerHeight`, per-bar heights,
-gutter ratio and the px floors. Re-run it before claiming a layout change fits.
+gutter ratio, the px floors, and — since the result-page work — list box vs list content height
+and the document-space bottom of the actions row. Re-run it before claiming a layout change fits.
+
+**A measurement harness expires, and it expires green.** The density-tuning copy was written
+before the `Splash` overlay shipped. Re-run as-is afterwards, it reported `overflowY 0 ✓` and
+`gutter -` for Start on all six viewports — it was measuring the overlay, and a screen it never
+reached looked like a screen that passed. The harness now dismisses `[role="dialog"]` in
+`fresh()` before probing.
+
+Two habits follow:
+
+- **Before trusting an old harness, check that its entry path still exists.** A selector that
+  no longer resolves throws and is obvious; an overlay that renders *over* the target does not.
+- **Sanity-check one number against a known value.** Start at 1366×678 is documented at
+  `+15/+16` overflow. A run reporting `0` there is measuring something else, not a fix.
+
+**Fixtures make a fair comparison; do not read noise as a regression.** The narrow-viewport
+Play rows come out 74 or 77.41 depending on whether that draw's titles wrap, so `overflowY`
+moves ±30px between runs on 375×667 with no code change. Comparing a baseline against an after
+run, confirm the widths you actually changed moved (`main` width) before attributing a
+height delta to the change — at 375 the column is 375px in both runs, so `--page-main` cannot
+be the cause of anything there.
 
 **`Start.tsx` has no vertical budget left.** Measured at 1366×678 (where `--u` bottoms out at
 0.78) it was `doc 674.6 / vp 678` — 3.4px of slack. Adding the 44px tool rail above the prism
@@ -480,6 +540,32 @@ rather than rely on the overlay:
 
 Cap embedded media against `dvh` as well as `--u` (`min(calc(400 * var(--u)), 40dvh)`), so a
 short viewport shrinks the media instead of pushing the actions off-screen.
+
+**The same cap applies to any list whose length is decided by data, overlay or not.** The
+result page's per-question list was laid out straight into page flow, so its height tracked
+the question count: measured at 1366×678, 10 questions overflowed by 464px and 20 by 1061px,
+putting the actions row 383px and 979px below the fold. The most common path on that screen is
+"read the score, play again", and it ran through the entire song list.
+
+Three things about the fix generalise:
+
+- **Cap with `min(calc(N * var(--u)), Xdvh)`.** `--u` alone still crowds the actions out on a
+  short window; `dvh` alone lets the list grow back on a tall one. `dvh` is safe *here* because
+  it drives one container's height — unlike type, which must not be bound to `vh` (the URL bar
+  would make it jitter mid-scroll).
+- **The acceptance criterion is "both question counts produce the same `scrollHeight`."**
+  "The list no longer stretches the page" has no other measurable definition. After the change
+  both 10 and 20 measured `+174` at 1366×678, `+542` at 375×667.
+- **`overflow-y: auto` turns the box into a clipping box, so the rows' `drop-shadow` gets
+  shaved off at the left and right edges.** Give the container `padding-inline` for the shadow
+  to land in and an equal negative `margin-inline` to keep the visual width. Note the scrollbar
+  still eats ~12px on platforms that reserve a track, so the right edge sits slightly inside
+  the rules above it; that is the honest cost of a scroll region, and closing it would need a
+  platform-dependent magic number.
+
+Say "there is more below" with a `mask-image` fade rather than a border — and on phones, where
+no scrollbar is reserved, that fade is the *only* signal. Then read the
+`mask-image`-eats-`outline` trap above, because adding it costs you the focus ring.
 
 ## A huge `--u` figure will crush its row-mates on narrow screens
 
