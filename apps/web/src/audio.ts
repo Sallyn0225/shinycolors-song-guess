@@ -72,6 +72,23 @@ export class AudioEngine {
   }
 
   /**
+   * 旁路输出。开场问候与环境 BGM 挂在这里，见 `ambience.ts`。
+   *
+   * 它们必须与题目音频共用**同一个 AudioContext**（浏览器对实例数有上限，
+   * 且第二个实例同样要手势解锁，两个 ctx 的 `currentTime` 还不同源，
+   * 交叉淡化的调度会漂），却又必须绕开这两处：
+   *  - `master` —— 走了就受音量滑块管，而这两条声音的音量是固定的
+   *  - `analyser` —— 走了就污染 PrismRail 的频谱，那条频谱的意义是「当前这道题长这样」
+   *
+   * 返回 null 表示 AudioContext 还没被手势解锁；调用方自己决定是等还是放弃。
+   */
+  get bypass(): { ctx: AudioContext; out: AudioNode } | null {
+    const ctx = this.ctx
+    if (!ctx) return null
+    return { ctx, out: ctx.destination }
+  }
+
+  /**
    * 必须在**真实用户手势**的调用栈里执行。
    * 忘了这一步，线上第一题全场静音——而本地热重载的开发页面永远不会复现。
    */
