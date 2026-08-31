@@ -26,9 +26,10 @@ const BAR_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${NOTCH}), calc(1
 const CAP_CLIP = `polygon(${SLANT} 0, 100% 0, calc(100% - ${SLANT}) 100%, 0 100%)`
 
 export function OptionBar({ option, index, state, disabled, showThumb, onPick }: Props) {
-  // 没有归属组合的曲目（角色单曲等）也得有一枚看得见的色帽 ——
-  // 用浅紫 primary-lt 在白底上几乎消失，形状语言当场断掉
-  const unit = option.unitColor ?? 'var(--color-primary)'
+  // 没有归属组合的曲目（角色单曲、shuffle unit）也得有一枚看得见的色帽 ——
+  // 用浅紫 primary-lt 在白底上几乎消失，形状语言当场断掉。
+  // 换成棱镜纹理而不是任何单色：它得读作「没有归属」，不能像是第 9 个组合色。
+  const unit = option.unitColor ?? 'var(--grad-unit-prism)'
   const gray = state === 'dimmed'
 
   const fill =

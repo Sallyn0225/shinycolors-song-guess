@@ -77,7 +77,8 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
     )
   }
 
-  const unit = card.unitColor ?? 'var(--color-primary)'
+  // 无归属组合（角色单曲、shuffle unit）走棱镜纹理，见 --grad-unit-prism
+  const unit = card.unitColor ?? 'var(--grad-unit-prism)'
   const head = card.title.slice(0, kimariji)
   const tail = card.title.slice(kimariji)
   const tone = TONE[state]

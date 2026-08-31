@@ -129,6 +129,15 @@
   --grad-cta: linear-gradient(90deg, #00b4f0 0%, #1fe0d7 100%);
   /* 棱镜彩虹。官网原样摘录的四条渐变之一，整站的 prism 点题 */
   --grad-prism: linear-gradient(90deg, #f8f 0%, #7ff 35%, #fff352 70%, #ff7070 100%);
+  /* 「没有代表色」的曲目色条专用：shuffle unit 与角色单曲都落在这里。
+     不能用 --grad-prism —— 那是品牌点题的四色彩虹，挪来当组合标识会和 8 个
+     真实组合色抢同一层语义。这里限死粉↔蓝两色，读作「棱镜本身」而不是某个组合，
+     再叠一层斜向硬边高光做出玻璃棱片的切面感。
+     两处 background-size 都不给 —— 色条只有 5~8 * --u 宽，
+     repeating 的 7px 周期在这个宽度上正好切出 2~3 道光。 */
+  --grad-unit-prism:
+    repeating-linear-gradient(115deg, rgb(255 255 255 / 0.55) 0 2px, rgb(255 255 255 / 0) 2px 7px),
+    linear-gradient(160deg, #ffbad6 0%, #f0c8f5 26%, #8adfff 52%, #b9f2ff 70%, #ffbad6 100%);
 
   /* 阴影是紫的，不是黑的。这让斜切形状的阴影跟着 clip-path 走，色调也统一在紫里 */
   --shadow-sm: drop-shadow(0 calc(1 * var(--u)) calc(2 * var(--u)) rgb(71 68 150 / 0.2));

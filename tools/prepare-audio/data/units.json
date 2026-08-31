@@ -1,5 +1,5 @@
 {
-  "_comment": "常设组合 + 全 28 名偶像。color 来源：https://imas-db.jp/misc/color.html（该页标注组合色取自 ASOBISTAGE 的アソビライト，个人色取自公式サイト偶像介绍图外框色）。aliases 用于 artist 字段匹配，比较前会做 normalizeName()（NFKC + 去空格 + 全角括号转半角）。",
+  "_comment": "常设组合 + 全 28 名偶像。color 来源：https://imas-db.jp/misc/color.html（该页标注组合色取自 ASOBISTAGE 的アソビライト，个人色取自公式サイト偶像介绍图外框色）。aliases 用于 artist 字段匹配，比较前会做 normalizeName()（NFKC + 去空格 + 全角括号转半角）。例外：全体名义「シャイニーカラーズ」没有 ASOBILIGHT 色，用站内 --color-accent 系的 #8adfff 代表，这是设计取值不是官方色。",
   "units": [
     {
       "id": "illumination-stars",
@@ -113,7 +113,7 @@
       "id": "shinycolors",
       "name": "シャイニーカラーズ",
       "nameEn": "Shiny Colors",
-      "color": "#prism",
+      "color": "#8adfff",
       "kind": "whole",
       "_aliasNote": "不要把 'THE IDOLM@STER' 当别名——那是通用品牌署名，不等于全体曲。PANOR@MA WING 08 的 Bouncy Girl / Fashionable 就是这么署名的，实际演唱者未确证，应落到 unresolved 而不是被误判成全体曲。",
       "aliases": ["シャイニーカラーズ", "Shiny Colors"],
@@ -121,7 +121,7 @@
     },
 
     {
-      "_comment": "以下为活动 / 企划限定组合（shuffle unit）。它们是真实演唱单位，只是没有官方代表色，UI 上用中性灰。",
+      "_comment": "以下为活动 / 企划限定组合（shuffle unit）。它们是真实演唱单位，只是没有官方代表色，color 保持 null；UI 侧统一回退到棱镜纹理 --grad-unit-prism，与「无归属组合」的角色单曲同一视觉语言。",
       "id": "team-luna",
       "name": "Team.Luna",
       "color": null,

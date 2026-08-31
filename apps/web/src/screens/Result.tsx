@@ -154,7 +154,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                   style={{
                     width: 'calc(8 * var(--u))',
                     height: 'calc(30 * var(--u))',
-                    background: item.song.unitColor ?? 'var(--color-primary)',
+                    background: item.song.unitColor ?? 'var(--grad-unit-prism)',
                     boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
                     ['--cut-sm' as string]: 'calc(4 * var(--u))',
                   }}

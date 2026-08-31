@@ -82,12 +82,15 @@ three ways, in order of preference:
 ```ts
 const f = faults[0]!                       // just checked faults.length
 const head = list[0] as HTMLElement        // just checked list.length
-option.unitColor ?? 'var(--color-primary)' // real fallback, and the fallback matters
+option.unitColor ?? 'var(--grad-unit-prism)' // real fallback, and the fallback matters
 ```
 
-Prefer a genuine fallback. Note `?? 'var(--color-primary)'` in `OptionBar` and `KarutaTile`
-is not defensive filler — songs with no unit exist, and falling back to `--color-primary-lt`
-would make the cap invisible on white.
+Prefer a genuine fallback. Note `?? 'var(--grad-unit-prism)'` in `OptionBar`, `KarutaTile`
+and `Result` is not defensive filler — songs with no unit exist (character solos, shuffle
+units such as `Team.Luna` / `彼岸流`), and they need a cap that is both visible on white and
+readable as *no unit* rather than as a 9th unit colour. All three call sites feed the value
+straight into `background:`, which is why a gradient token is allowed here where a plain
+colour would normally go.
 
 **Type predicates for filters** — `.filter((x): x is CardId => x !== null)`
 (`features/karutaBoard.ts`). Without the predicate the result stays `(CardId | null)[]`.
