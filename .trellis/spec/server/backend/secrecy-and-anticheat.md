@@ -49,6 +49,35 @@ filesystem — that regex is the path-traversal guard, since the id becomes a pa
 covers and thumbnails only: a one-shot token has to be validated by this process, and a CDN
 both removes that check and caches the same clip for repeated fetches.
 
+### Serving audio to a screen that has no session
+
+The ambient BGM on the home / lobby / room screens needed clips, but those screens have no
+solo session and no room, so neither existing token map applies. `ambience.ts` adds a third
+one, and the shape of that decision is the reusable part:
+
+```ts
+GET /api/ambience/tracks?n=<1..4>
+  -> { tracks: [{ clips: string[] }], aacFallback: boolean }
+GET /api/ambience/clip/:token[.m4a]
+```
+
+- **The response carries no identity at all** — no `songId`, title, slice index or duration.
+  A track is an opaque list of tokens. The client knows only "this is audio that plays".
+- **Same token discipline as the other two maps**: `randomBytes(16).toString('hex')` into an
+  in-process `Map`, 30-minute TTL, 20k cap evicting in insertion order, swept on mint rather
+  than on a timer (the `ws/quota.ts` approach — memory tracks recent activity, not uptime).
+- **Reuse `formatOf` / `sendClip`.** They carry the path-traversal regex and the `no-store`
+  header; a second send path would have to re-earn both.
+- **Rejected: HMAC-signed self-contained tokens.** They would avoid server state, but they
+  encode the `sliceId` into a string the client holds, so leaking the key breaks the red line
+  retroactively. An in-memory map trades a little RAM for that not being possible.
+
+The residual risk is worth stating because it is *accepted*, not overlooked: anyone can pull
+clip audio in bulk from this endpoint. They get no labels with it, so it builds no
+slice ↔ song table, and the audio is commercially released music that is easier to obtain
+from the source. The per-IP limit on `tracks` (`SERVER_CONFIG.ambienceTracksPerMin`) is there
+for bandwidth abuse, not for cheating.
+
 ---
 
 ## Cache headers are a side channel

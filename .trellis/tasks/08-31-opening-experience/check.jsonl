@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验收主依据：禁区模块 git diff 验证命令、clip-path 陷阱、对比度与 --u 尺寸规则"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "确认新增文件落在正确的层，没有把有副作用的单例塞进 features/"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "检查 effect 清理、定时器取消、visibilitychange 订阅是否有泄漏"}
+{"file": "DESIGN.md", "reason": "对着 Do's and Don'ts 清单逐条核 Splash 的实现"}
+{"file": ".trellis/spec/server/backend/index.md", "reason": "核对氛围端点是否复用了既有 formatOf/sendClip 而不是另写一份"}

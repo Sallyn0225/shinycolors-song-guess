@@ -131,6 +131,34 @@ Both `KarutaTile` and the quality guide carry this warning because it has bitten
 
 ---
 
+## Icons: `ui/Icon` only, and never an icon library
+
+Every icon in this project is a hand-drawn SVG on a 24 grid, `strokeWidth: 1.8`,
+`strokeLinecap="square"`, `strokeLinejoin="miter"`. The square caps are not incidental — they
+are the icon-scale expression of a world where `border-radius` appears zero times.
+
+**Do not add Lucide, Font Awesome, Heroicons, or any other icon package.** They all ship round
+caps and round joins (Lucide's default is `strokeLinecap="round"`), so a single imported icon
+puts two different pen strokes on one screen. That reads worse than being one icon short, and
+it cannot be fixed by overriding `strokeLinecap`: the paths themselves are drawn for round ends.
+
+Need a shape `Icon` does not have? Redraw it on the 24 grid and add it to `PATHS`. Using an
+icon library as a **shape reference** is fine and encouraged — copying its markup is not.
+
+Two conventions the existing set already follows:
+
+- **Off-states change the glyph, not just the colour.** `volume` → `mute` swaps the sound waves
+  for a cross; `music` → `music-off` adds a full-width slash. Colour alone fails for anyone who
+  cannot distinguish it, and `aria-pressed` is not visible.
+- **Pick the negation mark by what fits.** `mute` uses a cross because the speaker body only
+  occupies the left half, leaving room beside it. `music` fills the whole grid, so a cross would
+  land on top of the stems and turn to mush — that one takes a slash across the glyph instead.
+
+Circles inside an icon (`replay`'s arc, `music`'s note heads) are fine. The no-radius rule
+governs **surfaces** in the layout, not forms drawn inside a 24px glyph.
+
+---
+
 ## Styling: Tailwind for layout, inline `style` for design tokens
 
 The consistent split across the codebase:
