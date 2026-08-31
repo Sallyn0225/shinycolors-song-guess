@@ -1,0 +1,30 @@
+{
+  "id": "public-release-and-deploy",
+  "name": "public-release-and-deploy",
+  "title": "公开发布与 VPS 部署",
+  "description": "把仓库公开到 GitHub 并用 Docker Compose 部署到 2C4G/5Mbps/500GB 的境内已备案 VPS，同时接入国内 CDN 并削减带宽占用。父任务只持有需求集合、子任务地图与跨子任务验收标准。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "sallyn",
+  "assignee": "sallyn",
+  "createdAt": "2026-08-31",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-31-oss-repo-prep",
+    "08-31-docker-deploy",
+    "08-31-cdn-and-bandwidth"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
