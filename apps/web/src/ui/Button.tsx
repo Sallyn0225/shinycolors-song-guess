@@ -1,4 +1,6 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react'
+
+import { sfx } from '../sfx'
 
 type Variant = 'primary' | 'glass' | 'ghost' | 'outline' | 'quiet'
 type Size = 'sm' | 'md' | 'lg'
@@ -34,6 +36,7 @@ export function Button({
   full = false,
   className = '',
   children,
+  onClick,
   ...rest
 }: Props) {
   const tone =
@@ -68,12 +71,24 @@ export function Button({
    */
   const ring = variant === 'ghost' ? '1px' : variant === 'outline' ? '1.5px' : null
 
+  /**
+   * click 音在组件内部前置，而不是在每个调用点自己放：
+   * 全站按钮要的是**一致**的反馈，散进调用点迟早漏一处、漏的那处最显眼。
+   * OptionBar 的答题选项不走 Button（自绘 button），所以不会叠上正/误音。
+   * 播放在外部 onClick 之前——反馈属于「按下」这一刻，不等按钮的事办完。
+   */
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    sfx.play('click')
+    onClick?.(e)
+  }
+
   return (
     <span
       className={`${variant === 'quiet' ? '' : 'cut-shadow-sm'} ${full ? 'block' : 'inline-block'}`}
     >
       <button
         {...rest}
+        onClick={handleClick}
         className={[
           variant === 'quiet' ? '' : 'cut-slant relative',
           'inline-flex w-full items-center justify-center gap-2 font-latin font-semibold',

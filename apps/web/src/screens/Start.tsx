@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
 
 import { ambience } from '../ambience'
+import { sfx } from '../sfx'
 import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
 import { IconButton, ToolRail } from '../ui/IconButton'
@@ -47,6 +48,11 @@ function EntryBar({
   children: React.ReactNode
   solid?: boolean
 }) {
+  // 自绘 button 不经过 ui/Button，click 音得在这里补一声 —— 与 Button 内部那条同款
+  const click = () => {
+    sfx.play('click')
+    onClick()
+  }
   return (
     <div className="anim-appear flex items-stretch" style={{ animationDelay: `${delay}ms` }}>
       <span aria-hidden className="cut-shadow-sm shrink-0" style={{ width: 'calc(60 * var(--u))' }}>
@@ -58,7 +64,7 @@ function EntryBar({
       <span className="cut-shadow min-w-0 flex-1" style={{ marginLeft: 'calc(-36 * var(--u))' }}>
         <button
           type="button"
-          onClick={onClick}
+          onClick={click}
           disabled={disabled}
           className="flex w-full flex-col items-start gap-3 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:py-2 sm:pr-8"
           style={{
@@ -81,6 +87,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
   // 初值取自引擎而不是 localStorage：main.tsx 在任何界面挂载之前就把偏好灌进去了，
   // 这里只负责往回写。与音量滑杆同一条规矩
   const [bgmOn, setBgmOn] = useState(() => ambience.bgmEnabled)
+  const [sfxOn, setSfxOn] = useState(() => sfx.sfxOn)
 
   const toggleBgm = () => {
     const next = !bgmOn
@@ -88,6 +95,14 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
     ambience.setBgmOn(next)
     // 只写 bgmOn 这一个字段 —— 整份覆盖会把音量滑杆刚存的值抹掉
     saveAudioPrefs({ bgmOn: next })
+  }
+
+  const toggleSfx = () => {
+    const next = !sfxOn
+    setSfxOn(next)
+    sfx.setSfxOn(next)
+    // 同上，只写自己那一个字段
+    saveAudioPrefs({ sfxOn: next })
   }
 
   return (
@@ -153,6 +168,19 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
             label={bgmOn ? '关闭背景音乐' : '打开背景音乐'}
             pressed={bgmOn}
             onClick={toggleBgm}
+          />
+          {/*
+            图标用 volume/mute 而不是新画一枚：music 那对已被 BGM 占用，
+            喇叭是「UI 音效」的天然字形，且 volume→mute 正好符合
+            「关态换字形不只换颜色」的既有约定。
+            与页尾音量组的静音钮撞字形是接受的代价 —— 那边是 tap-line 小按钮、
+            这边是带 aria-pressed 的开关，位置与读屏名称都分得开。
+          */}
+          <IconButton
+            icon={sfxOn ? 'volume' : 'mute'}
+            label={sfxOn ? '关闭音效' : '打开音效'}
+            pressed={sfxOn}
+            onClick={toggleSfx}
           />
         </ToolRail>
       </div>

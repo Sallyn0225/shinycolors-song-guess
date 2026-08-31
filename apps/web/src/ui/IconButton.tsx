@@ -1,3 +1,5 @@
+import { sfx } from '../sfx'
+
 import { Cut } from './Cut'
 import { Icon, type IconName } from './Icon'
 
@@ -32,6 +34,16 @@ const SIZE = 'max(44px, calc(46 * var(--u)))'
 export function IconButton({ icon, label, onClick, pressed }: Props) {
   const off = pressed === false
 
+  /*
+    click 音在组件内部前置，与 Button 同一条规矩：反馈要全站一致，
+    散进调用点迟早漏一处。开关切换的听觉证据是这一声 click 本身——
+    「关掉音效」也照常响一声，那是手指落下的确认，不是音效开关管辖的对象。
+  */
+  const handleClick = () => {
+    sfx.play('click')
+    onClick()
+  }
+
   return (
     <Cut
       shape="slant"
@@ -62,7 +74,7 @@ export function IconButton({ icon, label, onClick, pressed }: Props) {
       />
       <button
         type="button"
-        onClick={onClick}
+        onClick={handleClick}
         aria-label={label}
         {...(pressed === undefined ? {} : { 'aria-pressed': pressed })}
         /*
@@ -80,7 +92,7 @@ export function IconButton({ icon, label, onClick, pressed }: Props) {
 }
 
 /**
- * 光带上方那一排。现在只有一个 BGM 开关，留成一行是因为**这里还会长**。
+ * 光带上方那一排。现在是 BGM 与音效两个开关，留成一行是因为**这里还会长**。
  * 加按钮直接往 children 里塞 `IconButton`，间距和居中都已经在这一层管好了。
  */
 export function ToolRail({ children }: { children: React.ReactNode }) {

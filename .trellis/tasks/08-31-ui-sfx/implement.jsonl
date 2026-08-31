@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "层级总览与禁区模块清单（audio.ts 等四模块不可改）——本任务的 sfx.ts 必须走 ambience.ts 的 bypass 模式"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "单例音频对象绝不进 React state 的规矩；sfx 单例与 prefs 的关系"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "Button/IconButton 内部接线音效时的组件改动规范与 a11y 基线"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "层级边界、验证命令；Result 挂载播 fanfare 时的 StrictMode 双跑等注意事项"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "sfx.play 的受控字符串字面量联合类型设计需符合 discriminated union 习惯"}

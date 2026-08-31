@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "Play 屏状态所有权与禁区模块清单"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "ReadyCountdown 的定时器、清理与取消规范"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "新 ui 组件的形状语言、a11y 基线（role=timer、reduced-motion）"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "rAF/定时器类 UI 的质量条款与验证命令；--u 尺寸、对比度规则"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "phaseRef 与 effect 内 async 链的状态归属（倒计时插在 begin 之前）"}

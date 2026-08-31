@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ambience } from '../ambience'
 import { audio } from '../audio'
 import { saveAudioPrefs } from '../prefs'
+import { sfx } from '../sfx'
 import { Icon } from './Icon'
 
 /**
@@ -63,10 +64,11 @@ export function VolumeControl({ className = '' }: { className?: string }) {
     setLevel(next.level)
     setMuted(next.muted)
     audio.setVolume(next.level, next.muted)
-    // 旁路那条链（开场问候与环境 BGM）不经过 master，滑杆位置对它没有意义，
-    // 但**静音必须连它一起切断** —— 点了静音世界还在响就是 bug。
+    // 旁路那两条链（BGM 与 UI 音效）不经过 master，滑杆位置对它们没有意义，
+    // 但**静音必须连它们一起切断** —— 点了静音世界还在响就是 bug。
     // `audio.ts` 是禁区不加订阅，所以在这里显式同步一次
     ambience.setMuted(next.muted)
+    sfx.setMuted(next.muted)
     unsaved.current = next
     window.clearTimeout(saveTimer.current)
     saveTimer.current = window.setTimeout(() => {

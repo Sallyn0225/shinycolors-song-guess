@@ -10,6 +10,7 @@ import {
 } from '../api'
 import { audio } from '../audio'
 import { OptionBar, type OptionState } from '../components/OptionBar'
+import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
 import { Countdown } from '../ui/Countdown'
 import { Icon } from '../ui/Icon'
@@ -94,6 +95,9 @@ export function Play({ session, onFinish, onQuit }: Props) {
         setResult(r)
         setScore((s) => s + r.score.total)
         setPast((p) => [...p, r.correct])
+        // 揭晓的听觉证据与视觉同源：只看 r.correct。超时走同一分支，
+        // r.correct 为 false 自然是 wrong —— 不为它另判一次
+        sfx.play(r.correct ? 'correct' : 'wrong')
       } catch (e) {
         setError(e instanceof Error ? e.message : '提交失败')
       }

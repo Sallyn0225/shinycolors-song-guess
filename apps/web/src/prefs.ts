@@ -24,6 +24,12 @@ export interface AudioPrefs {
    * 反过来静音必须连 BGM 一起切断——点了静音世界还在响就是 bug。
    */
   bgmOn: boolean
+  /**
+   * UI 音效开关（click / 揭晓正误 / 结算那一层）。
+   * 与 `bgmOn` 各管各的：关 BGM 不等于想要一个哑巴界面，反过来也一样。
+   * 与 `muted` 的关系同上——静音必须连它一起切断。
+   */
+  sfxOn: boolean
 }
 
 /**
@@ -33,7 +39,7 @@ export interface AudioPrefs {
  * 过平方律之后是 −12dB，安全且离「小得听不清」还很远；
  * 行程两侧都留了余量，第一次听完往上往下都调得动。
  */
-export const DEFAULT_AUDIO_PREFS: AudioPrefs = { level: 0.5, muted: false, bgmOn: true }
+export const DEFAULT_AUDIO_PREFS: AudioPrefs = { level: 0.5, muted: false, bgmOn: true, sfxOn: true }
 
 export function loadAudioPrefs(): AudioPrefs {
   try {
@@ -41,7 +47,7 @@ export function loadAudioPrefs(): AudioPrefs {
     if (!raw) return DEFAULT_AUDIO_PREFS
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return DEFAULT_AUDIO_PREFS
-    const { level, muted, bgmOn } = parsed as Partial<AudioPrefs>
+    const { level, muted, bgmOn, sfxOn } = parsed as Partial<AudioPrefs>
     return {
       // NaN / Infinity / 越界值都当没存过。存进 gain.value 的 NaN 会让
       // 整个 AudioContext 静默失声，且不报错——比回落到默认难查一万倍
@@ -53,6 +59,8 @@ export function loadAudioPrefs(): AudioPrefs {
       // 这一条比 muted 晚加，老用户存的 JSON 里根本没有它。
       // 因此判的是「显式存过 false 才关」，缺字段一律回落到默认的开
       bgmOn: bgmOn !== false,
+      // 同上，比 bgmOn 更晚加
+      sfxOn: sfxOn !== false,
     }
   } catch {
     // 存储被策略禁用、内容是上个版本写的读不了、JSON 坏了——一律回落到默认。
@@ -64,8 +72,8 @@ export function loadAudioPrefs(): AudioPrefs {
 /**
  * 只写自己改动的那几个字段。
  *
- * 收 `Partial` 而不是整份，是因为现在有**两个**互不相识的控件在存这份偏好：
- * 音量滑杆管 `level` / `muted`，光带上方那个开关管 `bgmOn`。
+ * 收 `Partial` 而不是整份，是因为现在有**三个**互不相识的控件在存这份偏好：
+ * 音量滑杆管 `level` / `muted`，光带上方那两个开关各管 `bgmOn` / `sfxOn`。
  * 谁整份覆盖谁就会把对方刚存的值抹掉——表现是「关了 BGM，一拖音量它自己又开了」。
  */
 export function saveAudioPrefs(patch: Partial<AudioPrefs>): void {
