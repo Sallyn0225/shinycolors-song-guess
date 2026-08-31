@@ -85,3 +85,36 @@ bearing, since `catalog.ts` must not depend on config.
 Note the `..` count is tied to the file's depth. Anything that moves `catalog.ts` into a
 subdirectory has to fix it, and nothing will fail until the catalog fails to load at
 startup.
+
+These roots are derived from `import.meta.url`, **not** from the process CWD. That is
+deliberate and worth preserving: the server can be started from any working directory,
+which is what lets the container set `WORKDIR` to `apps/server` (see below) without
+breaking asset resolution.
+
+---
+
+## Running the server outside a dev checkout
+
+Two things bite when this package is deployed rather than run from the repo root. Both
+were found on a real VPS, not in review.
+
+**`tsx` is a runtime dependency, not a dev dependency.** `@scg/shared` and
+`@scg/game-core` declare `"exports": "./src/index.ts"` — they ship **raw TypeScript**. So
+anything importing them needs a transpiling loader at runtime, and `"start": "tsx
+src/index.ts"` is that loader. Keeping `tsx` under `devDependencies` means the first
+`pnpm install --prod` produces a server that cannot boot.
+
+**The CWD must be `apps/server`, because module resolution depends on it.** The entry
+point is launched as `node --import tsx src/index.ts`. `tsx` there is a *bare specifier*,
+which Node resolves starting from the CWD. pnpm does not hoist, so `tsx` lives in
+`apps/server/node_modules` and there is no `node_modules` at the workspace root — running
+from the repo root fails with `ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'`. Path
+resolution is unaffected because of the `import.meta.url` rule above.
+
+Launch `node` directly rather than going through `pnpm run` or the `tsx` bin wrapper:
+`index.ts` installs `SIGINT`/`SIGTERM` handlers for graceful shutdown, and an intermediate
+process can swallow the signal, hard-cutting matches in progress.
+
+> A build that only *builds* the image proves none of this. The regression guard is a smoke
+> test that actually starts the container against a two-song synthetic catalog and asserts
+> `/api/health` — see `.github/workflows/release.yml`.

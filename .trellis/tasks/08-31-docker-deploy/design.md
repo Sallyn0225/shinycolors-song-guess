@@ -1,5 +1,41 @@
 # 设计：Docker Compose 部署
 
+> ## 实机部署后的修正（两处，均为原设计漏掉的现实）
+>
+> ### 一、`WORKDIR` 必须是 `apps/server`，不能是 `/app`
+>
+> 首次部署直接崩：`ERR_MODULE_NOT_FOUND: Cannot find package 'tsx' imported from /app/`。
+>
+> `node --import tsx` 里的 `tsx` 是**裸标识符**，Node 从 CWD 开始解析。pnpm 默认
+> 不做提升，`tsx` 装在 `/app/apps/server/node_modules` 下，`/app/node_modules`
+> 根本不存在。原设计只想着「目录层级不能变」（那是对的），却没想到
+> 层级对了不代表模块解析路径对。
+>
+> 改 CWD 是安全的：`catalog.ts` 用 `fileURLToPath(import.meta.url)` 取绝对路径再
+> 上溯三级得到 REPO_ROOT，`config.ts` 的 webRoot 同理，都不依赖 CWD。
+>
+> **更根本的教训是 CI 缺口**：当时 CI 只构建不运行，「构建通过」什么都不保证。
+> 已补冒烟测试——用两首假歌的合成曲库把容器真跑起来，覆盖
+> 模块解析 → tsx 转译 → `Catalog.load()` → 静态注册 → HTTP 响应，
+> 外加压缩与 SIGTERM 优雅关闭，冒烟不过就不推镜像。
+> 这也顺带兑现了本文档原先记为「未来工作」的合成曲库 fixture。
+>
+> ### 二、宿主机可能已经有反代占着 80/443
+>
+> 目标 VPS 上跑着一个系统级 Caddy（`/usr/bin/caddy --config /etc/caddy/Caddyfile`，
+> 六个站点）、1Panel，以及五个其他 compose 项目。原设计无条件起自带 Caddy，
+> 在这种机器上抢不到端口，真起来了也会和现有站点打架。
+>
+> 改法：`caddy` 服务挪进 `profiles: ["caddy"]` 默认不启用；`app` 从 `expose`
+> 改为发布到 `127.0.0.1:${APP_PORT:-5179}`。
+>
+> 原文「不映射端口比 `HOST=127.0.0.1` 更彻底」**只在反代同处一个 compose 网络时成立**——
+> 系统级反代够不着容器名，只能经宿主机回环。绑回环而非 `0.0.0.0`，公网依然进不来。
+>
+> 另外 `${DOMAIN:?}` 的必填写法要改成 `${DOMAIN:-}`：compose 对整个文件做插值，
+> profile 没启用也照样求值，必填写法会让不带 caddy 的 `up -d` 直接报错。
+
+
 ## 一、`tsx` 必须移到 `dependencies`
 
 这不是偏好，是被 workspace 的形态逼出来的。
