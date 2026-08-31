@@ -19,10 +19,14 @@ services:
     # SIGTERM 能直达，这里只是兜底
     init: true
 
-    # **故意不映射端口到宿主机**。比设 HOST=127.0.0.1 更彻底——
-    # 端口根本不进宿主机的网络命名空间，只有同一个 compose 网络里的 caddy 连得上。
-    expose:
-      - "5179"
+    # 只发布到回环地址，公网碰不到——真正对外的是反代。
+    #
+    # 为什么发布而不是只 expose：很多机器上**已经有一个系统级反代**
+    # （nginx / 系统 Caddy / 面板自带的 OpenResty）在占着 80/443。
+    # 那种情况下反代不在这个 compose 网络里，够不着容器名，
+    # 只能经宿主机回环。绑 127.0.0.1 而不是 0.0.0.0，公网仍然进不来。
+    ports:
+      - "127.0.0.1:${APP_PORT:-5179}:5179"
 
     environment:
       # 容器内仍监听 0.0.0.0，否则同网络的 caddy 连不进来
@@ -48,7 +52,16 @@ services:
       retries: 3
       start_period: 30s
 
+  # 自带的 Caddy，**默认不启用**。
+  #
+  #   裸机（80/443 空着）：  docker compose --profile caddy up -d
+  #   已有系统反代：          docker compose up -d      ← 不要启用本服务
+  #
+  # 机器上已经有东西占着 80/443 时，这个服务会抢不到端口起不来，
+  # 而且真起来了也会和现有站点打架。那种情况下把 app 的
+  # 127.0.0.1:5179 挂到你现有的反代上即可，配置片段见 Caddyfile。
   caddy:
+    profiles: ["caddy"]
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
@@ -58,7 +71,10 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMAIN: ${DOMAIN:?请在 .env 里设置 DOMAIN}
+      # 不用 ${DOMAIN:?} 的必填写法：compose 会对整个文件做插值，
+      # 哪怕本服务的 profile 没启用也一样求值，那样连
+      # `docker compose up -d`（不带 caddy）都会先报错
+      DOMAIN: ${DOMAIN:-}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

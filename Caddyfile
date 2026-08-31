@@ -1,4 +1,19 @@
 # 对照 DEPLOY.md「反向代理」一节的三条硬要求，漏一条就是线上故障。
+#
+# 这个文件是给 compose 的 `caddy` profile 用的（裸机、80/443 空着的场景）。
+#
+# **机器上已经有系统级 Caddy 的话不要用这个文件**，把下面这段加进
+# 现有的 /etc/caddy/Caddyfile 即可，三条要求同样满足：
+#
+#   your.domain.com {
+#       reverse_proxy 127.0.0.1:5179 {
+#           transport http {
+#               read_timeout 120s
+#               write_timeout 120s
+#           }
+#           flush_interval -1
+#       }
+#   }
 
 {
 	email {$ACME_EMAIL}
