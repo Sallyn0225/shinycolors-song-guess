@@ -9,6 +9,84 @@
 
 ---
 
+## Docker Compose 部署
+
+一台 2C4G / 5Mbps / 60G 的 VPS 足够。**瓶颈是带宽，不是 CPU。**
+
+### 只有两样东西需要上服务器
+
+```
+仓库代码（git clone，或只要 docker-compose.yml + Caddyfile + .env）
+assets/    228MB，本地构建好之后传上去
+```
+
+**`songs/` 绝对不要传。** 1.7GB 的源音源，服务端根本不读它 ——
+`assets/` 已经是它的派生物。同理不要传的还有 `emoji/`、`opening-greeting/`、
+`bg-video.mp4`、`design-extract-output/`：全是本地素材源文件，
+入库的都已经是转好的成品。
+
+### 首次部署
+
+```bash
+# ── 本地 ──
+pnpm assets all                       # 构建曲库，需要 songs/ 里有音源
+
+# 传曲库。Windows 没有 rsync 就用 scp（或在 WSL 里用 rsync）
+scp -r assets sallyn0225@<VPS>:/opt/scg/assets
+# rsync 可用时更好，断点续传且能增量：
+# rsync -avz --progress assets/ sallyn0225@<VPS>:/opt/scg/assets/
+
+# ── VPS ──
+cd /opt/scg
+git clone <repo> . && cp .env.example .env
+vim .env                              # 填 DOMAIN 与 ACME_EMAIL
+docker compose up -d
+docker compose ps                     # app 应当是 healthy
+```
+
+`healthy` 的判定打的是 `/api/health`，它返回曲目数 ——
+**所以健康就等于曲库确实挂上了**。忘了传 `assets/` 时容器会明确不健康，
+而不是起来了却是个空壳。
+
+### 更新
+
+镜像由 GitHub Actions 构建并推到 GHCR，VPS 只负责拉：
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+在 VPS 上跑 `pnpm install` + `vite build` 也能work，但那意味着每次部署
+都要在 5Mbps 的线上拉一遍上百 MB 的依赖。交给 Actions 更划算。
+
+### 回滚
+
+```bash
+docker compose down
+APP_IMAGE=ghcr.io/<owner>/<repo>:<上一个 sha> docker compose up -d
+```
+
+镜像按 commit sha 打了 tag，回滚就是换一个 tag 重起。
+**曲库不受影响** —— 它是挂载进去的，不在镜像里。
+
+### 几个容易踩的点
+
+- **`assets/` 是只读挂载**（`:ro`）。服务端只读不写，这是免费的加固。
+- **`app` 不映射端口到宿主机。** 比设 `HOST=127.0.0.1` 更彻底 ——
+  端口根本不进宿主机的网络命名空间，只有同一个 compose 网络里的 caddy 连得上。
+- **`TRUST_PROXY=1` 已在 compose 里设好。** 不设的话按 IP 的房间配额会退化成
+  全局配额，不报错，表现是「几个人一起玩时有人建不了房」。
+- **Caddy 的证书目录是命名卷。** 不持久化的话每次重启都重新申请，
+  很快撞上 Let's Encrypt 的速率限制然后彻底签不出来。
+- **Caddyfile 里没有 `encode`，这是故意的。** 压缩在应用层做
+  （`apps/server/src/app.ts`），因为局域网开黑那种形态根本没有反代。
+
+### 境内 VPS
+
+域名**必须已备案**，否则 80/443 会被拦，Caddy 也就签不出证书。
+
+---
+
 ## 单进程模式（推荐）
 
 构建前端后，服务端会一并托管它——**页面和 `/ws` 同源同端口**：

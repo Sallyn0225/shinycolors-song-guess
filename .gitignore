@@ -63,3 +63,8 @@ skills-lock.json
 # Impeccable：决策页产物、效果图、浏览器取证截图与本地配置，全部不入库。
 # 方向契约本身写在 apps/web/index.html 的 body 注释里，随代码走，不依赖这个目录。
 .impeccable/
+
+# 部署时的实际配置（域名、邮箱等）。入库的是 .env.example
+.env
+.env.*
+!.env.example

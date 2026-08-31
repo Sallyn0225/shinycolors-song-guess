@@ -1,0 +1,38 @@
+# 对照 DEPLOY.md「反向代理」一节的三条硬要求，漏一条就是线上故障。
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	reverse_proxy app:5179 {
+		# ① Upgrade / Connection 头 —— Caddy 自动处理 WebSocket 升级，不用手写。
+		#    漏了这一条的话握手会退化成普通 GET，表现是连接立刻关闭，
+		#    控制台只有一句 WebSocket connection failed，看不出原因。
+
+		# ② 读超时必须大于心跳间隔。服务端心跳 25 秒，而对局里两次业务消息之间
+		#    最长有十几秒空隙（记忆阶段 30 秒尤其明显）。超时会被静默切断，
+		#    玩家看到的是随机掉线。留足余量取 120 秒。
+		transport http {
+			read_timeout 120s
+			write_timeout 120s
+		}
+
+		# ③ 关响应缓冲。否则代理会攒够一批才发，起播指令被推迟几百毫秒，
+		#    两端听到的时刻就对不齐了。
+		flush_interval -1
+	}
+
+	# **故意不配 `encode`。**
+	# 压缩已经在 Fastify 应用层做了（apps/server/src/app.ts）。
+	# 装在应用层是因为这个项目还有「局域网开黑直接 pnpm start」的形态，
+	# 那时候没有反代。这里再配一遍不会出错（Caddy 见到 Content-Encoding 会跳过），
+	# 但会让下一个人以为这才是生效的那层，下次调压缩级别改错地方。
+
+	# 切片是 ~150KB/回合，上传体积不需要放宽，保持默认即可。
+
+	log {
+		output stderr
+		format console
+	}
+}

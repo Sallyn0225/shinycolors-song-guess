@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/server/backend/directory-structure.md", "reason": "REPO_ROOT 的上溯逻辑与目录约定，容器内层级不能变"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "测试需要曲库这一约束，决定 CI 能跑哪些"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "WS 心跳与超时，决定反代的 read_timeout"}
