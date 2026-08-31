@@ -125,8 +125,12 @@ function VideoLayer() {
  * 声明了减弱动效就整层不要 —— 不是暂停在首帧，是连那 4MB 都不下。
  * 这套 index.css 里 prefers-reduced-motion 一直是「关掉」而不是「放慢」，
  * 一屏满画幅的循环视频更没有理由破例。
+ *
+ * 导出是给 `screens/Splash.tsx` 用的：开场遮罩的退场动画在这个模式下被关掉，
+ * 于是 `animationend` 永远不会来，卸载时机必须改成定时器且时长归零。
+ * 那边要的正是这一个布尔值，没有理由再抄一份 matchMedia 订阅。
  */
-function useCalmed(): boolean {
+export function useCalmed(): boolean {
   const [calm, setCalm] = useState(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
   )
