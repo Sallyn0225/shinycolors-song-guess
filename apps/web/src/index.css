@@ -121,6 +121,18 @@
   --breakpoint-sm: 768px;
 }
 
+/*
+  首页 / 大厅 / 房间铺了循环视频时，<html> 上会挂 data-ambient（见 ui/Backdrop.tsx）。
+
+  只改这一个色，因为只有这一个不够用：--color-ink-faint 对纯 ground 底是 4.95:1，
+  余量 0.45，垫上视频就没了 —— 视频最暗的一帧过完遮罩，它掉到 3.87:1。
+  同一处实测 ink 13.4、ink-sub 5.67、primary 4.56，都还在线上，所以不动。
+  #5c5c68 在那同一帧上是 5.08:1，肉眼跟 #6e6e7c 读作同一个灰紫。
+*/
+:root[data-ambient] {
+  --color-ink-faint: #5c5c68;
+}
+
 :root {
   --grad-brand: linear-gradient(180deg, #615f90 0%, #a2a2c0 100%);
   /* 白字专用：--grad-brand 的下缘 #a2a2c0 配白字只有 2.4:1，

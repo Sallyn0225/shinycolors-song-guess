@@ -8,6 +8,10 @@ assets/
 # 源图留在本地备查，转换命令写在那个目录的 README 里
 emoji/
 
+# 首页背景视频的源片（720p 有声 65MB）。入库的是转好的
+# apps/web/public/bg/loop.mp4（4MB，十六分之一），转码命令写在那个目录的 README 里
+/bg-video.mp4
+
 # Node
 node_modules/
 dist/

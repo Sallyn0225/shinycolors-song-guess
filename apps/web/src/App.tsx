@@ -200,9 +200,14 @@ export default function App() {
     }
   }
 
+  // 背景视频只铺在「还没开局」的那几屏。Play / Karuta 上一切会动的东西都在跟
+  // 听力和抢牌抢注意力，而且那两屏本来就在解码音频、跑 rAF 计时，
+  // 再挂一路 24fps 视频解码是白白给判定让路
+  const ambient = screen.name === 'start' || screen.name === 'lobby' || screen.name === 'room'
+
   return (
     <>
-      <Backdrop />
+      <Backdrop video={ambient} />
       {body()}
     </>
   )
