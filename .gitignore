@@ -45,6 +45,7 @@ design-extract-output/*
 .agents/
 .claude/
 .pi/
+.zcode/
 .cursor/
 .codex/
 .gemini/
