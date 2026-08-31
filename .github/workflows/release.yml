@@ -45,11 +45,86 @@ jobs:
       #
       # 注意镜像里含 apps/web/dist，也就含那些第三方素材（见 NOTICE）。
       # 包的可见性要和仓库一起考虑。
-      - uses: docker/build-push-action@v6
+      - name: Build（先只加载到本地，冒烟通过才推）
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ────────────────────────────────────────────────────────────
+      # 冒烟测试：真的把容器跑起来。
+      #
+      # 加这一步是因为「构建通过」什么都不保证 —— 第一版镜像构建全绿，
+      # 到了真机上直接 ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'：
+      # `node --import tsx` 从 CWD 解析裸标识符，而 pnpm 不做提升，
+      # tsx 在 apps/server/node_modules 下，WORKDIR 却是 /app。
+      #
+      # 用一份**合成曲库**（两首假歌）让它真正启动到能响应 HTTP，
+      # 这样覆盖到的是完整运行时链路：模块解析 → tsx 转译 →
+      # Catalog.load() 找得到 /app/assets → 静态插件注册 → HTTP 起来。
+      # 真曲库是商业音源的派生物，不入库也不该进 CI（见 NOTICE）。
+      # ────────────────────────────────────────────────────────────
+      - name: Smoke test（合成曲库，验完整运行时链路）
+        run: |
+          set -euo pipefail
+          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          mkdir -p fixture/cover fixture/thumb fixture/slices
+
+          cat > fixture/manifest.private.json <<'JSON'
+          {"aacFallback":false,"songs":[
+            {"id":"s1","title":"曲一","album":"A","unit":null,"units":[],"performers":[],
+             "confusableGroup":null,"durationSec":100,
+             "slices":[{"sliceId":"AAAAAAAAAAAAAAAAAAAA","index":0,"startSec":0,"durationSec":15}],
+             "neighbours":[]},
+            {"id":"s2","title":"曲二","album":"B","unit":null,"units":[],"performers":[],
+             "confusableGroup":null,"durationSec":120,
+             "slices":[{"sliceId":"BBBBBBBBBBBBBBBBBBBB","index":0,"startSec":0,"durationSec":15}],
+             "neighbours":[]}]}
+          JSON
+
+          cat > fixture/manifest.public.json <<'JSON'
+          {"units":[],"songs":[
+            {"id":"s1","title":"曲一","artist":"X","unit":null,"unitColor":null},
+            {"id":"s2","title":"曲二","artist":"Y","unit":null,"unitColor":null}]}
+          JSON
+
+          docker run -d --name smoke -p 127.0.0.1:5179:5179 \
+            -v "$PWD/fixture:/app/assets:ro" "$IMAGE"
+
+          for i in $(seq 1 30); do
+            if curl -sf --max-time 3 http://127.0.0.1:5179/api/health >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+
+          echo "--- 容器日志 ---"; docker logs smoke 2>&1 | tail -20
+
+          BODY=$(curl -sf --max-time 5 http://127.0.0.1:5179/api/health) || {
+            echo "::error::容器起来了但 /api/health 不响应"; exit 1; }
+          echo "health: $BODY"
+          echo "$BODY" | grep -q '"songs":2' || {
+            echo "::error::曲目数不是 2 —— assets 挂载或 REPO_ROOT 推导有问题"; exit 1; }
+
+          # 压缩层也顺带验一次：JS 会被压，音频不会（切片字节数不能被改动）
+          curl -sf -H 'accept-encoding: br, gzip' -D /tmp/h -o /dev/null \
+            http://127.0.0.1:5179/ && grep -qi '^content-encoding' /tmp/h && \
+            echo "✓ 首页有 content-encoding" || { echo "::error::首页未被压缩"; exit 1; }
+
+          # SIGTERM 必须能优雅关闭。停不下来会被 docker 在 10 秒后 SIGKILL
+          START=$(date +%s)
+          docker stop smoke >/dev/null
+          echo "✓ 优雅关闭耗时 $(( $(date +%s) - START )) 秒（>=10 秒说明信号没送到）"
+          docker rm -f smoke >/dev/null 2>&1 || true
+
+      - name: Push（冒烟通过后）
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max

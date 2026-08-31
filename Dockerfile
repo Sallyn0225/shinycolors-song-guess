@@ -77,6 +77,18 @@ USER node
 
 EXPOSE 5179
 
-# 直接 exec node，不经 pnpm/sh —— SIGTERM 必须原样送到 node，
-# index.ts 靠它做优雅关闭；中间隔一层进程可能吞掉信号，正在进行的对局会被硬切。
-CMD ["node", "--import", "tsx", "/app/apps/server/src/index.ts"]
+# WORKDIR 必须是 apps/server，不能是 /app。
+#
+# `node --import tsx` 里的 `tsx` 是**裸标识符**，Node 从 CWD 开始解析。
+# pnpm 默认不做提升，tsx 装在 /app/apps/server/node_modules 下，
+# /app/node_modules 根本不存在 —— 在 /app 里跑会直接
+# ERR_MODULE_NOT_FOUND: Cannot find package 'tsx'。
+#
+# 改 CWD 是安全的：catalog.ts 用 fileURLToPath(import.meta.url) 取绝对路径
+# 再上溯三级得到 REPO_ROOT，config.ts 的 webRoot 同理，都不依赖 CWD。
+WORKDIR /app/apps/server
+
+# 直接 exec node，不经 pnpm/sh/tsx-cli —— SIGTERM 必须原样送到这个进程，
+# index.ts 靠它做优雅关闭。中间隔一层会吞掉信号，正在进行的对局被硬切。
+# （node_modules/.bin/tsx 是个会 fork 子进程的包装脚本，正是要避开的那种。）
+CMD ["node", "--import", "tsx", "src/index.ts"]
