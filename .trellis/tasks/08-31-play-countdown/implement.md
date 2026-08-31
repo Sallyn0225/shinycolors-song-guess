@@ -2,11 +2,11 @@
 
 ## 执行清单（按序；前置：08-31-ui-sfx 已归档）
 
-1. [ ] 新建 `apps/web/src/ui/ReadyCountdown.tsx`：固定 N 步倒计时组件（setTimeout 递归、tick/go 经 `sfx`、`num.animate` 冲量、reduced-motion 跳过、`role="timer"`）。
-2. [ ] `screens/Play.tsx`：`Phase` 加 `'countdown'`；`getRemaining` 补分支（返回 1，同 loading）；载入 effect 里 index 0 在 prefetch 之后、`api.begin` 之前进入 countdown 并 await 组件完成回调。
-3. [ ] `screens/Play.tsx` JSX：`phase === 'countdown'` 时渲染 `<ReadyCountdown>` 覆盖层（居中，置于选项区上方，pointer-events-none）。
-4. [ ] 复查键盘 effect：`'countdown'` 阶段不响应 1-4 / R / Enter（确认现有 phase 条件已天然排除，如无遗漏则不改）。
-5. [ ] 对照 `.sc-title` 与 Countdown 的尺寸语言定稿数字字号与位置，窄屏（375×667）目测不溢出。
+1. [x] 新建 `apps/web/src/ui/ReadyCountdown.tsx`：固定 N 步倒计时组件（setTimeout 递归、tick/go 经 `sfx`、`num.animate` 冲量、reduced-motion 跳过、`role="timer"`）。
+2. [x] `screens/Play.tsx`：`Phase` 加 `'countdown'`；`getRemaining` 补分支（返回 1，同 loading）；载入 effect 里 index 0 在 prefetch 之后、`api.begin` 之前进入 countdown 并 await 组件完成回调。
+3. [x] `screens/Play.tsx` JSX：`phase === 'countdown'` 时渲染 `<ReadyCountdown>` 覆盖层（居中，置于选项区上方，pointer-events-none）。
+4. [x] 复查键盘 effect：`'countdown'` 阶段不响应 1-4 / R / Enter（确认现有 phase 条件已天然排除，如无遗漏则不改）。
+5. [x] 对照 `.sc-title` 与 Countdown 的尺寸语言定稿数字字号与位置，窄屏（375×667）目测不溢出。
 
 ## 验证命令
 

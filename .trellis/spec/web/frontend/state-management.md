@@ -105,6 +105,13 @@ nothing re-renders on it.
 
 **`api`** — a plain object of typed fetch wrappers. Stateless.
 
+**`ambience` (`Ambience`) and `sfx` (`Sfx`)** — the two consumers of `audio.bypass`: same
+`AudioContext`, own parallel gain chain, never through `master`/`analyser` (see
+`quality-guidelines.md`). Both keep their on/off state on themselves and let `main.tsx` +
+`VolumeControl.commit()` push mute in; neither is ever React state. `sfx.play()` is
+fire-and-forget: it swallows every failure silently because a missing click sound must never
+break an interaction, and it caches decoded buffers so repeated sounds cost no network.
+
 They are imported, never passed as props and never placed in Context. The rule this
 enforces: **a React re-render must not be able to recreate a connection or an audio node.**
 
@@ -138,7 +145,35 @@ this is invisible when testing on a wired desktop.
 
 ---
 
-## What not to add
+## `api.begin` is the clock's zero; anything pre-roll goes before it
+
+In `Play.tsx` the answer deadline is **server-authoritative**: `deadlineRef` is seeded from
+`api.begin`'s response and nothing else. The first-question 3-2-1 countdown (`'countdown'`
+phase, `ui/ReadyCountdown.tsx`) is inserted **between** clip prefetch and `api.begin`, so the
+countdown costs the player no answer time and the load chain reads:
+
+```tsx
+await audio.prefetch(...)        // decode done — never counted against the player
+if (index === 0) await countdown // pre-roll UX; index > 0 skips it
+const { deadlineMs } = await api.begin(...)   // the clock starts HERE, and only here
+```
+
+Invariants, all three verified by network timing (tick at t, go at t+3.0s, `begin` at t+3.01s):
+
+1. `api.begin` stays **immediately before** the answering phase — any new pre-roll
+   animation must be inserted before it, never between it and the deadline seeding.
+2. Slow networks wait in `'loading'` first; the countdown only starts once the clip is
+   decoded, so its 3 seconds are never inflated by download time.
+3. Cancelling during the countdown (quit → effect cleanup) must resolve the awaited
+   promise and let the chain die at the next `cancelled` check — no `begin`, no answer,
+   no leaked timer. `ReadyCountdown` owns its own timeout and clears it on unmount.
+
+`ReadyCountdown` (fixed 3-step rhythm, recursive `setTimeout`, self-owned timer) is
+deliberately **not** the same component as `ui/Countdown.tsx` (continuous rAF readout that
+tracks a server clock and clamps its jitter). Sharing them would weld a fixed rhythm to
+clock-following constraints that only the latter has.
+
+---
 
 - **A global store.** Nothing is shared between screens except what the singletons already
   hold. A store would mostly hold a copy of `MatchView`, which the server already resends in
