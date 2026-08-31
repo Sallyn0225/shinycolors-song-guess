@@ -26,6 +26,30 @@ cd apps/web && git diff --exit-code -- src/api.ts src/audio.ts src/net src/featu
 
 If a signature genuinely blocks you, stop and record it in the task's `prd.md`. Do not edit in passing.
 
+### What "record it" actually looks like
+
+This has happened once, for the opening greeting and ambient BGM. Both must sit on the **same
+`AudioContext`** as the quiz audio (browsers cap the number of contexts, a second one needs its
+own gesture to unlock, and two contexts do not share a `currentTime`, so a crossfade scheduled
+against one drifts against the other) while bypassing **both** of the nodes the quiz path uses:
+
+- through `master` → the volume slider would control them, but their levels are fixed
+- through `analyser` → `PrismRail`'s spectrum would follow the BGM instead of the question
+
+No existing method expresses "same context, different chain", so `audio.ts` gained exactly one
+read-only getter returning `{ ctx, out: ctx.destination }`. The entry in `prd.md` named the
+blocker, the proposed signature, why it is additive, and the three rejected alternatives.
+
+Two rules generalise from it:
+
+- **Additive only.** A getter that hands back an existing object changes no scheduling,
+  no latency compensation, no fallback path. `git diff -- src/audio.ts` showed `17 insertions,
+  0 deletions` — if a deletion appears, the change is no longer additive and needs re-thinking.
+- **No subscription mechanism in the forbidden module.** The bypass chain must follow the mute
+  toggle, but `audio.ts` did not grow an observer for it. Instead the two call sites that
+  already change mute (`main.tsx` on load, `VolumeControl.commit()`) call `ambience.setMuted()`
+  explicitly. Two visible call sites beat an implicit subscription inside a module nobody may edit.
+
 ---
 
 ## `clip-path` — four traps, all of which fail silently
@@ -283,6 +307,20 @@ A screen the player acts on under a clock has to be measurable, not eyeballed. T
 pages in Chrome across six viewports and reports `scrollHeight - innerHeight`, per-bar heights,
 gutter ratio and the px floors. Re-run it before claiming a layout change fits.
 
+**`Start.tsx` has no vertical budget left.** Measured at 1366×678 (where `--u` bottoms out at
+0.78) it was `doc 674.6 / vp 678` — 3.4px of slack. Adding the 44px tool rail above the prism
+rail cost `py` one step and the `mt` of both the difficulty section and the volume group one
+step each, and it still ends up 16px over on that one viewport (1440×810, 1536×774 and
+1920×990 all fit). Before adding anything that occupies its own row on this screen, measure all
+four; do not assume there is room.
+
+Where to stop compressing is a judgement, so make it explicitly: the remaining 16px were left
+on the table because buying them means padding against the viewport edge or tightening the
+title group, and a home screen that scrolls a little costs nothing. **"Must fit one screen" is
+the karuta board's rule** (The Both-Territories Rule — grabbing cards lasts seconds, so
+scrolling to find your own card means you cannot play), not this screen's. `.sc-vfit`'s
+`safe center` already handles content taller than the viewport.
+
 For touch targets on plain text buttons, grow the box without moving the text, and do not
 reach for `::after` — these buttons usually sit inside a `clip-path` container that would
 clip the pseudo-element away:
@@ -355,6 +393,36 @@ thumbnail ring — never text on white (`#fff68d` disappears). Give every solid 
 `--color-primary` (not `--color-primary-lt`) when a song has no unit.
 
 ---
+
+## Image assets: alpha is the hidden cost, and matte recovery has a boundary
+
+Two things learned while producing `public/brand.webp` (`tools/prepare-opening.mjs`).
+
+**libwebp encodes the alpha plane losslessly, and ffmpeg exposes no way to change that.**
+`-quality` only touches RGB; there is no `alpha_quality` on the ffmpeg wrapper and no `cwebp`
+on this machine. For a logo with large soft-glow gradients the alpha plane alone came to
+~208KB: the file was 277KB at 1280 wide and still 151KB at 900 wide, while dropping quality
+from 82 to 58 moved it 8%. If a transparent asset blows its size budget, **the alpha plane is
+the suspect** — check it before touching `-quality`, and consider whether the transparency is
+needed at all. Quantising alpha to 32 levels is the lever that works when it is (round and
+clamp to 255; `floor()` lands the top bucket at 248 and veils the whole image at 97% opacity).
+
+**A black-backed glow image is premultiplied alpha, so it can be recovered exactly** — set
+`a = max(R,G,B)` (not luma, which reads a pure-red mark as 30% opaque), scale **before**
+un-premultiplying (premultiplied data is what interpolates correctly), then `unpremultiply`.
+Verified against a per-pixel reference: zero error on alpha, 1/255 rounding on RGB.
+
+**But the technique only holds for pure glow.** This logo has a solid dark purple outline, and
+the recovery cannot tell a dark *body* from a dim *glow* — it turned the outline
+semi-transparent, so on the white ground the letterforms lost their edge and the whole mark
+read as floating. Average RGB in the semi-transparent region: 0.408 hand-cut versus 0.820
+recovered, and that gap is exactly the dark detail that was thrown away. **A mark with solid
+dark parts must be cut by hand.** As a bonus the hand-cut alpha is mostly pure 0 or 255, which
+libwebp compresses well: 93.8KB with no quantisation at all.
+
+Consequence for the repo: `brand/` is **not** in `.gitignore` even though every other source
+asset (`songs/`, `emoji/`, `bg-video.mp4`, `opening-greeting/`) is. Those can be re-fetched or
+re-derived; a hand-cut matte cannot.
 
 ## Canvas export: four failures that do not throw
 

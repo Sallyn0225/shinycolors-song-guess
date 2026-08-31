@@ -12,6 +12,11 @@ emoji/
 # apps/web/public/bg/loop.mp4（4MB，十六分之一），转码命令写在那个目录的 README 里
 /bg-video.mp4
 
+# 28 段开场问候语音的 WAV 源（48kHz mono，共 12MB）。入库的是转好的
+# apps/web/public/greet/*.{opus,m4a}（共 1.6MB），转码命令写在那个目录的 README 里。
+# 注意 brand/ **不**在这里：那两个 PNG 里有一张是人工抠的透明底，丢了没法自动重生成
+opening-greeting/
+
 # Node
 node_modules/
 dist/

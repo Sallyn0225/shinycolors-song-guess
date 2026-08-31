@@ -1,9 +1,14 @@
+import { useState } from 'react'
+
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
 
+import { ambience } from '../ambience'
 import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
+import { IconButton, ToolRail } from '../ui/IconButton'
 import { LIBRARY } from '../features/library'
 import { PrismRail } from '../ui/PrismRail'
+import { saveAudioPrefs } from '../prefs'
 import { Stat } from '../ui/Stat'
 import { VolumeControl } from '../ui/VolumeControl'
 
@@ -73,14 +78,42 @@ function EntryBar({
 }
 
 export function Start({ onStart, onVersus, busy, error }: Props) {
+  // 初值取自引擎而不是 localStorage：main.tsx 在任何界面挂载之前就把偏好灌进去了，
+  // 这里只负责往回写。与音量滑杆同一条规矩
+  const [bgmOn, setBgmOn] = useState(() => ambience.bgmEnabled)
+
+  const toggleBgm = () => {
+    const next = !bgmOn
+    setBgmOn(next)
+    ambience.setBgmOn(next)
+    // 只写 bgmOn 这一个字段 —— 整份覆盖会把音量滑杆刚存的值抹掉
+    saveAudioPrefs({ bgmOn: next })
+  }
+
   return (
     <main
       /*
         纵向节奏交给 py 与下面的组间距，桌面各降一档（见 sm: 前缀）。
         收紧之后桌面四档视口都装得下，所以 .sc-vfit 把内容垂直居中；
         窄屏内容仍比视口高（375×667 实测 doc 1175 > vp 667），那里它退回顶端对齐。
+
+        **桌面这一档的余量已经用完了。** 加光带上方那排工具按钮之前实测
+        1366×678 上 doc 674.6 / vp 678，只剩 3.4px。那 44px 一行是靠
+        py 降一档 + section 与音量组的 mt 各降一档换来的，加完之后四档实测：
+
+          1366×678  doc 694 / vp 678  —— 溢出 16px，这一档需要滚一点
+          1440×810  装下
+          1536×774  装下
+          1920×990  装下
+
+        没有为最后这 16px 继续压：再压就得把 py 收到贴边或者动标题组的间距，
+        代价是整页处处紧绷，而首页滚动不影响任何功能 ——
+        「必须一屏装下」是牌场那条规矩（The Both-Territories Rule），不是这里的。
+        `.sc-vfit` 的 safe center 本来就管着内容比视口高的情况。
+
+        再往这一页加独占一行的东西，先把这四档量一遍，别指望还有富余。
       */
-      className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10 sm:py-8"
+      className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10 sm:py-6"
       style={{ maxWidth: 'var(--page-main)' }}
     >
       {/*
@@ -106,13 +139,32 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         </dl>
       </header>
 
-      <div className="anim-appear mt-14 sm:mt-7" style={{ animationDelay: '80ms' }}>
+      {/*
+        光带上方那一排。**这里还会长** —— 以后要加的图标按钮都往 ToolRail 里塞，
+        居中和间距已经在那一层管好了，这里不用再动。
+
+        位置在光带正上方而不是跟音量控件挤在页尾：那一组是「开局前的设定」，
+        而 BGM 此刻**正在响**，关它是一个当下就有反馈的动作，得放在够得着的地方。
+      */}
+      <div className="anim-appear mt-10 sm:mt-3" style={{ animationDelay: '60ms' }}>
+        <ToolRail>
+          <IconButton
+            icon={bgmOn ? 'music' : 'music-off'}
+            label={bgmOn ? '关闭背景音乐' : '打开背景音乐'}
+            pressed={bgmOn}
+            onClick={toggleBgm}
+          />
+        </ToolRail>
+      </div>
+
+      {/* 紧贴工具条：那一排按钮与这条光是同一组，间距要小于它与上方标题的距离 */}
+      <div className="anim-appear mt-6 sm:mt-2" style={{ animationDelay: '80ms' }}>
         <PrismRail mode="idle" spectrum={false} />
       </div>
 
       {/* 组二「怎么开始」。这一页的动作集只有这三条 */}
       <section
-        className="mt-12 flex flex-col sm:mt-7"
+        className="mt-12 flex flex-col sm:mt-6"
         style={{ gap: 'calc(18 * var(--u))' }}
         aria-label="选择难度"
       >
@@ -190,7 +242,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         位置在三个入口之后是有意的：这一页的动作集只有那三条，
         音量是**设定**不是入口，不该长成第四条横条去跟它们抢。
       */}
-      <div className="anim-appear mt-14 sm:mt-7" style={{ animationDelay: '340ms' }}>
+      <div className="anim-appear mt-14 sm:mt-6" style={{ animationDelay: '340ms' }}>
         <VolumeControl />
         <p className="jp-wrap mt-5 text-xs text-ink-faint sm:mt-3" style={{ maxWidth: '60ch' }}>
           点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2

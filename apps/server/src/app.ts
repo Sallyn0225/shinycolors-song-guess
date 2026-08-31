@@ -8,10 +8,12 @@ import { z } from 'zod'
 
 import { DIFFICULTIES, DIFFICULTY_PRESETS, KARUTA_DEFAULTS, type Difficulty } from '@scg/shared'
 
+import { AmbienceStore } from './ambience.js'
 import { ASSETS_ROOT, Catalog } from './catalog.js'
 import { SERVER_CONFIG, coverUrl, type RoomQuotas } from './config.js'
 import { SoloSessionStore } from './soloSessions.js'
 import { Hub, type Socket } from './ws/hub.js'
+import { IpQuota } from './ws/quota.js'
 
 const difficultySchema = z.enum(DIFFICULTIES as unknown as [Difficulty, ...Difficulty[]])
 const createSessionSchema = z.object({ difficulty: difficultySchema })
@@ -84,6 +86,8 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
 
   const catalog = await Catalog.load()
   const solo = new SoloSessionStore(catalog)
+  const ambience = new AmbienceStore(catalog)
+  const ambienceQuota = new IpQuota()
 
   // 封面：只在答案揭晓后才会被请求，不做额外鉴权
   await app.register(fastifyStatic, {
@@ -325,6 +329,31 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     if (!session) return reply.code(404).send({ error: '会话不存在或已过期' })
     const { token, format } = formatOf(req.params.token)
     const sliceId = session.clipTokens.get(token)
+    if (!sliceId) return reply.code(404).send({ error: '无效的切片凭证' })
+    return sendClip(reply, sliceId, format)
+  })
+
+  // ── 环境 BGM ──────────────────────────────────────────
+  //
+  // 首页 / 大厅 / 房间三屏铺的背景音乐。它**不能**走上面那条 `/api/clip/:sid/:token`——
+  // 那里的 token 挂在单人对局会话上，而这三屏根本没有会话。
+  //
+  // 下发的内容里没有 songId、曲名、切片 index、时长中的任何一项，
+  // 客户端只知道「这是一段能放的音频」。红线的完整论证见 `ambience.ts` 开头。
+
+  app.get<{ Querystring: { n?: string } }>('/api/ambience/tracks', async (req, reply) => {
+    if (ambienceQuota.hit(req.ip, 'ambience', 60_000, SERVER_CONFIG.ambienceTracksPerMin)) {
+      return reply.code(429).send({ error: '请求过于频繁' })
+    }
+    // 一次最多 4 个曲目（约 3~4 分钟的量）。要更多就再来一次，
+    // 免得一个请求就把内存表铸满一大片用不上的凭证
+    const n = Math.min(4, Math.max(1, Number(req.query.n) || 1))
+    return { tracks: ambience.mintTracks(n), aacFallback: catalog.aacFallback }
+  })
+
+  app.get<{ Params: { token: string } }>('/api/ambience/clip/:token', async (req, reply) => {
+    const { token, format } = formatOf(req.params.token)
+    const sliceId = ambience.sliceIdForToken(token)
     if (!sliceId) return reply.code(404).send({ error: '无效的切片凭证' })
     return sendClip(reply, sliceId, format)
   })

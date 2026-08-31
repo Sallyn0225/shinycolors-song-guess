@@ -27,7 +27,7 @@ const LATIN_SIZE = { sm: 'sc-title-sm', md: 'sc-title', lg: 'sc-title-lg' } as c
 /** 角标边长（设计 px），约为拉丁字号的 0.85 倍 */
 const CORNER = { sm: 16, md: 24, lg: 30 } as const
 
-type Corner = 'tl' | 'tr' | 'bl' | 'br'
+export type Corner = 'tl' | 'tr' | 'bl' | 'br'
 
 const FLIP: Record<Corner, string | undefined> = {
   tl: undefined,
@@ -43,8 +43,14 @@ const POS: Record<Corner, React.CSSProperties> = {
   br: { bottom: 0, right: 0 },
 }
 
-/** 一枚角标：实心深紫直角三角 + 一条平行的浅紫窄带 */
-function CornerMark({ at, size }: { at: Corner; size: number }) {
+/**
+ * 一枚角标：实心深紫直角三角 + 一条平行的浅紫窄带。
+ *
+ * 导出是给 `screens/Splash.tsx` 用的 —— 开场把这个装置从「框住一个标题」放大到
+ * 「框住整块开场内容」。构造只此一份，两处共用，形状语言才不会分家。
+ * 用它的容器要自己是 `position: relative`。
+ */
+export function CornerMark({ at, size }: { at: Corner; size: number }) {
   return (
     <svg
       aria-hidden

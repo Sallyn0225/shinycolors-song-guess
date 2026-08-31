@@ -10,7 +10,7 @@
  * 桶空了就顺手删掉整个键。这样内存占用与「最近一个窗口内活跃过的 IP 数」成正比，
  * 而不是与「历史上出现过的 IP 数」成正比。
  */
-export type QuotaBucket = 'create' | 'joinFail'
+export type QuotaBucket = 'create' | 'joinFail' | 'ambience'
 
 interface Bucket {
   hits: number[]

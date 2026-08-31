@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "前端包总览与四层目录归属；开篇那条「四个禁区模块」的规矩直接约束本任务"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "禁区模块的验证命令与签名阻塞处理流程、clip-path 四个静默失败陷阱、--u 尺寸、对比度规则"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "新增的 ambience.ts / features/idols.ts / screens/Splash.tsx 各自该落哪一层"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "Splash 的形状原语、样式写法、props 与 a11y 基线"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "Splash 状态机与 ambience 的 effect、订阅、取消、定时器；BGM 调度不能每帧 setState"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "ambience 是单例不是 state；音频对象进 state 会因 re-render 重建节点并爆音"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "AmbienceTrack 等新增类型、strict 下的处理"}
+{"file": ".trellis/spec/server/backend/index.md", "reason": "服务端包结构与路由注册惯例，新增两个氛围端点要跟着走"}
+{"file": "DESIGN.md", "reason": "视觉世界的全部规则：无圆角、亮色不作文字、组合色是数据、阴影属于形状、Tinted-Surface 与 Lifted-Outline 两条命名规则"}
+{"file": "PRODUCT.md", "reason": "产品约束与无障碍硬要求（键盘全流程、reduced-motion、对比度达标）"}

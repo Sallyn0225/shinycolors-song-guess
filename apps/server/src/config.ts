@@ -85,6 +85,16 @@ export const SERVER_CONFIG = {
   wsHeartbeatMs: num('WS_HEARTBEAT_MS', 25_000),
 
   /**
+   * 单 IP 每分钟取环境 BGM 曲目的次数。
+   *
+   * 这一项防的是**流量滥用**，不是作弊：氛围端点下发的 token 不带任何曲目身份信息，
+   * 拉再多也积累不出「切片 ↔ 曲目」对照表（见 `ambience.ts` 开头）。
+   * 一个正常客户端每 45~60 秒才需要续一个曲目，30 次留了几十倍余量；
+   * 与按 IP 的房间配额一样，它同样会误伤 NAT 后面的人，同样依赖 `TRUST_PROXY=1`。
+   */
+  ambienceTracksPerMin: count('AMBIENCE_TRACKS_PER_MIN', 30),
+
+  /**
    * 房间配额。
    *
    * 房间列表把建房入口暴露给了任何拿到网址的人，所以这几个数不是可选的调优项，

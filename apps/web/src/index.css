@@ -696,6 +696,41 @@
     transform: translateX(2px);
   }
 }
+/*
+  开场遮罩的退场：入场那条 sc-appear 倒过来放。
+  「模糊转清晰」是这套世界的入场语法，幕布散开自然就是「清晰转模糊」——
+  同一个动作的两个方向，不引入第三种运动。
+*/
+@keyframes sc-dissolve {
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(calc(9 * var(--u)));
+  }
+}
+/*
+  「点击任意处」的呼吸。**只动 opacity**：
+  这套系统明写不给动画中的 clip-path 加 transition，而 transform 的缩放
+  会让那行字在 44px 热区里前后移位，鼠标悬停的判定跟着抖。
+
+  下限 0.65 不是手感，是对比度倒推的：这行字是 --color-ink #191922，
+  在 ground 上满不透明时 13.4:1，而 opacity 会把它往背景色拉 ——
+  0.65 处合成出 #676770，对 #f7f6fb 实测 5.16:1（正文要 4.5:1，过）；
+  再淡一档到 0.48 就掉到 3.16:1，不达标。
+  呼吸幅度想再大就得换更深的底，不能只调这个数。
+*/
+@keyframes sc-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 @keyframes sc-halo {
   0% {
     opacity: 0.45;
@@ -717,13 +752,26 @@
 .anim-halo {
   animation: sc-halo 0.9s ease-out forwards;
 }
+.anim-dissolve {
+  animation: sc-dissolve var(--dur-slow) var(--ease-prism) forwards;
+}
+.anim-breathe {
+  animation: sc-breathe 2.6s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .anim-appear,
   .anim-shudder,
-  .anim-halo {
+  .anim-halo,
+  .anim-dissolve,
+  .anim-breathe {
     animation: none !important;
   }
+  /*
+    退场动画被关掉之后遮罩不会自己淡出，卸载时机也就不能挂在 animationend 上
+    —— 那个事件永远不会来。Splash 用的是定时器，并在这个模式下把时长设为 0，
+    见 screens/Splash.tsx 的 handoffMs。
+  */
   *,
   *::before,
   *::after {

@@ -16,6 +16,14 @@ export interface AudioPrefs {
   /** 滑杆位置 0~1。**不是增益本身**，两者之间隔着一条平方律，见 audio.ts */
   level: number
   muted: boolean
+  /**
+   * 首页 / 大厅 / 房间那三屏的环境 BGM 开关。
+   *
+   * 它与 `muted` 是**两件事**，不能合并：BGM 的音量固定、不受滑杆管（见 ambience.ts），
+   * 所以「只想关掉背景音乐、题目照常出声」这个诉求，滑杆和静音都表达不了。
+   * 反过来静音必须连 BGM 一起切断——点了静音世界还在响就是 bug。
+   */
+  bgmOn: boolean
 }
 
 /**
@@ -25,7 +33,7 @@ export interface AudioPrefs {
  * 过平方律之后是 −12dB，安全且离「小得听不清」还很远；
  * 行程两侧都留了余量，第一次听完往上往下都调得动。
  */
-export const DEFAULT_AUDIO_PREFS: AudioPrefs = { level: 0.5, muted: false }
+export const DEFAULT_AUDIO_PREFS: AudioPrefs = { level: 0.5, muted: false, bgmOn: true }
 
 export function loadAudioPrefs(): AudioPrefs {
   try {
@@ -33,7 +41,7 @@ export function loadAudioPrefs(): AudioPrefs {
     if (!raw) return DEFAULT_AUDIO_PREFS
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return DEFAULT_AUDIO_PREFS
-    const { level, muted } = parsed as Partial<AudioPrefs>
+    const { level, muted, bgmOn } = parsed as Partial<AudioPrefs>
     return {
       // NaN / Infinity / 越界值都当没存过。存进 gain.value 的 NaN 会让
       // 整个 AudioContext 静默失声，且不报错——比回落到默认难查一万倍
@@ -42,6 +50,9 @@ export function loadAudioPrefs(): AudioPrefs {
           ? Math.min(1, Math.max(0, level))
           : DEFAULT_AUDIO_PREFS.level,
       muted: muted === true,
+      // 这一条比 muted 晚加，老用户存的 JSON 里根本没有它。
+      // 因此判的是「显式存过 false 才关」，缺字段一律回落到默认的开
+      bgmOn: bgmOn !== false,
     }
   } catch {
     // 存储被策略禁用、内容是上个版本写的读不了、JSON 坏了——一律回落到默认。
@@ -50,10 +61,17 @@ export function loadAudioPrefs(): AudioPrefs {
   }
 }
 
-export function saveAudioPrefs(prefs: AudioPrefs): void {
+/**
+ * 只写自己改动的那几个字段。
+ *
+ * 收 `Partial` 而不是整份，是因为现在有**两个**互不相识的控件在存这份偏好：
+ * 音量滑杆管 `level` / `muted`，光带上方那个开关管 `bgmOn`。
+ * 谁整份覆盖谁就会把对方刚存的值抹掉——表现是「关了 BGM，一拖音量它自己又开了」。
+ */
+export function saveAudioPrefs(patch: Partial<AudioPrefs>): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(prefs))
+    localStorage.setItem(KEY, JSON.stringify({ ...loadAudioPrefs(), ...patch }))
   } catch {
-    /* 无痕模式写不进去。音量在本次会话里照常生效，只是留不到下次 */
+    /* 无痕模式写不进去。设定在本次会话里照常生效，只是留不到下次 */
   }
 }

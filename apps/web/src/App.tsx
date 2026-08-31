@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Difficulty, MatchView, RoomView } from '@scg/shared'
 
+import { ambience } from './ambience'
 import { api, type SessionInfo } from './api'
 import { audio } from './audio'
 import { socket } from './net/ws'
@@ -9,6 +10,7 @@ import { Lobby } from './screens/Lobby'
 import { Play } from './screens/Play'
 import { Result } from './screens/Result'
 import { Room } from './screens/Room'
+import { Splash } from './screens/Splash'
 import { Start } from './screens/Start'
 import { Backdrop } from './ui/Backdrop'
 import { OverlayMark } from './ui/Overlay'
@@ -30,6 +32,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   /** 刷新/断线后本地还留着座位凭证 —— 先试着接回原来的对局 */
   const [resuming, setResuming] = useState(() => socket.hasResumeToken)
+  /** 开场遮罩还没被点掉。它同时是音频解锁所需的那次用户手势，见 screens/Splash.tsx */
+  const [opened, setOpened] = useState(false)
 
   const start = useCallback(async (difficulty: Difficulty) => {
     setBusy(true)
@@ -205,10 +209,30 @@ export default function App() {
   // 再挂一路 24fps 视频解码是白白给判定让路
   const ambient = screen.name === 'start' || screen.name === 'lobby' || screen.name === 'room'
 
+  /*
+    环境 BGM 跟着同一个判断走：铺视频的那三屏有，Play 与 Karuta 没有。
+    理由和视频那条一样 —— 那两屏的注意力已经被听力和抢牌占满，再垫一层音乐
+    是拿判定去换气氛。
+
+    `!resuming` 是第二个条件：正在找回对局时不起 BGM，对局可能下一秒就恢复，
+    不该让开场的音乐压在牌场的第一声上。找回失败退回首页时 resuming 转 false，
+    这里会再跑一次，那时候起 BGM 才是对的。
+  */
+  useEffect(() => {
+    ambience.setEnabled(ambient && !resuming)
+  }, [ambient, resuming])
+
   return (
     <>
       <Backdrop video={ambient} />
-      {body()}
+      {/*
+        开场遮罩在场时**不渲染首页**。不是为了省渲染，是为了让开场那枚票券
+        直接浮在与首页完全相同的场景上：遮罩因此不必自己糊一道白幕去挡住底下的文字，
+        幕布散开时景不变、只是票券化开、内容入场。
+        副作用正是想要的——首页的 anim-appear 留到那一刻才跑。
+      */}
+      {opened && body()}
+      {!opened && <Splash resume={resuming} onOpened={() => setOpened(true)} />}
     </>
   )
 }
