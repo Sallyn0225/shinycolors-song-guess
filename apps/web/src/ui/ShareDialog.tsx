@@ -47,7 +47,7 @@ function fileName(kind: string, id: string, at: Date): string {
 }
 
 /**
- * 导出战报对话框：填 ID → 预览 → 下载 / 分享。
+ * 导出战报对话框：填 ID → 预览 → 下载。
  *
  * 纯本地渲染，不发任何网络请求，也不动对局状态 ——
  * 联机结算浮层里开关它一次，再战投票不该因此被取消。
@@ -123,19 +123,11 @@ export function ShareDialog({ label, defaultId, kind, build, onClose }: Props) {
         setNote('这个浏览器没能生成图片。可以长按上面的预览图另存。')
         return
       }
-      const name = fileName(kind, id, new Date())
-
-      // 手机上系统分享比下载好用得多：能直接发进聊天，不用先落到相册再找
-      const file = new File([blob], name, { type: 'image/png' })
-      if (navigator.canShare?.({ files: [file] })) {
-        navigator.share({ files: [file] }).catch((e: unknown) => {
-          // 用户自己取消分享不是错误，不该弹提示
-          if (e instanceof Error && e.name === 'AbortError') return
-          fallbackDownload(blob, name, setNote)
-        })
-        return
-      }
-      fallbackDownload(blob, name, setNote)
+      // 一律走浏览器下载，不探测 navigator.share。
+      // 曾经优先用系统分享（手机上能直接发进聊天），但 Windows 的 Chrome / Edge
+      // 同样宣称支持带文件的 Web Share，于是桌面端点「保存图片」弹出的是共享面板，
+      // 而不是把文件落到本地 —— 按钮写着「保存」就该保存。
+      saveBlob(blob, fileName(kind, id, new Date()), setNote)
     }, 'image/png')
   }, [id, kind])
 
@@ -213,17 +205,25 @@ export function ShareDialog({ label, defaultId, kind, build, onClose }: Props) {
   )
 }
 
-function fallbackDownload(blob: Blob, name: string, setNote: (s: string) => void): void {
+/** 唯一的保存路径：造一个带 download 的 <a> 交给浏览器下载器 */
+function saveBlob(blob: Blob, name: string, setNote: (s: string) => void): void {
+  let url: string | null = null
   try {
-    const url = URL.createObjectURL(blob)
+    url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = name
+    // iOS Safari 与旧 Firefox 只对挂在文档里的锚点派发默认行为，
+    // 游离节点上的 click() 会被静默吞掉 —— 桌面 Chrome 不需要这步，但它无害
+    a.style.display = 'none'
+    document.body.append(a)
     a.click()
+    a.remove()
     // 立刻 revoke 会让部分浏览器来不及取到内容，下载出一个 0 字节文件
-    setTimeout(() => URL.revokeObjectURL(url), 10_000)
-    setNote('已保存。')
+    setTimeout(() => URL.revokeObjectURL(url as string), 10_000)
+    setNote('已开始下载，去浏览器的下载列表里找它。')
   } catch {
+    if (url) URL.revokeObjectURL(url)
     setNote('下载被浏览器拦下了。可以长按上面的预览图另存。')
   }
 }
