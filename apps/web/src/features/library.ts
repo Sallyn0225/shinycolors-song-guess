@@ -15,4 +15,4 @@
  * 没有走接口拿这个数：为一个说明性数字给首屏加一次网络往返不划算，
  * 代价是它是编译期常量，需要人工同步 —— 所以求值命令留在上面。
  */
-export const LIBRARY = { songs: 233, clips: 1398 } as const
+export const LIBRARY = { songs: 244, clips: 1464 } as const
