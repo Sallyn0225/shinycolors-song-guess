@@ -135,79 +135,100 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         </p>
       </header>
 
-      <ol className="mt-9 flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
-        {data.items.map((item, i) => {
-          const ok = item.correct === true
-          return (
-            <li
-              key={item.index}
-              className="anim-appear cut-shadow-sm"
-              style={{ animationDelay: `${Math.min(i * 35, 500)}ms` }}
-            >
-              <div
-                className="glass-lit flex items-center gap-4 py-3 pr-6"
-                style={{ clipPath: ROW_CLIP, paddingLeft: 'calc(34 * var(--u))' }}
-              >
-                <span
-                  aria-hidden
-                  className="cut-slant block shrink-0"
-                  style={{
-                    width: 'calc(8 * var(--u))',
-                    height: 'calc(30 * var(--u))',
-                    background: item.song.unitColor ?? 'var(--grad-unit-prism)',
-                    boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
-                    ['--cut-sm' as string]: 'calc(4 * var(--u))',
-                  }}
-                />
-                <img
-                  src={`/thumb/${item.song.id}.webp`}
-                  alt=""
-                  loading="lazy"
-                  className="cut-hex shrink-0"
-                  style={{
-                    width: 'calc(40 * var(--u))',
-                    height: 'calc(40 * var(--u))',
-                    objectFit: 'cover',
-                    filter: ok ? undefined : 'grayscale(1)',
-                  }}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="jp-wrap block truncate text-sm font-bold text-ink">
-                    {item.song.title}
-                  </span>
-                  <span className="jp-wrap block truncate text-xs text-ink-faint">
-                    {item.chosen && !ok ? `你选了：${item.chosen.title}` : item.song.artist}
-                  </span>
-                </span>
-                <span className="hidden shrink-0 text-right sm:block">
-                  {item.elapsedMs !== null && (
-                    <span className="latin flex items-center justify-end gap-2 text-xs text-ink-faint">
-                      <span>{(item.elapsedMs / 1000).toFixed(1)}s</span>
-                      {item.replaysUsed > 0 && (
-                        <span className="inline-flex items-center gap-0.5" title="重听次数">
-                          <Icon name="replay" size="calc(11 * var(--u))" />
-                          {item.replaysUsed}
+      {/*
+        列表装在一个定高的滚动区里，而不是直接铺在页面流上。
+        高度与「为什么多包一层」都写在 index.css 的 .sc-resultlist 上。
+
+        tabIndex + role + aria-label 三件套是这一层的入场券：一个只能用鼠标滚的
+        容器，对纯键盘用户等于把列表的下半截删掉。可聚焦之后浏览器原生支持
+        方向键 / PageUp / PageDown 滚动，不需要写 JS。
+
+        分成两层的唯一理由是焦点环：滚动那一层带 mask-image，而 mask 会像
+        clip-path 一样把 outline 吃掉（详见 index.css 的 .sc-resultlist-frame）。
+        环画在外层才看得见。
+      */}
+      <div className="sc-resultlist-frame mt-9">
+        <div
+          className="sc-resultlist"
+          tabIndex={0}
+          role="group"
+          aria-label={`逐题结果，共 ${data.total} 题，可滚动查看`}
+        >
+          <ol className="flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
+            {data.items.map((item, i) => {
+              const ok = item.correct === true
+              return (
+                <li
+                  key={item.index}
+                  className="anim-appear cut-shadow-sm"
+                  style={{ animationDelay: `${Math.min(i * 35, 500)}ms` }}
+                >
+                  <div
+                    className="glass-lit flex items-center gap-4 py-3 pr-6"
+                    style={{ clipPath: ROW_CLIP, paddingLeft: 'calc(34 * var(--u))' }}
+                  >
+                    <span
+                      aria-hidden
+                      className="cut-slant block shrink-0"
+                      style={{
+                        width: 'calc(8 * var(--u))',
+                        height: 'calc(30 * var(--u))',
+                        background: item.song.unitColor ?? 'var(--grad-unit-prism)',
+                        boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
+                        ['--cut-sm' as string]: 'calc(4 * var(--u))',
+                      }}
+                    />
+                    <img
+                      src={`/thumb/${item.song.id}.webp`}
+                      alt=""
+                      loading="lazy"
+                      className="cut-hex shrink-0"
+                      style={{
+                        width: 'calc(40 * var(--u))',
+                        height: 'calc(40 * var(--u))',
+                        objectFit: 'cover',
+                        filter: ok ? undefined : 'grayscale(1)',
+                      }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="jp-wrap block truncate text-sm font-bold text-ink">
+                        {item.song.title}
+                      </span>
+                      <span className="jp-wrap block truncate text-xs text-ink-faint">
+                        {item.chosen && !ok ? `你选了：${item.chosen.title}` : item.song.artist}
+                      </span>
+                    </span>
+                    <span className="hidden shrink-0 text-right sm:block">
+                      {item.elapsedMs !== null && (
+                        <span className="latin flex items-center justify-end gap-2 text-xs text-ink-faint">
+                          <span>{(item.elapsedMs / 1000).toFixed(1)}s</span>
+                          {item.replaysUsed > 0 && (
+                            <span className="inline-flex items-center gap-0.5" title="重听次数">
+                              <Icon name="replay" size="calc(11 * var(--u))" />
+                              {item.replaysUsed}
+                            </span>
+                          )}
                         </span>
                       )}
+                      {ok && item.score !== null && (
+                        <span className="latin block text-xs font-semibold text-correct">+{item.score}</span>
+                      )}
                     </span>
-                  )}
-                  {ok && item.score !== null && (
-                    <span className="latin block text-xs font-semibold text-correct">+{item.score}</span>
-                  )}
-                </span>
-                <span
-                  className="shrink-0"
-                  role="img"
-                  aria-label={ok ? '答对' : '答错'}
-                  style={{ color: ok ? 'var(--color-correct)' : 'var(--color-wrong)' }}
-                >
-                  <Icon name={ok ? 'check' : 'cross'} size="calc(18 * var(--u))" />
-                </span>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
+                    <span
+                      className="shrink-0"
+                      role="img"
+                      aria-label={ok ? '答对' : '答错'}
+                      style={{ color: ok ? 'var(--color-correct)' : 'var(--color-wrong)' }}
+                    >
+                      <Icon name={ok ? 'check' : 'cross'} size="calc(18 * var(--u))" />
+                    </span>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+      </div>
 
       {/*
         窄屏两个按钮各占半行。原来是 flex-wrap 的自然宽度，实测 375 下两条加 gap 要 333px
@@ -231,8 +252,10 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
           </Button>
         </div>
         <div className="min-w-0 flex-1 sm:flex-none">
+          {/* 「返回首页」而不是「换个难度」：这个按钮做的事是回首页，
+              换难度是回到首页**之后**才发生的事，标签该说按钮做什么 */}
           <Button variant="ghost" size="lg" full className="max-sm:px-4" onClick={onHome}>
-            换个难度
+            返回首页
           </Button>
         </div>
         <div className="min-w-0 basis-full sm:basis-auto">
