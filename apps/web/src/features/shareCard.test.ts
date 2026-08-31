@@ -183,10 +183,10 @@ describe('buildSoloTicket', () => {
   })
 
   it('段位的称号、评价与印章都进了图', () => {
-    // 1420/2000 = 71% → 资深P
+    // 1420/2000 = 71% → 合格闪友
     const t = texts(buildSoloTicket(solo(), m))
-    expect(t).toContain('资深P')
-    expect(t).toContain('熟得很，只在冷门曲上栽跟头')
+    expect(t).toContain('合格闪友')
+    expect(t).toContain('大部分经典曲难不倒你，少部分冷门曲也合情合理')
     const stamp = buildSoloTicket(solo(), m).find(
       (o): o is Extract<DrawOp, { k: 'stamp' }> => o.k === 'stamp',
     )
@@ -202,8 +202,8 @@ describe('buildSoloTicket', () => {
     expect(buildSoloTicket(solo(), m)[0]).toMatchObject({ k: 'paper' })
   })
 
-  // 正式表情素材还没做，/emote/*.webp 现在必然 404。没有 fallback 的话
-  // 段位块左边就是一个洞 —— 而且不会有任何报错告诉你
+  // 正式表情在 public/emote/，但导出是在浏览器里现拉的：漏发、缓存失效都会 404。
+  // 没有 fallback 的话段位块左边就是一个洞 —— 而且不会有任何报错告诉你
   it('表情图带着占位 SVG 作为 fallback', () => {
     const emote = collectImageRequests(buildSoloTicket(solo(), m)).find((r) =>
       r.src.startsWith('/emote/'),
@@ -256,18 +256,18 @@ describe('buildVersusTicket', () => {
   })
 
   it('胜负字与段位随结果变化', () => {
-    // 赢，有 1 次误札所以不是「无瑕」，剩余差 6-0=6 ≥5 所以是「压倒性胜利」
+    // 赢，有 1 次误札所以不是「完璧无瑕」，剩余差 6-0=6 ≥5 所以是「手拿把掐」
     const win = texts(buildVersusTicket(versus(), m))
     expect(win).toContain('勝')
-    expect(win).toContain('压倒性胜利')
+    expect(win).toContain('手拿把掐')
 
-    // 同样是赢，把差距收窄到 1 张就掉到「险胜」—— margin 确实参与了判定
+    // 同样是赢，把差距收窄到 1 张就掉到「拿下」—— margin 确实参与了判定
     const narrow = texts(buildVersusTicket(versus({ foe: { ...versus().foe, left: 1 } }), m))
-    expect(narrow).toContain('险胜')
+    expect(narrow).toContain('拿下')
 
     const draw = texts(buildVersusTicket(versus({ outcome: 'draw' }), m))
     expect(draw).toContain('引分')
-    expect(draw).toContain('平分秋色')
+    expect(draw).toContain('难舍难分')
 
     const loss = texts(
       buildVersusTicket(
@@ -280,7 +280,7 @@ describe('buildVersusTicket', () => {
       ),
     )
     expect(loss).toContain('負')
-    expect(loss).toContain('惜败')
+    expect(loss).toContain('可惜兄弟可惜')
   })
 
   // 校正提示是可选区块。印章写死位置的话，没有它的那一局下半张会空出

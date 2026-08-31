@@ -4,6 +4,10 @@ songs/
 # 构建产物（切片 ~200MB + 封面 ~15MB，不入库）
 assets/
 
+# 段位表情的 PNG 源图。入库的是转好的 apps/web/public/emote/*.webp（体积五分之一），
+# 源图留在本地备查，转换命令写在那个目录的 README 里
+emoji/
+
 # Node
 node_modules/
 dist/

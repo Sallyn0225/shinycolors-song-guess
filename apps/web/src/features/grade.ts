@@ -18,7 +18,7 @@ export interface Tier {
   /**
    * 战报印章中央的二字判定。放在段位表里而不是画图时另算，
    * 是因为印章和称号说的是同一件事——分成两处写，改了称号忘了印章，
-   * 图上就会出现「全知全能P」配「精進」这种自相矛盾的组合。
+   * 图上就会出现「高山祐介」配「精進」这种自相矛盾的组合。
    */
   stamp: string
 }
@@ -29,21 +29,22 @@ export interface Tier {
  * 得分里已经含了速度奖励与重听扣分，所以同样答对 8/10，秒答的和磨到最后一秒
  * 才点的不会拿到同一个称号——正确率看不出这个差别。
  *
- * 「P」是プロデューサー：这条梯子描述的是「你有多熟这个曲库」的纵向成长。
+ * 这条梯子描述的是「你有多熟这个曲库」的纵向成长，用的是闪友之间的黑话，
+ * 不是正经段位名——两头（最高与最低）故意用梗，中间三档保持能读懂的直述。
  */
 export const SOLO_TIERS: readonly (Tier & { min: number })[] = [
-  { min: 0.95, id: 'omniscient', title: '全知全能P', blurb: '前奏的呼吸你都记得', emote: 'starry', stamp: '完璧' },
-  { min: 0.85, id: 'ace', title: '首席担当', blurb: '几乎没有你听不出的曲子', emote: 'grin', stamp: '優秀' },
-  { min: 0.7, id: 'veteran', title: '资深P', blurb: '熟得很，只在冷门曲上栽跟头', emote: 'smile', stamp: '合格' },
-  { min: 0.5, id: 'apprentice', title: '见习P', blurb: '主打曲稳，深挖曲还差点火候', emote: 'neutral', stamp: '及第' },
-  { min: 0.25, id: 'rookie', title: '新人P', blurb: '听过，但名字对不上号', emote: 'sweat', stamp: '精進' },
-  { min: 0, id: 'newcomer', title: '初见P', blurb: '从今天开始认识她们', emote: 'blank', stamp: '初参' },
+  { min: 0.95, id: 'omniscient', title: '高山祐介', blurb: '没关就是开了？', emote: 'starry', stamp: '完璧' },
+  { min: 0.85, id: 'ace', title: '七草はづき', blurb: '瑕不掩瑜，鉴定为铁血闪友', emote: 'grin', stamp: '優秀' },
+  { min: 0.7, id: 'veteran', title: '合格闪友', blurb: '大部分经典曲难不倒你，少部分冷门曲也合情合理', emote: 'smile', stamp: '合格' },
+  { min: 0.5, id: 'apprentice', title: '一般通过闪友', blurb: '熟悉程度不上不下，至少算是及格了', emote: 'neutral', stamp: '及第' },
+  { min: 0.25, id: 'rookie', title: '小资历', blurb: '听过闪，但只是听过', emote: 'sweat', stamp: '精進' },
+  { min: 0, id: 'newcomer', title: '闪奸？', blurb: '说实在的，你是拉拉派来的吗', emote: 'blank', stamp: '初参' },
 ]
 
 export function soloTier(score: number, maxScore: number): Tier {
   // maxScore 为 0 的局（题目全被跳过等）不该除出 NaN 或 Infinity，按最低段处理
   const rate = maxScore > 0 ? score / maxScore : 0
-  // 从高到低取第一个够得着的段，边界值归上一段（0.95 分 → 全知全能P）
+  // 从高到低取第一个够得着的段，边界值归上一段（0.95 分 → 高山祐介）
   return SOLO_TIERS.find((t) => rate >= t.min) ?? SOLO_TIERS[SOLO_TIERS.length - 1]!
 }
 
@@ -58,65 +59,65 @@ export interface VersusInput {
 }
 
 /**
- * 联机段位。**不**套用单机那条 P 梯子——单机描述「你有多熟这个曲库」，
+ * 联机段位。**不**套用单机那条闪友梯子——单机描述「你有多熟这个曲库」，
  * 联机描述「这一局打成什么样」，两者混用会让称号失去含义
- * （拿到「资深P」却是因为对面掉线，读起来毫无信息）。
+ * （拿到「合格闪友」却是因为对面掉线，读起来毫无信息）。
  *
  * 顺序即优先级，自上而下第一个命中者胜出。
  */
 export const VERSUS_TIERS: readonly (Tier & { match: (v: VersusInput) => boolean })[] = [
   {
     id: 'perfect',
-    title: '完全制圧',
-    blurb: '零误札，对面全程没摸到节奏',
+    title: '秒杀',
+    blurb: '还没发力呢，怎么就赢了啊',
     emote: 'starry',
     stamp: '完勝',
     match: (v) => v.outcome === 'win' && v.otetsuki === 0 && v.margin >= 5,
   },
   {
     id: 'clean',
-    title: '无瑕担当',
-    blurb: '一次误札都没有，干净',
+    title: '完璧无瑕',
+    blurb: '干净利落的拍牌',
     emote: 'grin',
     stamp: '無傷',
     match: (v) => v.outcome === 'win' && v.otetsuki === 0,
   },
   {
     id: 'dominant',
-    title: '压倒性胜利',
-    blurb: '对面还没进入状态就结束了',
+    title: '手拿把掐',
+    blurb: '闪彩猜歌界的Goat',
     emote: 'grin',
     stamp: '圧勝',
     match: (v) => v.outcome === 'win' && v.margin >= 5,
   },
   {
     id: 'narrow',
-    title: '险胜',
-    blurb: '就差那半张札，赢了就是赢了',
+    title: '拿下',
+    blurb: '别管错的和对面牌数 你就说赢了没吧',
     emote: 'smile',
     stamp: '辛勝',
     match: (v) => v.outcome === 'win',
   },
   {
     id: 'drawn',
-    title: '平分秋色',
-    blurb: '再来一局才知道谁更强',
+    title: '难舍难分',
+    blurb: '你们不要再打啦',
     emote: 'neutral',
     stamp: '引分',
     match: (v) => v.outcome === 'draw',
   },
   {
     id: 'close',
-    title: '惜败',
-    blurb: '只差一点点，别急着走',
+    title: '可惜兄弟可惜',
+    blurb: 'Maybe not today',
     emote: 'sweat',
     stamp: '惜敗',
     match: (v) => v.outcome === 'loss' && v.margin <= 2,
   },
   {
     id: 'defeat',
-    title: '修行中',
-    blurb: '记牌的时间还不够长',
+    title: '流脓了',
+    blurb: '你的裤子里，是汗，还是尿啊',
     emote: 'blank',
     stamp: '精進',
     match: () => true,
@@ -132,14 +133,14 @@ export function versusTier(input: VersusInput): Tier {
 // ─────────────────────────────────────────────────────────
 
 /**
- * 正式资源路径。把文件放进 `apps/web/public/emote/` 就自动生效，不用动代码。
- * 拿不到时调用方回退到 {@link emotePlaceholderSvg}。
+ * 正式资源路径。文件在 `apps/web/public/emote/`，换图只要覆盖同名文件，不用动代码。
+ * 拿不到时（漏传、缓存失效）调用方回退到 {@link emotePlaceholderSvg}。
  */
 export function emoteAssetUrl(id: EmoteId): string {
   return `/emote/${id}.webp`
 }
 
-/** 各段位表情的眉眼嘴。占位素材，正式图到位后这段只是兜底 */
+/** 各段位表情的眉眼嘴。正式图已在 public/emote/，这段只在它加载失败时兜底 */
 const FACES: Record<EmoteId, { eyes: string; mouth: string; extra: string }> = {
   starry: {
     eyes: '<path d="M22 27l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z"/><path d="M42 27l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z"/>',
@@ -175,7 +176,7 @@ const FACES: Record<EmoteId, { eyes: string; mouth: string; extra: string }> = {
 
 /**
  * 占位表情，简笔画。做成 data URI 而不是文件，是为了它**永远不会 404**——
- * 正式图还没做出来的这段时间里，缺图不该让网页或战报出现破图。
+ * 正式图哪天没跟着发上去，缺图也不该让网页或战报出现破图。
  *
  * 返回值可直接喂给 `<img src>` 或 `new Image().src`。
  */

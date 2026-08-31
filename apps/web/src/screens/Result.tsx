@@ -99,7 +99,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
 
         {/*
           必须 flex-wrap：分数是 sc-figure（96u），窄屏下它一个人就吃掉整行，
-          段位块被 ml-auto 挤到几十像素宽，称号会逐字竖排成「资/深/P」。
+          段位块被 ml-auto 挤到几十像素宽，称号会逐字竖排成「合/格/闪/友」。
           窄屏让它整行独占，桌面才回到分数右侧。
         */}
         <div className="mt-6 flex flex-wrap items-end gap-5">

@@ -379,8 +379,13 @@ function pushHeader(ops: DrawOp[], date: Date): void {
 
 /** 段位块：表情 + 称号 + 评价。两种战报共用，保证图上和网页说同一句话 */
 function pushGrade(ops: DrawOp[], tier: Tier, m: Measure, top: number): number {
-  const size = 58
-  // 正式表情素材还没做。拿不到就退到内置简笔 SVG——缺图不该在段位块左边留一个洞
+  /*
+    76 而不是原来的 58：表情从简笔脸换成了带字的贴纸，58px 下角色和图上那两个字
+    一起糊成一团色块。上下留白到头了 —— 段位块夹在 y=158 与 y=254 两条分隔线之间，
+    76 高从 176 画到 252，再大就压线。
+  */
+  const size = 76
+  // 正式表情在 public/emote/。拿不到就退到内置简笔 SVG——缺图不该在段位块左边留一个洞
   ops.push({
     k: 'image',
     x: CX,
@@ -392,12 +397,13 @@ function pushGrade(ops: DrawOp[], tier: Tier, m: Measure, top: number): number {
     fit: 'contain',
   })
 
+  // 两行文字在放大后的方框里垂直居中，否则称号会贴着表情的头顶
   const tx = CX + size + 18
-  ops.push({ k: 'text', x: tx, y: top + 26, text: tier.title, font: jp(700, 25), color: INK })
+  ops.push({ k: 'text', x: tx, y: top + 35, text: tier.title, font: jp(700, 25), color: INK })
   ops.push({
     k: 'text',
     x: tx,
-    y: top + 50,
+    y: top + 59,
     text: truncate(tier.blurb, CR - tx, jp(400, 14), m),
     font: jp(400, 14),
     color: ACCENT,
