@@ -2,6 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify'
+import fastifyCompress from '@fastify/compress'
 import fastifyStatic from '@fastify/static'
 import fastifyWebsocket from '@fastify/websocket'
 import { z } from 'zod'
@@ -82,6 +83,45 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     } catch {
       done(new Error('JSON 格式无效'), undefined)
     }
+  })
+
+  /**
+   * 响应压缩。
+   *
+   * **必须注册在 `@fastify/static` 之前** —— `global: true` 装的是 onSend 钩子，
+   * 晚于静态插件注册就盖不住它发出的响应，而前端 JS 正是最大的那一块
+   * （未压缩 327KB，压完 100KB 量级）。
+   *
+   * 为什么在应用层而不是 Caddy 的 `encode` 或 CDN：这个项目有三种部署形态，
+   * 局域网开黑（`DEPLOY.md` 开头那条 `pnpm start`）**没有反代也没有 CDN**。
+   * 装在应用层，一次配置三种形态都生效；装在反代上，局域网那种白丢 240KB。
+   * 反过来说，Caddyfile 里就不要再配 `encode` 了 —— 不会出错（见到
+   * `Content-Encoding` 会跳过），但会让人误以为那才是生效的那层。
+   *
+   * **音频不会被压到**，这一点对本项目是硬要求而非优化：插件默认按 mime-db 的
+   * `compressible` 判定，`audio/ogg`、`audio/mp4`、`image/webp` 全部为否 ——
+   * 它们本来就是压缩格式，再压一遍只会变大。切片是热路径（每回合一次 148KB），
+   * 被压等于白烧 CPU，还会给 `sendClip()` 的响应加上一个不该有的 `content-encoding`。
+   * `app.test.ts` 里有一条反向断言守着这件事。
+   *
+   * `customTypes` 补的是唯一一个漏网的：默认正则只认 `text/javascript`，
+   * 不认 `application/javascript`。现代 mime-db 把 `.js` 判为前者，所以默认能压，
+   * 但那是 `@fastify/static` → `@fastify/send` → `mime` 的**隐式版本行为**。
+   * 显式写出来，结果就不随依赖升级漂移。它是追加而非替换：
+   * `shouldCompress` 先查自定义谓词，再回落 mime-db。
+   *
+   * brotli 质量保持默认的 4。**不要调到 11** —— 在 2C4G 上压 327KB 要几百毫秒，
+   * 换来的只有几个百分点。
+   *
+   * 旁路复核（`secrecy-and-anticheat.md` 要求每次改动都过一遍）：压缩引入的是
+   * 长度旁路，逐条看都不成立 —— 切片不压，无影响；`/api/ambience/tracks` 的响应体
+   * 是随机 token，熵满压不动，长度恒定；单机题目响应的长度随曲名变化，
+   * 但曲名本来就是明文下发的选项（`optionView` 的既定设计），不是新信息。
+   * BREACH 需要把攻击者可控的内容反射进含机密的同一响应体，本项目没有这种端点。
+   */
+  await app.register(fastifyCompress, {
+    global: true,
+    customTypes: /^application\/javascript(?:;|$)/u,
   })
 
   const catalog = await Catalog.load()

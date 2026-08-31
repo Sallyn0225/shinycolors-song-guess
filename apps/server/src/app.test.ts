@@ -398,3 +398,73 @@ describe('整局流程', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 })
+
+/**
+ * 响应压缩。
+ *
+ * 这一组里**反向那条才是重点** —— 正向只是确认插件装上了，反向守的是红线：
+ * 切片被压缩意味着热路径白烧 CPU，还会多出一个不该有的 `content-encoding`。
+ * 默认的 mime-db 判定已经把音频排除在外，但那是依赖的默认行为，
+ * 换个版本就可能变，所以要有断言钉住。
+ *
+ * `inject` 默认不带 `accept-encoding`，不显式加就永远测不到压缩。
+ */
+describe('响应压缩', () => {
+  const ACCEPT = { 'accept-encoding': 'br, gzip' }
+
+  it('JSON 响应会被压缩', async () => {
+    const s = await newSession()
+    for (let i = 0; i < s.total; i++) {
+      await question(s.sessionId, i)
+      await app.inject({
+        method: 'POST',
+        url: `/api/solo/${s.sessionId}/question/${i}/answer`,
+        payload: { choice: 0 },
+      })
+    }
+    const url = `/api/solo/${s.sessionId}/result`
+
+    // 先确认这个响应确实超过 1024 的压缩阈值，否则下面那条断言是空过的
+    const plain = await app.inject({ method: 'GET', url })
+    expect(plain.rawPayload.length).toBeGreaterThan(1024)
+    expect(plain.headers['content-encoding']).toBeUndefined()
+
+    const res = await app.inject({ method: 'GET', url, headers: ACCEPT })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-encoding']).toBeTruthy()
+    expect(res.rawPayload.length).toBeLessThan(plain.rawPayload.length)
+  })
+
+  it('切片不会被压缩，且仍是 no-store、无 Last-Modified', async () => {
+    const s = await newSession()
+    const q = await question(s.sessionId, 0)
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/clip/${s.sessionId}/${q.clipToken}`,
+      headers: ACCEPT,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-encoding']).toBeUndefined()
+    // 硬 CBR 的字节数必须原样透出——压缩会破坏「文件大小不携带曲目信息」这条性质
+    expect(res.rawPayload.length).toBe(151504)
+    expect(res.headers['cache-control']).toBe('no-store')
+    expect(res.headers['last-modified']).toBeUndefined()
+  })
+
+  it('环境 BGM 的切片同样不被压缩', async () => {
+    const tracks = (
+      await app.inject({ method: 'GET', url: '/api/ambience/tracks?n=1' })
+    ).json() as { tracks: Array<{ clips: string[] }> }
+    const token = tracks.tracks[0]?.clips[0]
+    expect(token).toBeTruthy()
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/ambience/clip/${token}`,
+      headers: ACCEPT,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-encoding']).toBeUndefined()
+    expect(res.headers['cache-control']).toBe('no-store')
+  })
+})
