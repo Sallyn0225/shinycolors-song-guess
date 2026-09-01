@@ -88,7 +88,7 @@ web
 
 - `design-extract-output/screenshots/`：官网 full-page / hero / nav / card / button 实拍截图。
 - `design-extract-output/_raw/share.css`、`lib.css`：官网原始 CSS，设计语言文档全部结论的依据。
-- `assets/cover`、`assets/thumb`：234 首曲目的真实封面与缩略图（构建产物）。
+- `assets/thumb`：234 首曲目的真实封面缩略图（构建产物）。
 - 8 个组合的官方代表色 hex，来源 アイマスDB，已核验。
 - **没有**官网的背景位图（`bg_back_pc.png` 虹彩镭射膜、`bg_geo_pc.svg` 晶体碎片）。
   已确认用纯 CSS/SVG 程序化重建，**不要**声称拿到了官方素材。

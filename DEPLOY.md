@@ -17,7 +17,7 @@
 
 ```
 仓库代码（git clone，或只要 docker-compose.yml + Caddyfile + .env）
-assets/    228MB，本地构建好之后传上去
+assets/    216MB，本地构建好之后传上去
 ```
 
 **`songs/` 绝对不要传。** 1.7GB 的源音源，服务端根本不读它 ——
@@ -116,7 +116,6 @@ https 页面里发 `ws://` 会被浏览器直接拦掉，而且不报网络错�
 | `HOST` | `0.0.0.0` | 走反代时**建议改成 `127.0.0.1`**，别让端口直接暴露 |
 | `TRUST_PROXY` | 关 | 反代后面才开。**直接暴露时开了它，任何人都能伪造 `X-Forwarded-For`** |
 | `WEB_ROOT` | `apps/web/dist` | 前端产物目录 |
-| `PUBLIC_ASSET_BASE` | 空 | 封面的 CDN 前缀。**只作用于封面；缩略图不受影响，切片绝不适用，见下** |
 | `WS_HEARTBEAT_MS` | `25000` | 协议级心跳间隔 |
 
 ### 房间配额
@@ -263,21 +262,13 @@ karuta.example.com {
 
 ## CDN
 
-**封面可以走 CDN**：不可变、已经带长缓存头、也不含任何答案线索。
-它的 URL 由服务端下发（`coverUrl`），配了前缀就自动指过去：
+**线上（283guess.hmhnk.top）是整站挂 EdgeOne 的形态**：页面、图片、音频都随站走
+边缘缓存，没有独立的资源前缀，也没有需要配置的环境变量。
 
-```bash
-PUBLIC_ASSET_BASE=https://cdn.example.com pnpm --filter @scg/server start
-```
-
-把 `assets/cover` 同步上去即可——`coverUrl` 按 `<前缀>/cover/<id>.webp` 拼接，
-OSS 上要保持 `cover/` 这层目录。
-
-**缩略图（thumb）不走这个前缀，同步上去也不生效。** 它的路径是前端写死的
-相对路径 `/thumb/<id>.webp`（答题选项、结算、分享卡三处），`PUBLIC_ASSET_BASE`
-对它没有作用，始终由本进程伺服。留在 VPS 在当前体量下没有代价：全部 244 张
-共 2.4MB、单张 ~10KB，且带长缓存头，玩家重复访问不重复下载。要让它也走 CDN
-得把 URL 改成服务端下发——有实测压力之前不值得动这个结构。
+图片（`/thumb/<id>.webp`）不可变、带长缓存头、也不含任何答案线索，路径由前端按
+songId 写死（答题选项、揭晓槽、结算、分享卡四处同一句拼法），随站走 CDN 即可，
+无需额外动作。留在 VPS 由本进程伺服在当前体量下也没有代价：全部 244 张
+共 1.9MB、单张 ~8KB，且带长缓存头，玩家重复访问不重复下载。
 
 **切片绝对不能走 CDN。** 三个理由，任何一个都是硬伤：
 

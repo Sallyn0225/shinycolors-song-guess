@@ -335,9 +335,9 @@ overrides.json > artist 精确匹配 > artist 按 / 拆分 > artist 含 (CV. > �
 | 时长 | 159.2 ~ 617.8 秒（**跨度 3.9 倍，所以切片偏移必须按比例而非固定秒数**） |
 | 响度 | mono integrated −14.2 ~ −7.5 LUFS；true peak **全部 > 0 dBFS**（削顶母带） |
 | 归一化 | 目标 −16 LUFS，**全部是衰减，不需要 limiter** |
-| 切片 | 1404 个（234 × 6），15s / 64kbps 单声道 Opus，**每个都是 151504 字节** |
-| 产物体积 | 切片 202.9 MB + 封面 11.8 MB |
-| 构建耗时 | 分析 27.7s + 切片 31.9s + 封面 7.4s ≈ 1~2 分钟（12 路并发） |
+| 切片 | 1464 个（244 × 6），15s / 64kbps 单声道 Opus，**每个都是 151504 字节** |
+| 产物体积 | 切片 212 MB + 缩略图 1.9 MB |
+| 构建耗时 | 分析 27.7s + 切片 31.9s + 封面 4.2s ≈ 1~2 分钟（12 路并发） |
 
 抽检结果（171 个切片，覆盖 129 首）：**一听就认出 80%、想一下能认 19%、完全认不出 2%**。6 秒档下 0% 认不出——计划里排第一的风险「无人声伴奏可能根本认不出」已排除。
 
@@ -352,4 +352,4 @@ overrides.json > artist 精确匹配 > artist 按 / 拆分 > artist 含 (CV. > �
 
 切片策略在 `tools/prepare-audio/src/config.ts`（段数、时长、分数偏移、目标响度、码率、AAC 码率与补齐目标）。改完要 `pnpm assets slice --force`。
 
-服务端的部署侧旋钮全在 `apps/server/src/config.ts`，由环境变量驱动（`PORT` / `HOST` / `TRUST_PROXY` / `WEB_ROOT` / `PUBLIC_ASSET_BASE` / `WS_HEARTBEAT_MS`），逐条说明在 `DEPLOY.md`。
+服务端的部署侧旋钮全在 `apps/server/src/config.ts`，由环境变量驱动（`PORT` / `HOST` / `TRUST_PROXY` / `WEB_ROOT` / `WS_HEARTBEAT_MS`），逐条说明在 `DEPLOY.md`。
