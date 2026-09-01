@@ -8,6 +8,7 @@ import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
 import { IconButton, ToolRail } from '../ui/IconButton'
 import { LIBRARY } from '../features/library'
+import { Footer } from '../components/Footer'
 import { InfoModal } from '../components/InfoModal'
 import { PrismRail } from '../ui/PrismRail'
 import { saveAudioPrefs } from '../prefs'
@@ -296,6 +297,27 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
           秒延迟。松开音量滑块会试听一声，设定记在这台设备上。
         </p>
       </div>
+
+      {/*
+        页脚。这是上面那条「加独占一行的东西先量四档」的第一次应用，overflowY 实测：
+
+          1366x678  +16 → +52   这一档本来就要滚，多滚 36px
+          1440x810   0  →  0    仍装得下
+          1536x774   0  →  0    仍装得下
+          1920x990   0  →  0    仍装得下
+          375x667  +562 → +654  窄屏本来就滚；这里声明句折成两行，页脚 52px
+          390x844  +425 → +519  同上
+
+        只有最紧的一档变差，且它本来就在滚 —— 所以没有为这一行去压 py 或动标题组。
+        「必须一屏装下」是牌场那条规矩，不是这里的（见 quality-guidelines.md）。
+        桌面这一行是 text-xs 的单行两端对齐，已经是能给到的最矮形态。
+
+        另：量到的 minTap 从 44 掉到 18，是页脚那个 @SallynP 链接。**这是刻意的** ——
+        它内联在一句话里，正好落在 WCAG 2.5.8 的 inline 例外（尺寸由非目标文字的
+        行高决定）；给它套 .tap-line 会把页脚撑到 44px，把上面三档也一起顶出屏幕。
+        InfoModal 的致谢链接同款，只是弹窗关着时量不到。
+      */}
+      <Footer />
 
       {/* 展示信息弹窗。fixed 定位，挂在文档流哪里都不影响本页布局 */}
       {infoOpen && <InfoModal onClose={closeInfo} />}
