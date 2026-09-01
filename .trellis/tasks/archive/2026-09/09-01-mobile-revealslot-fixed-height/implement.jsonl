@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "--u 尺寸规则与 clip-path/动画陷阱，改 sc-* 尺寸前必读"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "揭晓槽属 Play 屏 UI，遵循样式与 a11y 基线"}
