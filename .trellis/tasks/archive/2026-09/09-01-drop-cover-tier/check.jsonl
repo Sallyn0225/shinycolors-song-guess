@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "复核两件事：切片不得走 CDN 的论证没有随 assetBase 一起被删；文档里的挂载清单已同步"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "复核删字段后 server→client 消息仍符合契约，且没有留下只为兼容而存在的空壳字段"}
+{"file": ".trellis/spec/prepare-audio/backend/asset-secrecy.md", "reason": "复核下架单曲的操作清单与实际产物一致——清单里留着一个不再存在的文件会让人以为漏删了"}
+{"file": ".trellis/spec/prepare-audio/backend/pipeline-guidelines.md", "reason": "复核 covers 阶段的幂等检查改成了 thumbPath，增量跑没有退化成全量"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "复核 56u / 64u 两个数字没被动，揭晓槽的高度预算不变"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "复核新增与改写的测试符合本仓库既定写法与验证命令"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复核 5 处 /thumb/ 模板字符串保持一致写法，没有半途抽出一个只有部分调用点用的助手"}

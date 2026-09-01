@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "第 18 行明说「只挂载 cover 与 thumb」，删 /cover 路由必须同步改；切片不得走 CDN 的红线也在这里，删 assetBase 前要确认它存续"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "要删 RevealView.coverUrl。这份文档写明「类型上的注释是承重的」以及改协议要连带改 room.test.ts"}
+{"file": ".trellis/spec/prepare-audio/backend/asset-secrecy.md", "reason": "第 114 行的下架单曲操作清单里有 cover/<songId>.webp，是会被照做的手册，必须同步"}
+{"file": ".trellis/spec/prepare-audio/backend/pipeline-guidelines.md", "reason": "covers 阶段的既定形状与幂等约定；第 41 行写着「source jpg → cover/thumb webp」"}
+{"file": ".trellis/spec/prepare-audio/backend/index.md", "reason": "src/covers.ts 的职责描述（第 18 行）需同步；也是本次改动的文件地图"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "第 346/350 行用 56u 的 cover 推导出 .sc-revealslot 的 64u 高度地板 —— 本次不许动尺寸的依据，措辞也要改"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "app.test.ts 用 app.inject() 的既定写法与验证命令，新增 /cover 404 断言要照它写"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本次改动横跨 shared 协议 / server / web / tools 四层，删一个字段要一路顺到底"}
