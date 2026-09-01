@@ -1,6 +1,6 @@
 # Quality Guidelines
 
-> 59 tests across three files. Because the package is pure and seeded, the tests can assert
+> 62 tests across three files. Because the package is pure and seeded, the tests can assert
 > exact outcomes rather than ranges — and they do.
 
 ---
@@ -8,7 +8,7 @@
 ## Verification
 
 ```bash
-pnpm --filter @scg/game-core test        # vitest run — 59 tests
+pnpm --filter @scg/game-core test        # vitest run — 62 tests
 pnpm --filter @scg/game-core typecheck   # tsc --noEmit
 pnpm -r test && pnpm -r typecheck        # before reporting done
 ```
@@ -75,7 +75,7 @@ function karafudaReading(state, roundNo = 1): Reading { ... }
 |---|---|
 | `karuta.test.ts` (592 lines) | dealing, slice rotation, reading selection, every verdict, 送り札 choice and fallback, end conditions |
 | `solo.test.ts` (227 lines) | target selection, distractor tiers, confusable-group exclusion, grading |
-| `scoring.test.ts` (66 lines) | the speed curve, replay penalty clamping, `maxScore` |
+| `scoring.test.ts` (95 lines) | the speed curve, the speed grace period and its boundaries, replay penalty clamping, `maxScore` |
 
 If a change touches slice selection, `karuta.test.ts` already asserts the rule that matters
 most: **a repeated song must play a different slice**. Six 空札 have to cover 15–25 rounds,

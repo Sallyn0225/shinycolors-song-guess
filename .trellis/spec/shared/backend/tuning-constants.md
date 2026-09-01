@@ -72,8 +72,21 @@ Same shape of reasoning elsewhere in the file:
   "just replay twice every question" from being the dominant strategy, and it is why
   `SCORING.replayPenalty` only needs to be 10.
 - `SCORING.speedCurve = 1.6` (applied as `left ** (1 / speedCurve)`) keeps most of the
-  speed bonus alive through the first ~40% of the window. Linear decay made a normal-speed
-  correct answer feel like a failure.
+  speed bonus alive through the first ~40% of the *decay window*. Linear decay made a
+  normal-speed correct answer feel like a failure.
+- `SCORING.speedGraceSeconds = 1.5` is why "decay window" is not the same as "time limit".
+  The bonus stays at maximum for the first 1.5s after playback starts; only `limitMs -
+  1.5s` is subject to decay. Without it the top solo tier was unreachable in practice:
+  0.95 score rate required answering within **1.62s** on hard, where `clipSeconds` is 6 —
+  you had to commit after hearing a quarter of the clip. With it the bar is 2.88s (hard)
+  and 3.69s (easy). 1.0s was tried and only moved hard to 2.46s; 2.0s reaches 3.30s but
+  visibly flattens the fast-vs-slow spread.
+
+  Two properties worth keeping. It is **absolute, not proportional** — human reaction time
+  does not shrink because the limit went from 15s to 10s, so this must never become a
+  fraction of `answerSeconds`. And it absorbs **startup latency**: `elapsedMs` is measured
+  from the server's `servedAt` stamp, but the client still needs a round trip plus decode
+  before sound comes out, and that loss has nothing to do with recognition skill.
 
 ---
 

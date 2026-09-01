@@ -19,7 +19,7 @@ src/testing.ts   makeSongs / TEST_CONFIG — fixtures, shipped in src on purpose
 src/index.ts     barrel
 ```
 
-59 tests in `karuta.test.ts`, `solo.test.ts`, `scoring.test.ts`. Because everything here is
+62 tests in `karuta.test.ts`, `solo.test.ts`, `scoring.test.ts`. Because everything here is
 deterministic and pure, an entire match can be replayed in a unit test — that is the
 property the package exists to preserve.
 
