@@ -342,6 +342,14 @@ A screen the player acts on under a clock has to be measurable, not eyeballed. T
 - **Center with `safe center`.** Plain `justify-content: center` splits overflow across *both*
   ends; the top of the page scrolls out of reach because scrollbars only travel downward.
   `.sc-vfit` uses `safe center`, which falls back to `flex-start` the moment content overflows.
+- **A state transition that widens one column re-wraps its row-mates.** The solo reveal swaps
+  the option bar's number glyph (~13px) for a 58u cover thumb; the title column loses ~45u and
+  one-line titles wrap to two, so every bar grew 74 → 77.4px and answering → revealed pulsed
+  the 375px page by 13px. A row's reserved height must cover the *worst state* of that row,
+  not the current one: the narrow `.sc-bar` floor is 78u (content max = 22u·1.22·2 + 2u +
+  14.5u·1.5 ≈ 77.4u), and the narrow `.sc-revealslot` floor is 64u (the 56u cover is the tallest
+  element once title and artist are single-lined by `truncate`). Pin every line-height inside
+  a height-budgeted container — an inherited ratio re-prices the budget from under you.
 
 `.trellis/tasks/archive/2026-08/08-31-page-width-and-result-layout/measure.mjs` is the harness
 (superseding the copy under `08-31-desktop-density-tuning`, which predates the splash screen —
@@ -363,9 +371,10 @@ Two habits follow:
 - **Sanity-check one number against a known value.** Start at 1366×678 is documented at
   `+15/+16` overflow. A run reporting `0` there is measuring something else, not a fix.
 
-**Fixtures make a fair comparison; do not read noise as a regression.** The narrow-viewport
-Play rows come out 74 or 77.41 depending on whether that draw's titles wrap, so `overflowY`
-moves ±30px between runs on 375×667 with no code change. Comparing a baseline against an after
+**Fixtures make a fair comparison; do not read noise as a regression.** Before the 78u bar
+floor, the narrow-viewport Play rows came out 74 or 77.41 depending on whether that draw's
+titles wrapped, so `overflowY` moved ±30px between runs on 375×667 with no code change (the
+floor now absorbs the wrap, but the rule stands). Comparing a baseline against an after
 run, confirm the widths you actually changed moved (`main` width) before attributing a
 height delta to the change — at 375 the column is 375px in both runs, so `--page-main` cannot
 be the cause of anything there.
