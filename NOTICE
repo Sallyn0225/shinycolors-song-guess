@@ -27,6 +27,7 @@ holder of "THE iDOLM@STER SHINY COLORS".
 | `apps/web/public/bg/loop.mp4` | 首页循环背景视频 | © BANDAI NAMCO Entertainment Inc. |
 | `apps/web/public/brand.webp`、`apps/web/public/mark/` | 标识与纹样 | © BANDAI NAMCO Entertainment Inc. |
 | `design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md` | 设计语言文档，自官方网站提取整理 | 派生自 © BANDAI NAMCO Entertainment Inc. |
+| `apps/web/src/ui/Icon.tsx` | GitHub 图标（Font Awesome Free 7.3.1） | CC BY 4.0，© Fonticons, Inc. |
 
 上述素材以非商业的粉丝创作目的使用。
 

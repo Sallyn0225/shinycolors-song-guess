@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
 
@@ -8,6 +8,7 @@ import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
 import { IconButton, ToolRail } from '../ui/IconButton'
 import { LIBRARY } from '../features/library'
+import { InfoModal } from '../components/InfoModal'
 import { PrismRail } from '../ui/PrismRail'
 import { saveAudioPrefs } from '../prefs'
 import { Stat } from '../ui/Stat'
@@ -88,6 +89,10 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
   // 这里只负责往回写。与音量滑杆同一条规矩
   const [bgmOn, setBgmOn] = useState(() => ambience.bgmEnabled)
   const [sfxOn, setSfxOn] = useState(() => sfx.sfxOn)
+  const [infoOpen, setInfoOpen] = useState(false)
+
+  // 给 InfoModal 的 Esc 监听传稳定引用 —— 不然 Start 每次渲染它都重挂一次 window 监听
+  const closeInfo = useCallback(() => setInfoOpen(false), [])
 
   const toggleBgm = () => {
     const next = !bgmOn
@@ -181,6 +186,20 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
             label={sfxOn ? '关闭音效' : '打开音效'}
             pressed={sfxOn}
             onClick={toggleSfx}
+          />
+          {/*
+            展示信息：三页弹窗（玩法 / 免责声明 / 致谢）。开合归本页，
+            页码是弹窗自己的事，随它一起卸载 —— 每次打开都从第一页开始。
+          */}
+          <IconButton icon="info" label="游戏信息" onClick={() => setInfoOpen(true)} />
+          {/*
+            GitHub 入口。走 href 让它渲染成 <a>：读屏播报「GitHub 仓库，链接」
+            而不是「按钮」，新标签打开由 IconButton 内部钉死。
+          */}
+          <IconButton
+            icon="github"
+            label="GitHub 仓库"
+            href="https://github.com/Sallyn0225/shinycolors-song-guess"
           />
         </ToolRail>
       </div>
@@ -277,6 +296,9 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
           秒延迟。松开音量滑块会试听一声，设定记在这台设备上。
         </p>
       </div>
+
+      {/* 展示信息弹窗。fixed 定位，挂在文档流哪里都不影响本页布局 */}
+      {infoOpen && <InfoModal onClose={closeInfo} />}
     </main>
   )
 }

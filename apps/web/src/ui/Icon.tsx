@@ -1,9 +1,12 @@
 /**
- * 图标。全部手绘 SVG，统一 24 网格、1.8 描边、方头方角 —— 与这套世界的零圆角一致。
- * 不用 unicode 字形（✓ ✕ ↻）充数：它们的字重、光学重心随字体变，跟设计系统对不齐。
+ * 图标体系：
+ * 1. 界面描边图标：自绘 SVG，统一 24 网格、1.8 描边、方头方角 —— 与这套世界的零圆角一致。
+ *    不用 unicode 字形（✓ ✕ ↻）充数：它们的字重、光学重心随字体变，跟设计系统对不齐。
+ * 2. 品牌图标：使用官方/权威矢量（512 网格填充式图形），保持其品牌辨识度与官方造型。
+ *    - github: 出处 Font Awesome Free 7.3.1 (brands/github)，许可证 CC BY 4.0，© Fonticons, Inc.
  */
 
-export type IconName =
+export type StrokeIconName =
   | 'check'
   | 'cross'
   | 'replay'
@@ -16,8 +19,13 @@ export type IconName =
   | 'mute'
   | 'music'
   | 'music-off'
+  | 'info'
 
-const PATHS: Record<IconName, string> = {
+export type BrandIconName = 'github'
+
+export type IconName = StrokeIconName | BrandIconName
+
+const STROKE_PATHS: Record<StrokeIconName, string> = {
   check: 'M4 12.5 9.5 18 20 6',
   cross: 'M6 6l12 12M18 6L6 18',
   // 重听：一圈开口箭头
@@ -40,6 +48,19 @@ const PATHS: Record<IconName, string> = {
   // 音符占满整格，叉会糊在符干上，贯穿斜杠才读得出来
   'music-off':
     'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0 M4 4l16 16',
+  // 信息：外圈整圆 + 点与竖杠的 i。圆画在图标**内部**是允许的 —— replay 的弧、
+  // music 的符头都是先例，「零圆角」管的是版面上的面。点沿用 warn 的写法：
+  // 极短竖线靠方头笔帽撑成方点
+  info: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18 M12 7.5v.4 M12 10.5v5.7',
+}
+
+/**
+ * 品牌图标路径（512 网格，填充式）
+ * 出处: Font Awesome Free 7.3.1 (CC BY 4.0, © Fonticons, Inc.)
+ */
+const BRAND_PATHS: Record<BrandIconName, string> = {
+  github:
+    'M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5l0 52C323 491.5 335.5 500 350.5 494 441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5l0-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21z',
 }
 
 interface Props {
@@ -50,6 +71,23 @@ interface Props {
 }
 
 export function Icon({ name, size = '1em', className }: Props) {
+  if (name === 'github') {
+    return (
+      <svg
+        aria-hidden
+        focusable="false"
+        viewBox="0 0 512 512"
+        width={size}
+        height={size}
+        fill="currentColor"
+        className={className}
+        style={{ flexShrink: 0 }}
+      >
+        <path d={BRAND_PATHS[name]} />
+      </svg>
+    )
+  }
+
   return (
     <svg
       aria-hidden
@@ -65,7 +103,7 @@ export function Icon({ name, size = '1em', className }: Props) {
       className={className}
       style={{ flexShrink: 0 }}
     >
-      <path d={PATHS[name]} />
+      <path d={STROKE_PATHS[name]} />
     </svg>
   )
 }

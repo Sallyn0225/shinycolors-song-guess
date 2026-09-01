@@ -131,19 +131,21 @@ Both `KarutaTile` and the quality guide carry this warning because it has bitten
 
 ---
 
-## Icons: `ui/Icon` only, and never an icon library
+## Icons: `ui/Icon` only, and never an icon library (except official brand marks)
 
-Every icon in this project is a hand-drawn SVG on a 24 grid, `strokeWidth: 1.8`,
+Every UI stroke icon in this project is a hand-drawn SVG on a 24 grid, `strokeWidth: 1.8`,
 `strokeLinecap="square"`, `strokeLinejoin="miter"`. The square caps are not incidental — they
 are the icon-scale expression of a world where `border-radius` appears zero times.
 
-**Do not add Lucide, Font Awesome, Heroicons, or any other icon package.** They all ship round
-caps and round joins (Lucide's default is `strokeLinecap="round"`), so a single imported icon
-puts two different pen strokes on one screen. That reads worse than being one icon short, and
-it cannot be fixed by overriding `strokeLinecap`: the paths themselves are drawn for round ends.
+**Do not add Lucide, Font Awesome, Heroicons, or any other icon package as a dependency.**
+They all ship round caps and round joins (Lucide's default is `strokeLinecap="round"`), so a
+single imported stroke icon puts two different pen strokes on one screen.
 
-Need a shape `Icon` does not have? Redraw it on the 24 grid and add it to `PATHS`. Using an
-icon library as a **shape reference** is fine and encouraged — copying its markup is not.
+- **UI stroke icons**: redraw on the 24 grid and add to `STROKE_PATHS`.
+- **Brand logos exception**: for well-known third-party brands (like GitHub), use the authentic
+  official vector geometry (e.g. Font Awesome Free 512-grid solid path in `BRAND_PATHS`,
+  `fill="currentColor"`) to preserve instant brand recognition, without installing icon packages,
+  and attribute the license in `NOTICE`.
 
 Two conventions the existing set already follows:
 
