@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "graceMs 要加进 SCORING，这份文档规定了调参常量该怎么定义与注释"}
+{"file": ".trellis/spec/game-core/backend/purity-and-determinism.md", "reason": "scoreAnswer 属于纯逻辑层，改动必须守住纯函数与确定性约束"}
+{"file": ".trellis/spec/game-core/backend/quality-guidelines.md", "reason": "game-core 的编码与测试规范，新增测试用例需遵循"}
+{"file": ".trellis/spec/shared/backend/index.md", "reason": "shared 包结构与导出约定，确认 SCORING 的改动位置"}

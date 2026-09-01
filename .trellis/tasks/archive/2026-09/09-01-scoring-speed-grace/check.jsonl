@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/game-core/backend/quality-guidelines.md", "reason": "核对 game-core 改动是否符合质量规范与测试覆盖要求"}
+{"file": ".trellis/spec/game-core/backend/purity-and-determinism.md", "reason": "核对 scoreAnswer 仍是纯函数、无副作用、结果确定"}
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "核对 SCORING.graceMs 的定义与意图注释是否达标"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "确认计分改动没有遗漏 server/web 侧的连带影响"}
