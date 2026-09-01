@@ -53,6 +53,24 @@ function Para({ children }: { children: ReactNode }) {
   return <p className="jp-wrap text-sm leading-relaxed text-ink-sub">{children}</p>
 }
 
+/**
+ * 术语条：加粗术语 + 破折号 + 解释，同一段里行内排。
+ *
+ * 不做成 dt/dd 两行：这四条要连着读，拆行会把「一段规则」读成「四个小节」，
+ * 而它们本来就是一句话能说完的东西。行内的 dt/dd 靠字重分层，与站内别处一致。
+ */
+function Term({ name, jp, children }: { name: string; jp?: boolean; children: ReactNode }) {
+  return (
+    <p className="jp-wrap text-sm leading-relaxed text-ink-sub">
+      <b className="font-bold text-ink" {...(jp ? { lang: 'ja' } : {})}>
+        {name}
+      </b>
+      {' —— '}
+      {children}
+    </p>
+  )
+}
+
 /** 第一页：两种玩法 */
 function PlayBody() {
   return (
@@ -75,14 +93,35 @@ function PlayBody() {
           联机 · 1v1 <span lang="ja">空札領地戦</span>
         </Subhead>
         <Para>
-          日式歌牌（<span lang="ja">かるた</span>）玩法的 1v1 抢牌对局：听歌抢下场上对应的手牌，
-          还有<span lang="ja">送り札</span>、<span lang="ja">お手つき</span>
-          ，以及只会被播放、场上没有对应牌的<span lang="ja">空札</span>。 先清空
-          <span lang="ja">自陣</span>者胜。
+          日式歌牌（<span lang="ja">かるた</span>）玩法的 1v1 抢牌对局：听歌抢下场上对应的手牌。
+          先清空<span lang="ja">自陣</span>者胜。
         </Para>
+        {/*
+          这里原来写的是「完整规则在联机页面 —— 关掉这个弹窗，从首页的
+          「1v1 空札領地戦」进入查看」。那是一句空承诺：大厅那段当时只讲了
+          空札 与 自陣，送り札 一个字都没有。跟着指示走过去的人会发现规则不在。
+
+          现在改成把四个术语就地讲清楚，承诺也就不必再许 —— 少一次跳转、少一处会失效的引用。
+          大厅那份保留并补齐了，两处口径要一起改。
+        */}
+        <Term name="空札" jp>
+          只会被播放、场上没有对应牌的曲子。谁点谁<span lang="ja">お手つき</span>，
+          所以「不点」本身是一种技术。
+        </Term>
+        <Term name="決まり字" jp>
+          牌上加粗的那个词头，是在场上这些牌里认出它所需的最短开头。
+          听到这几个字就能下手，不必等整句。
+        </Term>
+        <Term name="送り札" jp>
+          抢到<span lang="ja">敵陣</span>的牌时，要从自己这边挑一张送过去。
+          你少一张，对手一走一来张数不变；赚的是挑牌权。
+        </Term>
+        <Term name="お手つき" jp>
+          点错牌、点了<span lang="ja">空札</span>，或者抢在能听清之前就点。
+          罚则反过来：由对手挑一张送给你。
+        </Term>
         <Para>
-          完整规则在联机页面 —— 关掉这个弹窗，从首页的「1v1{' '}
-          <span lang="ja">空札領地戦</span>」进入查看。
+          抽牌张数、每回合时长这些数字，在<span lang="ja">ルーム</span>大厅页写着。
         </Para>
       </section>
     </div>

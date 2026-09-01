@@ -450,6 +450,23 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   const left = match.cardsLeft
   const mySlots = slotsRef.current?.view ?? []
   const foeSlots = enemySlotsRef.current?.view ?? []
+
+  /*
+    领地的拥挤度，用来给牌高换档（--tile-min，表在 index.css 的 .sc-board）。
+
+    起因：お手つき / 送り札 会把牌送过来，领地从 12 张涨上去。牌高写死
+    `max(44px, 62u)` 时，390x844 上一次お手つき之后（自 13 / 敵 11）实测
+    doc 936 > vp 844 —— 自陣名牌落在 884、刚发过来的第 13 张也被切掉。
+    那违反的是本文件顶上写着的 The Both-Territories Rule 和
+    「送り札只有 3 秒，看不见的牌等于不能选」，而且**先出界的是自己这半边**。
+
+    取两边的最大值而不是自己那一边：两阵是同一套牌高，一方涨了另一方也得跟着矮，
+    否则两边的牌一大一小，位置记忆会错位。
+    下限兜 ownCards，避免残局只剩两三张时牌反而变大 —— 阵形不许重排，
+    空位是留着的，格子数从来不会少于 12。
+  */
+  const crowd = Math.max(mySlots.length, foeSlots.length, KARUTA_DEFAULTS.ownCards)
+  const crowdTier = crowd > 16 ? '2' : crowd > 12 ? '1' : '0'
   const names: Record<PlayerId, string> = {
     A: match.players.A.nickname,
     B: match.players.B.nickname,
@@ -618,9 +635,36 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 >
                   {memorizeLeft}
                 </p>
-                <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-ink-sub">
-                  <Icon name="swap" size="calc(13 * var(--u))" />
-                  记忆阶段 —— 点两张自陣的牌可以交换位置
+                {/*
+                  这两行是全游戏唯一教 決まり字 的地方，也是记忆阶段唯一的正事。
+
+                  原来只有一句「点两张自陣的牌可以交换位置」—— 给了操作没给理由，
+                  新手拿着一条没有用途的指令，按下「我记好了」就永久放弃了「位置即记忆」。
+                  而牌上那个加粗词头（KarutaTile 的 head/tail）从头到尾没被命名过：
+                  没学过歌牌的人看到的是「**Fa**ding Stars」，会当成渲染 bug。
+                  決まり字 是唯一能把 24 张同时可选的牌压成可扫描集合的装置，
+                  不教它的人是在玩一个严格更难的游戏，而且不知道为什么难。
+
+                  放在记忆阶段而不是规则页：这里正是玩家盯着牌面的那 30 秒。
+                */}
+                {/*
+                  这个 <p> 是 **flex 容器**（为了让 swap 图标与文字同一基线）。
+                  直接往里写 <span lang="ja">自陣</span> 会让它成为一个独立的 flex item，
+                  被挤成「自 / 陣」两行的窄列，整句排版当场散架。
+                  所以句子整体包一层 span，让它是**一个** flex item，图标另 shrink-0。
+                */}
+                <p className="mt-1 flex items-start justify-center gap-1.5 text-xs text-ink-sub">
+                  <span className="mt-0.5 shrink-0">
+                    <Icon name="swap" size="calc(13 * var(--u))" />
+                  </span>
+                  <span className="jp-wrap">
+                    点两张<span lang="ja">自陣</span>的牌可交换位置 —— 阵形整局不重排，
+                    摆成你记得住的样子
+                  </span>
+                </p>
+                <p className="jp-wrap mt-1 text-xs text-ink-sub">
+                  <b className="font-bold text-ink">加粗</b>的词头是
+                  <span lang="ja">決まり字</span>：听到这几个字，就够在场上锁定这张牌
                 </p>
                 {selected !== null && (
                   <p className="text-xs text-accent-ink">已选中一张，再点一张交换</p>
@@ -828,7 +872,11 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
       </h1>
 
       {/* 遮罩打开时整块牌场 inert，所以它必须自成一层、且遮罩在它之外 */}
-      <div ref={boardRef} className="flex flex-1 flex-col justify-between">
+      <div
+        ref={boardRef}
+        className="sc-board flex flex-1 flex-col justify-between"
+        data-crowd={crowdTier}
+      >
       {/* ── 敵陣 ───────────────────────────────────────── */}
       <section
         className="shrink-0 px-3 pt-2 pb-3 transition-opacity duration-300 sm:px-4"
@@ -889,7 +937,18 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         aria-label="自陣"
       >
         <div className="mb-2">{grid(mySlots, false, onOwnCardClick)}</div>
-        {nameplate(me, true)}
+        {/*
+          与敵陣那块对称：牌多到要滚动时，自己还剩几张也必须一直看得见。
+          原来这里是裸的 nameplate —— 敵陣有 sticky top-0、自陣没有，
+          于是一次お手つき之后（自 13 / 敵 11）自陣名牌落到 884，
+          844 的视口里根本看不到自己剩几张，而那正是要不要送札的唯一依据。
+
+          方向是 bottom-0 不是 top-0：它是自陣的最后一个元素，
+          往上贴会盖住自己的牌。底衬与敵陣同款 92%，不然滚动时牌会从字底下透出来。
+        */}
+        <div className="sticky bottom-0 z-10" style={{ background: 'rgb(240 239 246 / .92)' }}>
+          {nameplate(me, true)}
+        </div>
       </section>
       </div>
 

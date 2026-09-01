@@ -398,6 +398,12 @@ export function Lobby({ onBack }: Props) {
       >
         <span lang="ja">アソビカタ</span> / HOW TO PLAY
       </h2>
+      {/*
+        这一段是 InfoModal 指过来的那份「完整规则」，所以它得真的完整。
+        原来只讲了 空札 与 自陣：送り札 一次都没出现、お手つき 只被点名没说后果、
+        決まり字 更是全站没有任何地方解释过 —— 而那三样正是这套玩法与别处不同的地方。
+        照着 app 自己的指示走过来的人，不该在这里发现规则不在。
+      */}
       <p className="jp-wrap mt-4 text-sm leading-relaxed text-ink-sub">
         从 {LIBRARY.songs} 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards}{' '}
         首摊在场上（每人<span lang="ja">自陣</span>{' '}
@@ -405,9 +411,48 @@ export function Lobby({ onBack }: Props) {
         <b lang="ja" className="font-bold text-ink">
           空札
         </b>
-        —— 只会被播放、场上没有对应的牌，谁点谁<span lang="ja">お手つき</span>。先清空
-        <span lang="ja">自陣</span>者胜。
+        {/* 这个 {' '} 不能省：JSX 会把元素后换行缩进的前导空白吃掉，
+            渲染出来是「空札—— 只会」，破折号贴着术语 */}
+        {' '}
+        —— 只会被播放、场上没有对应的牌。先清空<span lang="ja">自陣</span>者胜。
       </p>
+      <dl className="jp-wrap mt-4 flex flex-col gap-2 text-sm leading-relaxed text-ink-sub">
+        <div>
+          <dt className="inline font-bold text-ink" lang="ja">
+            決まり字
+          </dt>
+          {/* 作用域是「当前牌场」不是整个曲库，见 features/kimariji.ts。
+              写成「这首歌的开头」就是错的：同样的曲名换一副牌场，长度会变 */}
+          <dd className="inline">
+            {' '}
+            —— 牌上加粗的那个词头，是在<b className="font-semibold">场上这些牌里</b>
+            认出它所需的最短开头。听到这几个字就能下手，不必等整句。
+          </dd>
+        </div>
+        <div>
+          <dt className="inline font-bold text-ink" lang="ja">
+            送り札
+          </dt>
+          {/* 账面照 packages/game-core/src/karuta.ts 的注释写：
+              敵陣 -1（被取走）+1（收到送札）= 0，自陣 -1。
+              「取敵陣值两枚」说的是节奏和挑牌权，不是牌数 —— 别在这里许一个假的收益 */}
+          <dd className="inline">
+            {' '}
+            —— 抢到<span lang="ja">敵陣</span>的牌时，要从自己这边挑一张送过去。
+            你少一张，对手一走一来张数不变；赚的是挑牌权：把最难记的那张丢给他。
+          </dd>
+        </div>
+        <div>
+          <dt className="inline font-bold text-ink" lang="ja">
+            お手つき
+          </dt>
+          <dd className="inline">
+            {' '}
+            —— 点错牌、点了<span lang="ja">空札</span>，或者抢在能听清之前就点。
+            罚则反过来：由对手挑一张送给你。
+          </dd>
+        </div>
+      </dl>
 
       <dl
         className="mt-6 grid grid-cols-3 gap-6 py-6"

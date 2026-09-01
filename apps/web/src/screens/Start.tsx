@@ -29,7 +29,12 @@ const BLURB: Record<Difficulty, string> = {
 
 const KANA: Record<Difficulty, string> = { easy: 'イージー', hard: 'ハード' }
 
-const SLANT = 'calc(46 * var(--u))'
+/*
+  斜切量按断点换档，值在 index.css 的 .sc-entrybar 上（窄屏 46u → 31u）。
+  不能写死：它同时是色帽的宽度位移，帽宽收窄后写死的 46u 会大于帽子本身，
+  平行四边形退化成一根斜针。见 .sc-entrybar 那段注释。
+*/
+const SLANT = 'var(--entry-slant)'
 const NOTCH = 'calc(40 * var(--u))'
 const BAR_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${NOTCH}), calc(100% - ${NOTCH}) 100%, 0 100%)`
 const CAP_CLIP = `polygon(${SLANT} 0, 100% 0, calc(100% - ${SLANT}) 100%, 0 100%)`
@@ -56,25 +61,26 @@ function EntryBar({
     onClick()
   }
   return (
-    <div className="anim-appear flex items-stretch" style={{ animationDelay: `${delay}ms` }}>
-      <span aria-hidden className="cut-shadow-sm shrink-0" style={{ width: 'calc(60 * var(--u))' }}>
+    <div className="sc-entrybar anim-appear flex items-stretch" style={{ animationDelay: `${delay}ms` }}>
+      {/* 帽宽 / 按钮左内边距 / 负外边距是一组联动值，都在 .sc-entrybar-* 里，
+          因为它们要按断点换档 —— 行内 style 没有断点 */}
+      <span aria-hidden className="sc-entrybar-cap cut-shadow-sm shrink-0">
         <span
           className="block h-full"
           style={{ background: cap, clipPath: CAP_CLIP, boxShadow: 'var(--ring-hairline)' }}
         />
       </span>
-      <span className="cut-shadow min-w-0 flex-1" style={{ marginLeft: 'calc(-36 * var(--u))' }}>
+      <span className="sc-entrybar-slot cut-shadow min-w-0 flex-1">
         <button
           type="button"
           onClick={click}
           disabled={disabled}
-          className="flex w-full flex-col items-start gap-3 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:py-2 sm:pr-8"
+          className="sc-entrybar-btn flex w-full flex-col items-start gap-2 py-4 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-45 sm:flex-row sm:items-center sm:gap-6 sm:py-2 sm:pr-8"
           style={{
             clipPath: BAR_CLIP,
             background: solid ? 'var(--grad-brand-ink)' : 'var(--color-surface-lit)',
             backdropFilter: solid ? undefined : 'blur(calc(8 * var(--u)))',
             minHeight: 'max(72px, calc(100 * var(--u)))',
-            paddingLeft: 'calc(60 * var(--u))',
             color: solid ? '#fff' : undefined,
           }}
         >
@@ -133,8 +139,17 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         `.sc-vfit` 的 safe center 本来就管着内容比视口高的情况。
 
         再往这一页加独占一行的东西，先把这四档量一遍，别指望还有富余。
+
+        **窄屏那一档单独有一笔账。** 桌面的 sm: 值一个没动，动的全是窄屏的基值：
+        py-14→py-7、说明 mt-6→mt-4、曲库数据 mt-7→mt-5、工具排 mt-10→mt-5、
+        光带 mt-6→mt-4、入口组 mt-12→mt-7、入口间距 18u→12u（改走 .sc-entrylist）。
+        390x844 实测这一串把入口组的起点从 443 提到 348。
+
+        目的不是「首页也要一屏装下」—— 那仍然是牌场的规矩，不是这里的。
+        目的是第三条入口「1v1 空札領地戦」原本顶边落在 836、只露 8px：
+        掏手机的人在首屏上看不到这个产品的一半。见 index.css 的 .sc-metaline。
       */
-      className="sc-vfit mx-auto flex min-h-safe w-full flex-col px-6 py-14 sm:px-10 sm:py-6"
+      className="sc-vfit mx-auto flex min-h-safe w-full flex-col px-6 py-7 sm:px-10 sm:py-6"
       style={{ maxWidth: 'var(--page-main)' }}
     >
       {/*
@@ -145,7 +160,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
       <header className="anim-appear text-center">
         <HeroTitle brand="Shiny Song Guess" title="闪彩猜歌" />
         <p
-          className="jp-wrap mx-auto mt-6 text-base leading-relaxed text-ink-sub sm:mt-4"
+          className="jp-wrap mx-auto mt-4 text-base leading-relaxed text-ink-sub sm:mt-4"
           style={{ maxWidth: '46ch' }}
         >
           听一段没有人声的伴奏，认出它是哪首歌。
@@ -153,7 +168,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         {/* 三个聚合量。「人声 0」是这一组里唯一的卖点 ——
             它把「难度来源从记歌词变成记编曲」压成了一个数字。
             都是总量，不含单曲时长或切片编号，建立不了对照表。 */}
-        <dl className="mt-7 flex justify-center gap-10 sm:mt-5 sm:gap-16">
+        <dl className="mt-5 flex justify-center gap-10 sm:mt-5 sm:gap-16">
           <Stat label="曲数" value={LIBRARY.songs} align="center" />
           <Stat label="片段" value={LIBRARY.clips} align="center" />
           <Stat label="人声" value={0} align="center" />
@@ -167,7 +182,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         位置在光带正上方而不是跟音量控件挤在页尾：那一组是「开局前的设定」，
         而 BGM 此刻**正在响**，关它是一个当下就有反馈的动作，得放在够得着的地方。
       */}
-      <div className="anim-appear mt-10 sm:mt-3" style={{ animationDelay: '60ms' }}>
+      <div className="anim-appear mt-5 sm:mt-3" style={{ animationDelay: '60ms' }}>
         <ToolRail>
           <IconButton
             icon={bgmOn ? 'music' : 'music-off'}
@@ -206,16 +221,12 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
       </div>
 
       {/* 紧贴工具条：那一排按钮与这条光是同一组，间距要小于它与上方标题的距离 */}
-      <div className="anim-appear mt-6 sm:mt-2" style={{ animationDelay: '80ms' }}>
+      <div className="anim-appear mt-4 sm:mt-2" style={{ animationDelay: '80ms' }}>
         <PrismRail mode="idle" spectrum={false} />
       </div>
 
       {/* 组二「怎么开始」。这一页的动作集只有这三条 */}
-      <section
-        className="mt-12 flex flex-col sm:mt-6"
-        style={{ gap: 'calc(18 * var(--u))' }}
-        aria-label="选择难度"
-      >
+      <section className="sc-entrylist mt-7 flex flex-col sm:mt-6" aria-label="选择难度">
         {DIFFICULTIES.map((d, i) => {
           const p = DIFFICULTY_PRESETS[d]
           return (
@@ -243,8 +254,10 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
                 </span>
                 <span className="jp-wrap mt-1 block text-sm text-ink-sub">{BLURB[d]}</span>
               </span>
-              {/* 这四个数是选难度的唯一依据，窄屏也不能藏 —— 改成紧凑一行 */}
-              <dl className="flex shrink-0 gap-6 sm:gap-7">
+              {/* 这四个数是选难度的唯一依据，窄屏也不能藏 —— 压成基线一行，见 .sc-metaline。
+                  gap-6 拿掉了：它在窄屏被 .sc-metaline 的 column-gap 接管，
+                  桌面本来就被 sm:gap-7 覆盖，留着只会让层序看不清 */}
+              <dl className="sc-metaline flex shrink-0 sm:gap-7">
                 <Stat label="題数" value={p.questionCount} align="center" size="sm" />
                 <Stat label="片段" value={`${p.clipSeconds}s`} align="center" size="sm" />
                 <Stat label="限时" value={`${p.answerSeconds}s`} align="center" size="sm" />
@@ -269,17 +282,36 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
             >
               1v1 <span lang="ja">空札領地戦</span>
             </span>
-            {/* 日文术语逐个标 lang —— 整句标是错的，这句的主体是中文 */}
+            {/*
+              日文术语逐个标 lang —— 整句标是错的，这句的主体是中文。
+
+              原来这里一句话里有四个日文术语（送り札 / お手つき / 空札 / 自陣），
+              其中三个没有任何解释，而这是没玩过歌牌的人接触这套玩法的第一句话。
+              入口条的活是「这是什么、值不值得点」，不是把规则讲完 ——
+              规则在 ⓘ 弹窗和大厅页，两处都补齐了。
+
+              空札 留下并就地释义：它是这个玩法与别处不同的地方（也在模式名里），
+              送り札 / お手つき 挪走 —— 它们是玩起来才用得上的机制。
+            */}
             <span className="jp-wrap mt-1 block text-sm opacity-95">
-              歌牌规则：抢牌、<span lang="ja">送り札</span>、<span lang="ja">お手つき</span>
-              ，外加只会被播放、场上没有对应牌的
+              听伴奏抢牌的 1v1 歌牌对局，还混着只会被播放、场上没有对应牌的
               <b lang="ja" className="font-bold text-accent-lit">
                 空札
               </b>
-              。先清空<span lang="ja">自陣</span>者胜。
+              {/* 元素后换行缩进的前导空白会被 JSX 吃掉，破折号会贴上术语 */}
+              {' '}
+              —— 谁点谁受罚。先清空<span lang="ja">自陣</span>者胜。
             </span>
           </span>
-          <Icon name="next" size="calc(24 * var(--u))" />
+          {/*
+            窄屏不出这枚箭头。桌面它是横条右端的收尾，与文字同一行；
+            窄屏 flex-col 下它会自己换到一行、孤零零贴在左缘，与它指向的文字断开，
+            而且白占 33px（图标 24u + gap）—— 那正是把 1v1 顶出折线的最后一截。
+            整条横条本来就是按钮，箭头在窄屏不承载任何信息。
+          */}
+          <span aria-hidden className="hidden sm:block">
+            <Icon name="next" size="calc(24 * var(--u))" />
+          </span>
         </EntryBar>
       </section>
 

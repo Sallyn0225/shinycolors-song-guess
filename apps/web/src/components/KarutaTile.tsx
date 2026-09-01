@@ -39,6 +39,14 @@ interface Props {
 
 const GOOD: TapVerdict[] = ['correct', 'tie', 'clamped']
 
+/*
+  牌的最小高度。值由牌场按领地拥挤度给（.sc-board[data-crowd] → --tile-min，
+  表在 index.css）：12 张时是 62u，涨到 13~16 张收一档，超过 16 张落到 44px 地板。
+  兜底写的就是 62u 那一档 —— 这张牌只在牌场里用，兜底只为脱离牌场时不塌成 0。
+  44px 是触摸热区的硬地板，任何一档都不能低于它。
+*/
+const TILE_MIN = 'var(--tile-min, max(44px, calc(62 * var(--u))))'
+
 const CUT = 'calc(14 * var(--u))'
 /*
  * 双切角：左上、右下各削一角。
@@ -69,7 +77,7 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
       <div
         aria-hidden
         style={{
-          minHeight: 'max(44px, calc(62 * var(--u)))',
+          minHeight: TILE_MIN,
           clipPath: TILE_CLIP,
           boxShadow: 'inset 0 0 0 1px rgb(162 162 192 / .22)',
         }}
@@ -98,7 +106,7 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
         */
         className="relative flex w-full flex-col justify-center px-2 py-1.5 text-left transition-transform duration-150 enabled:active:scale-[0.97]"
         style={{
-          minHeight: 'max(44px, calc(62 * var(--u)))',
+          minHeight: TILE_MIN,
           clipPath: TILE_CLIP,
           background: tone.bg,
           boxShadow: tone.dashed

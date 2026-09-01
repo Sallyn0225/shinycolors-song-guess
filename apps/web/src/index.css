@@ -645,6 +645,45 @@
   }
 
   /*
+    牌高随领地拥挤度换档。data-crowd 由 screens/Karuta.tsx 给：
+    0 = 12 张（开局）、1 = 13~16 张、2 = 17 张以上。
+
+    为什么必须换档：お手つき / 送り札 会把牌送过来，格子数从 12 一路涨到 22。
+    牌高写死 62u 时，390x844 上自 13 / 敵 11 实测 doc 936 > vp 844，
+    自陣名牌落在折线下 40px、刚收到的第 13 张也被切掉。
+    The Both-Territories Rule 说的是「牌场必须一屏装下」，它不是只在开局成立的规矩。
+
+    **两档的力度不一样，因为列数不一样。** 桌面 4 列、窄屏 3 列（见 Karuta.tsx 的
+    grid 注释：4 列时曲名会被截断，而曲名就是玩法本身），所以同样是 13 张，
+    桌面从 3 行涨到 4 行、窄屏从 4 行涨到 5 行 —— 窄屏每一档要收得更狠。
+
+    窄屏 crowd=1 取 50u 是解出来的：13/11 那一局面两阵共 9 行，
+    要补回 92px 就得每行矮 10.2px，64.5px → 54.3px，50u 在 390 上正是 52px。
+
+    44px 是触摸热区的硬地板，crowd=2 直接落到它上面，不能再低。
+  */
+  .sc-board {
+    --tile-min: max(44px, calc(62 * var(--u)));
+  }
+  /*
+    桌面 crowd=1 **不收**。4 列下 13 张和 16 张是同样的 4 行，
+    1440x900 实测 13 张时 doc 900 = vp 900，本来就装得下 ——
+    没有理由为一个不存在的溢出把牌缩小。
+    crowd=2 才收：17 张跨到第 5 行，那一行是实打实多出来的。
+  */
+  .sc-board[data-crowd='2'] {
+    --tile-min: max(44px, calc(54 * var(--u)));
+  }
+  @media (max-width: 767px) {
+    .sc-board[data-crowd='1'] {
+      --tile-min: max(44px, calc(50 * var(--u)));
+    }
+    .sc-board[data-crowd='2'] {
+      --tile-min: 44px;
+    }
+  }
+
+  /*
     中央信息面板：跨满场区三行，绝对定位居中浮在光带上。
 
     曾经它是网格第一行的常规流子项，贴着光带上沿。两个问题：
@@ -707,6 +746,119 @@
   @media (max-width: 767px) {
     .sc-vfit {
       justify-content: flex-start;
+    }
+  }
+
+  /*
+    首页三条入口之间的间距。窄屏收一档 —— 见下面 .sc-metaline 那笔纵向预算。
+    写成类而不是 Start.tsx 里的行内 style：行内样式没有断点。
+  */
+  .sc-entrylist {
+    gap: calc(18 * var(--u));
+  }
+  @media (max-width: 767px) {
+    .sc-entrylist {
+      gap: calc(12 * var(--u));
+    }
+  }
+
+  /*
+    入口横条左缘的斜切色帽，与它在按钮上让出的位。三个值是一组，改一个要一起改：
+    帽宽 = 按钮左内边距，负外边距让按钮压到帽子下面去接住那道斜边。
+
+    60u 这一档是按 900u 的桌面版心定的，占整条不到 7%。同一个值搬到手机上
+    是 62.4px 压在 307px 的条上 —— **两成宽度**，而右侧四项参数只剩 217.6px，
+    排不下一行（见下面 .sc-metaline）。窄屏收到 40u，可用宽回到 248.8px。
+
+    色帽本身没有取消：它仍是这条横条的识别物，只是不再按桌面的尺度占位。
+
+    **斜切量 --entry-slant 必须和帽宽同比例换档，这是这一组里最容易漏的一个。**
+    色帽是 polygon(SLANT 0, 100% 0, calc(100% - SLANT) 100%, 0 100%) —— 一个
+    以 SLANT 为水平位移的平行四边形。SLANT 一旦大于帽宽，第一个顶点就跑到右边缘
+    之外，多边形退化成一条斜线：帽子从平行四边形变成一根针。
+    46u 配 60u 是 0.767 的比例，窄屏 31u 配 40u 是 0.775，两档看起来是同一个形状。
+
+    同一个 SLANT 也画在按钮的左上斜切上 —— 帽子的斜边与按钮的斜边必须平行
+    （两者等高，角度只由 SLANT 决定），所以只能一起改，不能只动帽子那一处。
+  */
+  .sc-entrybar {
+    --entry-slant: calc(46 * var(--u));
+  }
+  .sc-entrybar-cap {
+    width: calc(60 * var(--u));
+  }
+  /* 承按钮的那层包装：负外边距把按钮压到帽子下面去接斜边 */
+  .sc-entrybar-slot {
+    margin-left: calc(-36 * var(--u));
+  }
+  /* 按钮自己：左内边距把内容让开帽子 */
+  .sc-entrybar-btn {
+    padding-left: calc(60 * var(--u));
+  }
+  @media (max-width: 767px) {
+    .sc-entrybar {
+      --entry-slant: calc(31 * var(--u));
+    }
+    .sc-entrybar-cap {
+      width: calc(40 * var(--u));
+    }
+    .sc-entrybar-slot {
+      margin-left: calc(-24 * var(--u));
+    }
+    .sc-entrybar-btn {
+      padding-left: calc(40 * var(--u));
+    }
+  }
+
+  /*
+    难度条右侧的四项参数（題数 / 片段 / 限时 / 重听）。
+    桌面是 4-up 的「小标在上、数字在下」，横向有空间、纵向没有压力，不动。
+
+    窄屏压成一行基线排列。理由是纵向预算，不是审美：
+    390x844 实测原状三条入口各 178 / 178 / 182px，第三条「1v1 空札領地戦」
+    顶边落在 836 —— 844 的视口里只露出 8px。而 PRODUCT.md 写着
+    「局域网开黑基本都是掏手机」，掏手机的人在首屏上看不到这个产品的一半。
+
+    竖排的 dl 是 40px（11px 小标 + mt-1 + 13.5px 数字），压成基线行是 17px，
+    每条省 23px；配合按钮内 gap-3→gap-2 与那一档的节奏收紧（见 screens/Start.tsx），
+    三条入口的底边从 1018 回到折线之内。
+
+    四个数一个都没藏 —— 它们是选难度的唯一依据（见 Start.tsx 的注释）。
+
+    dd 那条要显式归零：Stat 自带 mt-1。选择器 (0,1,2) 压过工具类 .mt-1 (0,1,0)，
+    与 components / utilities 的层序无关。
+
+    **不要用 flex 排这一行。** 试过了：390 宽下这一行的可用宽只有 217.6px
+    （按钮内容宽 305 − 左内边距 60u − pr-6 25 —— 那 60u 是给左缘色帽让的位，
+    在手机上占掉了整条的两成）。四项内容宽合计 188.4px，
+    再窄的列间距也要 3 个，10u 一档合计 219.6 —— 超出 2px，整行折成两排 49px，
+    比它要取代的 40px 还高。把间距压到能塞进一行，360 宽的机型又会破。
+
+    改走**行内文本流** + 「·」分隔：它按文字规则断行，填充效率比 flex 高，
+    窄到放不下时也是从分隔符处优雅折行，而不是留一排锯齿空隙。
+    分隔符写成 content: ' · ' 而不是 margin —— 前后那两个空格是这一行**唯一的
+    断行机会**：JSX 相邻元素之间没有空白文本节点，而 nowrap 又封掉了项内的
+    CJK 断行，不给空格的话它只会溢出，不会换行。
+  */
+  @media (max-width: 767px) {
+    .sc-metaline {
+      display: block;
+    }
+    .sc-metaline > div {
+      display: inline;
+    }
+    .sc-metaline > div + div::before {
+      content: ' · ';
+      color: var(--color-ink-faint);
+    }
+    .sc-metaline dt,
+    .sc-metaline dd {
+      display: inline;
+      white-space: nowrap;
+    }
+    .sc-metaline > div > dd {
+      margin-top: 0;
+      margin-left: calc(3 * var(--u));
     }
   }
 
@@ -863,6 +1015,21 @@
     }
     .sc-tile-title {
       -webkit-line-clamp: 3;
+    }
+    /*
+      领地涨起来之后曲名收行。3 行的曲名把那一行的牌撑到 63px，
+      而同一局面里其他行只有 52px —— 撑高的从来不是 min-height，是内容。
+      只压 --tile-min 没用：实测 13 张那一局面 9 行里有 2 行是被第三行文字顶起来的。
+
+      收掉的是**词尾**，这与本文件 KarutaTile 那条注释是同一个道理：
+      決まり字是词头，靠加粗读出来，截断只吃掉 ink-faint 的那一截。
+      牌越多越要靠決まり字扫牌，这时候留完整词尾的价值最低。
+    */
+    .sc-board[data-crowd='1'] .sc-tile-title {
+      -webkit-line-clamp: 2;
+    }
+    .sc-board[data-crowd='2'] .sc-tile-title {
+      -webkit-line-clamp: 1;
     }
   }
 }
