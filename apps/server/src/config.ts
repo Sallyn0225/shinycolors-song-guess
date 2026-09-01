@@ -68,15 +68,6 @@ export const SERVER_CONFIG = {
   trustProxy: bool('TRUST_PROXY'),
 
   /**
-   * 封面的外部前缀，可以指向 CDN。**只作用于服务端下发的 `coverUrl`** ——
-   * 缩略图是前端写死的相对路径 `/thumb/…`，不受它影响，永远走本进程。
-   *
-   * **切片绝不能走 CDN**：clip token 是一次性的、必须由本进程校验，
-   * 放到 CDN 上等于取消了这层校验，还会因为缓存让同一个切片被反复取到。
-   */
-  assetBase: (process.env['PUBLIC_ASSET_BASE'] ?? '').replace(/\/+$/, ''),
-
-  /**
    * WebSocket 心跳间隔（毫秒）。
    *
    * 客户端本来每 2 秒有一次业务 ping，但**那是应用层消息**，
@@ -143,8 +134,3 @@ export const SERVER_CONFIG = {
 
   webRoot: findWebRoot(),
 } as const
-
-/** 封面地址。配了 PUBLIC_ASSET_BASE 就指向 CDN，否则走本进程 */
-export function coverUrl(songId: string): string {
-  return `${SERVER_CONFIG.assetBase}/cover/${songId}.webp`
-}

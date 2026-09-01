@@ -8,7 +8,7 @@ import { buildMeta } from './buildMeta.js'
 import { analyzeSong, gainForTrack } from './analyze.js'
 import { planSlices } from './planSlices.js'
 import { aacPath, encodeSlice, encodeSliceAac, newSliceId, slicePath, specsFor } from './slice.js'
-import { coverPath, encodeCovers, thumbPath } from './covers.js'
+import { encodeThumb, thumbPath } from './covers.js'
 import { loadTables } from './resolveUnit.js'
 import { assertPublicManifestClean, writeManifests } from './manifest.js'
 import { serveDevConsole } from './devserver.js'
@@ -462,7 +462,7 @@ async function stageCovers(args: Args): Promise<void> {
   await mapConcurrent(songs, args.concurrency, async (song) => {
     if (!args.force) {
       try {
-        const st = await fs.stat(coverPath(song.id))
+        const st = await fs.stat(thumbPath(song.id))
         if (st.size > 0) {
           bar.tick('⟨已存在⟩')
           return
@@ -472,7 +472,7 @@ async function stageCovers(args: Args): Promise<void> {
       }
     }
     try {
-      await encodeCovers(song)
+      await encodeThumb(song)
       bar.tick(`⟨${song.title}⟩`)
     } catch (err) {
       failures.push(`${song.title}: ${String(err)}`)
@@ -481,7 +481,7 @@ async function stageCovers(args: Args): Promise<void> {
   })
   bar.finish()
 
-  const all = [...songs.map((s) => thumbPath(s.id)), ...songs.map((s) => coverPath(s.id))]
+  const all = [...songs.map((s) => thumbPath(s.id))]
   await normalizeMtimes(all)
   const sizes = await mapConcurrent(all, 32, async (f) => {
     try {

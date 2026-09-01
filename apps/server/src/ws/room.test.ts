@@ -247,7 +247,6 @@ describe('答案不泄露', () => {
     b.send({ t: 'tap', roundNo: arm.roundNo, cardId: match.layout.B[0] as string, reactionMs: 1100 })
     const res = await a.wait('roundResult', 15_000)
     expect(res.result.revealed.title).toBeTruthy()
-    expect(res.result.revealed.coverUrl).toMatch(/^\/cover\//)
     a.close()
     b.close()
   }, 20_000)

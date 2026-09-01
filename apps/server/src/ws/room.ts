@@ -34,7 +34,6 @@ import {
 } from '@scg/game-core'
 
 import type { Catalog } from '../catalog.js'
-import { coverUrl } from '../config.js'
 import { PlayerTiming } from './timing.js'
 
 const OPPONENT: Record<PlayerId, PlayerId> = { A: 'B', B: 'A' }
@@ -584,7 +583,6 @@ export class Room {
         songId: reading.songId,
         title: song?.title ?? '',
         artist: song?.artist ?? '',
-        coverUrl: coverUrl(reading.songId),
       },
       taps: provisional.taps.map((t) => this.tapView(t)),
       winner: provisional.winner,
@@ -662,7 +660,6 @@ export class Room {
         songId: reading.songId,
         title: song?.title ?? '',
         artist: song?.artist ?? '',
-        coverUrl: coverUrl(reading.songId),
       },
       taps: result.taps.map((t) => this.tapView(t)),
       winner: result.winner,

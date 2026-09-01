@@ -12,7 +12,6 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
-      '/cover': { target: API_TARGET, changeOrigin: true },
       '/thumb': { target: API_TARGET, changeOrigin: true },
       // WebSocket 代理必须显式开 ws，否则 upgrade 请求不会被转发
       '/ws': { target: API_TARGET, ws: true, changeOrigin: true },

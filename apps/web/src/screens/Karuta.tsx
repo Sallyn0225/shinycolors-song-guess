@@ -725,7 +725,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   </span>
                 ) : (
                   <img
-                    src={revealed.coverUrl}
+                    src={`/thumb/${revealed.songId}.webp`}
                     alt=""
                     className="cut-hex"
                     style={{

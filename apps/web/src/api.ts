@@ -38,7 +38,6 @@ export interface AnswerResult {
     artist: string
     unit: string | null
     unitColor: string | null
-    coverUrl: string
   }
 }
 

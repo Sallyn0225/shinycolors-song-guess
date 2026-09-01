@@ -9,7 +9,7 @@ function round(over: Partial<RoundResultView> = {}): RoundResultView {
   return {
     roundNo: 1,
     kind: 'field',
-    revealed: { songId: 's', title: '曲名', artist: '组合', coverUrl: '/cover/s.webp' },
+    revealed: { songId: 's', title: '曲名', artist: '组合' },
     taps: [],
     winner: null,
     transfers: [],

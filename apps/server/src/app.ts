@@ -11,7 +11,7 @@ import { DIFFICULTIES, DIFFICULTY_PRESETS, KARUTA_DEFAULTS, type Difficulty } fr
 
 import { AmbienceStore } from './ambience.js'
 import { ASSETS_ROOT, Catalog } from './catalog.js'
-import { SERVER_CONFIG, coverUrl, type RoomQuotas } from './config.js'
+import { SERVER_CONFIG, type RoomQuotas } from './config.js'
 import { SoloSessionStore } from './soloSessions.js'
 import { Hub, type Socket } from './ws/hub.js'
 import { IpQuota } from './ws/quota.js'
@@ -129,21 +129,12 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   const ambience = new AmbienceStore(catalog)
   const ambienceQuota = new IpQuota()
 
-  // 封面：只在答案揭晓后才会被请求，不做额外鉴权
-  await app.register(fastifyStatic, {
-    root: path.join(ASSETS_ROOT, 'cover'),
-    prefix: '/cover/',
-    // 内容不可变；**关掉 Last-Modified**，否则构建顺序（= 曲名字典序）会经 mtime 泄漏
-    lastModified: false,
-    etag: true,
-    cacheControl: true,
-    maxAge: '365d',
-    immutable: true,
-  })
+  // 缩略图：只在答案揭晓后才会被请求，不做额外鉴权
   await app.register(fastifyStatic, {
     root: path.join(ASSETS_ROOT, 'thumb'),
     prefix: '/thumb/',
     decorateReply: false,
+    // 内容不可变；**关掉 Last-Modified**，否则构建顺序（= 曲名字典序）会经 mtime 泄漏
     lastModified: false,
     etag: true,
     cacheControl: true,
@@ -249,8 +240,8 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
        * Content-Encoding 就直接放行；没有 `.br`（比如客户端不支持 br，
        * 或某类文件没被预压）时本插件回落到原文件，再由运行时压缩接手。
        *
-       * **只在这一处开。** `/cover` 与 `/thumb` 是 webp，已经是压缩格式，
-       * 给它们开只会让每个请求多一次注定失败的 `.br` 探路。
+       * **只在这一处开。** `/thumb` 是 webp，已经是压缩格式，
+       * 给它开只会让每个请求多一次注定失败的 `.br` 探路。
        */
       preCompressed: true,
 
@@ -383,7 +374,6 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
           artist: song.artist,
           unit: song.unit,
           unitColor: song.unitColor,
-          coverUrl: coverUrl(song.id),
         },
       }
     },

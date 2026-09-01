@@ -14,7 +14,6 @@ export const DATA_DIR = path.resolve(here, '..', 'data')
 export const CACHE_DIR = path.join(ASSETS_ROOT, '.cache')
 export const SLICES_DIR = path.join(ASSETS_ROOT, 'slices')
 export const THUMB_DIR = path.join(ASSETS_ROOT, 'thumb')
-export const COVER_DIR = path.join(ASSETS_ROOT, 'cover')
 
 /** 每个 stage 独立版本号：改了某个 stage 的算法只 bump 它，不会导致全量重跑 */
 export const STAGE_VERSIONS = {
@@ -68,7 +67,6 @@ export const ANALYZE = {
 
 export const COVERS = {
   thumbPx: 160,
-  coverPx: 480,
   quality: 80,
 } as const
 

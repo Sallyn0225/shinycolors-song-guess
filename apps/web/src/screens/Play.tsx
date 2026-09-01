@@ -305,7 +305,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           <>
             <span className="cut-shadow-sm anim-appear shrink-0">
               <img
-                src={result.song.coverUrl}
+                src={`/thumb/${result.song.id}.webp`}
                 alt=""
                 loading="eager"
                 className="cut-hex block"

@@ -185,15 +185,27 @@ describe('作答', () => {
     const body = res.json() as {
       correct: boolean
       answerIndex: number
-      song: { id: string; title: string; coverUrl: string }
+      song: { id: string; title: string }
     }
     expect(body.answerIndex).toBeGreaterThanOrEqual(0)
     expect(body.answerIndex).toBeLessThan(q.options.length)
     expect(body.correct).toBe(body.answerIndex === 0)
     expect(body.song.title).toBeTruthy()
-    expect(body.song.coverUrl).toBe(`/cover/${body.song.id}.webp`)
-    // 揭晓的答案必须确实在选项里
+    // coverUrl 字段已随 480px 档一起删除（揭晓图由前端按 songId 拼 /thumb/）。反向断言挡住它被加回来
+    expect(body.song).not.toHaveProperty('coverUrl')
+    // 这条断言同时是「揭晓槽能命中选项条已下载的 thumb」的唯一自动化依据：
+    // 揭晓槽与正确选项渲染的是同一个 /thumb/<songId>.webp，答案必在选项里，缓存命中才成立
     expect(q.options[body.answerIndex]?.id).toBe(body.song.id)
+  })
+
+  it('480px 封面档已下线：/cover 不再伺服任何图片', async () => {
+    const s = await newSession('easy')
+    const q = await question(s.sessionId, 0)
+    const answerId = q.options[0]?.id as string
+    const res = await app.inject({ method: 'GET', url: `/cover/${answerId}.webp` })
+    // 前端构建产物由本进程托管时，未匹配的 GET 会走 SPA 兜底回 index.html；
+    // 没构建时是普通 404。两种形态的共同点是：这里不再回任何 image/webp
+    expect(res.headers['content-type']).not.toMatch(/^image\//)
   })
 
   it('同一题不能答两次', async () => {

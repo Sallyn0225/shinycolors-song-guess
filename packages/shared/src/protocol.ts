@@ -159,7 +159,6 @@ export interface RevealView {
   songId: string
   title: string
   artist: string
-  coverUrl: string
 }
 
 export interface RoundResultView {
