@@ -220,7 +220,7 @@ export function Lobby({ onBack }: Props) {
       <header className="anim-appear text-center">
         <HeroTitle brand="Versus" title={<>1v1 <span lang="ja">空札領地戦</span></>} />
         <p className="jp-wrap mx-auto mt-5 text-sm leading-relaxed text-ink-sub">
-          两个人各自一台设备，听同一段伴奏抢同一张牌。建一间房等人，或者从下面的列表里挑一间进去。
+          双人实时连线，听同一段伴奏抢同一张歌牌。可以创建房间邀请好友，或直接加入公开房间。
         </p>
       </header>
 
@@ -311,7 +311,7 @@ export function Lobby({ onBack }: Props) {
         {/* 「加入」在填满 6 位之前是灰的，不说一句就只能靠试。
             格式要求要在提交之前给出，不是提交之后 */}
         <p id="code-hint" className="mt-2 text-2xs text-ink-faint">
-          朋友发给你的 6 位房间码，填满 6 位后「加入」才可点。
+          输入好友分享的 6 位房间码即可加入。
         </p>
       </div>
 
@@ -405,16 +405,16 @@ export function Lobby({ onBack }: Props) {
         照着 app 自己的指示走过来的人，不该在这里发现规则不在。
       */}
       <p className="jp-wrap mt-4 text-sm leading-relaxed text-ink-sub">
-        从 {LIBRARY.songs} 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards}{' '}
-        首摊在场上（每人<span lang="ja">自陣</span>{' '}
-        {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首是
+        从曲库中随机抽取 {KARUTA_DEFAULTS.poolSize} 首歌：其中 {KARUTA_DEFAULTS.fieldCards}{' '}
+        首摆在场上（双方各分到<span lang="ja">自陣</span>{' '}
+        {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首为
         <b lang="ja" className="font-bold text-ink">
           空札
         </b>
         {/* 这个 {' '} 不能省：JSX 会把元素后换行缩进的前导空白吃掉，
             渲染出来是「空札—— 只会」，破折号贴着术语 */}
         {' '}
-        —— 只会被播放、场上没有对应的牌。先清空<span lang="ja">自陣</span>者胜。
+        —— 仅播放伴奏、场上无对应牌的陷阱曲。先清空<span lang="ja">自陣</span>者获胜。
       </p>
       <dl className="jp-wrap mt-4 flex flex-col gap-2 text-sm leading-relaxed text-ink-sub">
         <div>
@@ -425,8 +425,7 @@ export function Lobby({ onBack }: Props) {
               写成「这首歌的开头」就是错的：同样的曲名换一副牌场，长度会变 */}
           <dd className="inline">
             {' '}
-            —— 牌上加粗的那个词头，是在<b className="font-semibold">场上这些牌里</b>
-            认出它所需的最短开头。听到这几个字就能下手，不必等整句。
+            —— 牌面加粗的文字是当前场上的“最短唯一开头”。听到对应字即可直接出手，不用等整句放完。
           </dd>
         </div>
         <div>
@@ -438,8 +437,7 @@ export function Lobby({ onBack }: Props) {
               「取敵陣值两枚」说的是节奏和挑牌权，不是牌数 —— 别在这里许一个假的收益 */}
           <dd className="inline">
             {' '}
-            —— 抢到<span lang="ja">敵陣</span>的牌时，要从自己这边挑一张送过去。
-            你少一张，对手一走一来张数不变；赚的是挑牌权：把最难记的那张丢给他。
+            —— 抢下<span lang="ja">敵陣</span>的牌后，可以挑选一张自己的牌送给对手。己方剩余牌数减少，离胜利更近一步。
           </dd>
         </div>
         <div>
@@ -448,8 +446,7 @@ export function Lobby({ onBack }: Props) {
           </dt>
           <dd className="inline">
             {' '}
-            —— 点错牌、点了<span lang="ja">空札</span>，或者抢在能听清之前就点。
-            罚则反过来：由对手挑一张送给你。
+            —— 点错牌、误抢<span lang="ja">空札</span>或抢跑均属犯规。犯规后将由对手选一张牌送给你。
           </dd>
         </div>
       </dl>

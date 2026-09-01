@@ -23,8 +23,8 @@ interface Props {
 }
 
 const BLURB: Record<Difficulty, string> = {
-  easy: '片段够长，干扰项来自不同组合。适合先摸清曲库。',
-  hard: '片段更短、时限更紧，四个选项全是同组合或曲名相近的曲子。',
+  easy: '伴奏片段较长，选项差别明显，适合熟悉曲库。',
+  hard: '伴奏更短、限时更紧，选项多为同组合或相近曲名，极具挑战。',
 }
 
 const KANA: Record<Difficulty, string> = { easy: 'イージー', hard: 'ハード' }
@@ -163,7 +163,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
           className="jp-wrap mx-auto mt-4 text-base leading-relaxed text-ink-sub sm:mt-4"
           style={{ maxWidth: '46ch' }}
         >
-          听一段没有人声的伴奏，认出它是哪首歌。
+          听纯伴奏片段，猜出对应的闪耀色彩歌曲。
         </p>
         {/* 三个聚合量。「人声 0」是这一组里唯一的卖点 ——
             它把「难度来源从记歌词变成记编曲」压成了一个数字。
@@ -294,13 +294,12 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
               送り札 / お手つき 挪走 —— 它们是玩起来才用得上的机制。
             */}
             <span className="jp-wrap mt-1 block text-sm opacity-95">
-              听伴奏抢牌的 1v1 歌牌对局，还混着只会被播放、场上没有对应牌的
+              听伴奏抢牌的 1v1 歌牌对决，场上还混有无对应牌的
               <b lang="ja" className="font-bold text-accent-lit">
                 空札
               </b>
-              {/* 元素后换行缩进的前导空白会被 JSX 吃掉，破折号会贴上术语 */}
               {' '}
-              —— 谁点谁受罚。先清空<span lang="ja">自陣</span>者胜。
+              陷阱 —— 误触受罚。先清空<span lang="ja">自陣</span>者获胜。
             </span>
           </span>
           {/*
@@ -333,8 +332,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
       <div className="anim-appear mt-14 sm:mt-6" style={{ animationDelay: '340ms' }}>
         <VolumeControl />
         <p className="jp-wrap mt-5 text-xs text-ink-faint sm:mt-3" style={{ maxWidth: '60ch' }}>
-          点击难度即开始 —— 浏览器需要一次点击才允许播放音频。建议戴耳机；蓝牙耳机会有约 0.2
-          秒延迟。松开音量滑块会试听一声，设定记在这台设备上。
+          点击任意模式即可开始。建议佩戴耳机游玩（蓝牙耳机可能存在微小延迟）。设置会自动保存在当前设备中。
         </p>
       </div>
 

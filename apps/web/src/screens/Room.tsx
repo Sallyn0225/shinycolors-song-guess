@@ -82,8 +82,8 @@ export function Room({ initialRoom, onLeave }: Props) {
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="jp-wrap min-w-0 flex-1 text-sm text-ink-sub">
           {isPublic
-            ? '这个房间已经在大厅列表里，任何人都能看到并加入；也可以直接把房间码发给朋友。'
-            : '私人房间不会出现在大厅列表里 —— 把房间码发给朋友，他才进得来。'}
+            ? '公开房间已展示在大厅列表中，任何人都可以加入；也可以直接复制房间码发送给好友。'
+            : '私人房间不会显示在大厅列表中，需要将房间码分享给好友加入。'}
         </p>
         <Button variant="ghost" size="sm" onClick={copyCode} className="shrink-0">
           {copied ? '已复制' : '复制房间码'}
@@ -114,8 +114,7 @@ export function Room({ initialRoom, onLeave }: Props) {
       </div>
 
       <p className="mt-6 text-xs leading-relaxed text-ink-faint">
-        双方 RTT 都公开显示 —— 透明比假装公平更重要。判定按「相对片段起播的反应时间」，
-        不是服务器收包时间，所以网络延迟不影响胜负。
+        双方延迟公开显示，抢牌判定以实际音频起播后的反应时间为准，不受网络延迟波动影响。
       </p>
 
       {closed ? (
@@ -132,7 +131,7 @@ export function Room({ initialRoom, onLeave }: Props) {
                 { '--ring': '1px', '--ring-color': 'var(--color-primary)' } as React.CSSProperties
               }
             />
-            房间等待太久，已经被自动关闭了。
+            房间等待超时，已自动解散。
           </p>
           <div className="mt-4">
             <Button variant="primary" size="lg" full onClick={onLeave}>

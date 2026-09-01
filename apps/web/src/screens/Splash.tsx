@@ -210,7 +210,7 @@ export function Splash({ resume, onOpened }: Props) {
     })()
   }, [resume, calmed, onOpened])
 
-  const hint = resume ? '点击继续对局' : '点击任意处开始进入游戏'
+  const hint = resume ? '点击继续对局' : '点击任意处进入游戏'
 
   return (
     <div
@@ -292,14 +292,14 @@ export function Splash({ resume, onOpened }: Props) {
           className="sc-title-lg anim-appear jp-wrap mt-7 font-bold text-ink sm:mt-6"
           style={{ animationDelay: `${ENTER.title}ms`, letterSpacing: 'var(--tracking-tight)' }}
         >
-          闪彩猜歌游戏
+          闪彩猜歌
         </p>
 
         <p
           className="anim-appear jp-wrap mx-auto mt-4 text-base text-ink-sub sm:mt-3"
           style={{ animationDelay: `${ENTER.desc}ms`, maxWidth: '46ch' }}
         >
-          听一段伴奏，选出它是闪彩哪首歌
+          听一段伴奏，猜出是哪首闪耀色彩歌曲
         </p>
 
         {/*

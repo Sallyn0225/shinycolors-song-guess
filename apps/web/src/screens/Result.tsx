@@ -148,7 +148,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         </dl>
 
         <p className="mt-3 text-xs text-ink-faint">
-          得分 = 答对 100 分 + 最高 100 分的速度奖励（越快越高），每次重听 −10 分。
+          计分规则：基础得分（答对 100 分）+ 速度加分（答题越快加分越多，最高 100 分），每次重听扣 10 分。
         </p>
       </header>
 

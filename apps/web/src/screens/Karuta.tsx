@@ -622,10 +622,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 <p className="latin text-lg font-bold text-accent-ink">已就绪</p>
                 <p className="mt-1 text-xs text-ink-sub">
                   {match.players[foe].ready
-                    ? '双方都好了，即将开始…'
+                    ? '双方准备完毕，即将开始…'
                     : `等待 ${match.players[foe].nickname} 记牌…`}
                 </p>
-                <p className="latin mt-1 text-xs text-ink-sub">{memorizeLeft}s 后无论如何都会开始</p>
+                <p className="latin mt-1 text-xs text-ink-sub">{memorizeLeft}s 后将自动开始</p>
               </>
             ) : (
               <>
@@ -658,13 +658,11 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                     <Icon name="swap" size="calc(13 * var(--u))" />
                   </span>
                   <span className="jp-wrap">
-                    点两张<span lang="ja">自陣</span>的牌可交换位置 —— 阵形整局不重排，
-                    摆成你记得住的样子
+                    点击两张<span lang="ja">自陣</span>的牌可互换位置 —— 牌阵整局固定，可按习惯排列
                   </span>
                 </p>
                 <p className="jp-wrap mt-1 text-xs text-ink-sub">
-                  <b className="font-bold text-ink">加粗</b>的词头是
-                  <span lang="ja">決まり字</span>：听到这几个字，就够在场上锁定这张牌
+                  <b className="font-bold text-ink">加粗</b>文字为决胜字：听到这几个字就足以在场上锁定该曲目
                 </p>
                 {selected !== null && (
                   <p className="text-xs text-accent-ink">已选中一张，再点一张交换</p>
@@ -770,9 +768,8 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                       <p className="text-xs text-ink-sub">
                         {/* 为什么轮到我挑：是「对手挨罚」还是「我取了敵陣」—— 性质不同 */}
                         {foeFault ? <>{names[foe]} <span lang="ja">お手つき</span>，</> : ''}
-                        从<span lang="ja">自陣</span>挑 {myOkuri.count} 张送给对手
+                        从<span lang="ja">自陣</span>挑选 {myOkuri.count} 张牌送给对手
                         {myOkuri.count > 1 && `（已选 ${okuriPicks.length}/${myOkuri.count}）`}
-                        {' —— '}把最难记的那张丢过去
                       </p>
                     </>
                   ) : myOkuri ? (
@@ -801,7 +798,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                     label="自动送出前剩余时间"
                     className="mr-1"
                   />
-                  后自动送出<span lang="ja">自陣</span>待得最久的那张
+                  后将自动送出最早的一张牌
                 </p>
               )}
 
@@ -1030,9 +1027,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
             点击继续对局
           </Button>
           <span className="text-xs leading-relaxed text-ink-sub">
-            浏览器要求一次点击才允许出声。
+            浏览器需要点击以激活音频播放。
             <br />
-            不点这一下，接下来的每一回合都会是静音的。
+            点击任意处即可恢复声音并继续对局。
           </span>
         </Overlay>
       )}
@@ -1129,8 +1126,8 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   className="mt-4 px-4 py-2.5 text-xs leading-relaxed text-ink-sub"
                   style={{ background: 'rgb(97 95 144 / .06)' }}
                 >
-                  反应时间被服务端校正：你 {ended.stats.clamped[me]} 次 · {names[foe]}{' '}
-                  {ended.stats.clamped[foe]} 次。客户端上报的时间若早得不合物理，会被换成服务端自己算的值。
+                  服务端时间校准：你 {ended.stats.clamped[me]} 次 · {names[foe]}{' '}
+                  {ended.stats.clamped[foe]} 次（消除网络时钟抖动偏差）。
                 </p>
               )}
 
