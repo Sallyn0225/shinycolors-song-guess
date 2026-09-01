@@ -153,6 +153,8 @@ docker compose up -d
 | [PRODUCT.md](PRODUCT.md) | 🎯 玩家是谁、玩法定位、运行环境的现实约束 |
 | [DESIGN.md](DESIGN.md) | 🎨 界面与交互设计 |
 | [DEPLOY.md](DEPLOY.md) | 🚀 部署：单进程模式、环境变量、反向代理、房间配额 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 👥 贡献指南：环境搭建、先读什么、提交规范 |
+| [SECURITY.md](SECURITY.md) | 🔒 漏洞上报渠道与安全边界 |
 
 ---
 
