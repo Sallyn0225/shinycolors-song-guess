@@ -87,7 +87,15 @@ export function SectionTitle({ kana, latin, align = 'left', size = 'md', classNa
   return (
     <div className={`${align === 'center' ? 'flex justify-center' : ''} ${className}`.trim()}>
       <TitleBox size={c}>
+        {/*
+          lang="ja"：<html lang="zh-CN"> 之下，读屏软件会拿普通话读音去念这些片假名
+          （リスニング / アンサー / リザルト / ルーム），出来的是噪声。
+          WCAG 3.1.2 Language of Parts 要的就是这一句 —— 而这套设计的品牌约束
+          正是「中文正文 + 日文术语」，日文的量不小，不标就等于把最有辨识度的
+          那一半对读屏用户毁掉。这个 prop 按定义就是片假名，所以标在组件里。
+        */}
         <p
+          lang="ja"
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
@@ -117,8 +125,14 @@ export function SectionTitle({ kana, latin, align = 'left', size = 'md', classNa
 interface HeroProps {
   /** 上排小号 Jost 大写拉丁：品牌标，不是标题层级 */
   brand: string
-  /** 下排大号中文：页面唯一的 h1 */
-  title: string
+  /**
+   * 下排大号中文：页面唯一的 h1。
+   *
+   * 收 ReactNode 而不是 string，是为了让含日文术语的标题能把那一段包成
+   * `<span lang="ja">`（大厅的「1v1 空札領地戦」）—— 整串标 lang 是错的，
+   * 前半截是数字与中文。传纯字符串照旧可用。
+   */
+  title: React.ReactNode
   className?: string
 }
 

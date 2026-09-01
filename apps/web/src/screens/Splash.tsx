@@ -155,8 +155,17 @@ export function Splash({ resume, onOpened }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return
+      const btn = hintRef.current
+      /*
+        进入 greeting / handoff 之后提示按钮换成了迎接你的偶像那一行，
+        遮罩里于是一个可聚焦元素都没有 —— 这时继续 preventDefault 等于把 Tab
+        吞掉，成了一个持续两三秒的键盘陷阱。放行即可：那两个阶段遮罩已经
+        不受理任何操作，而它背后的首页此时根本还没渲染（见 App.tsx），
+        Tab 出去也碰不到任何控件。
+      */
+      if (!btn) return
       e.preventDefault()
-      hintRef.current?.focus()
+      btn.focus()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)

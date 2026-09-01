@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
 import { soloTier } from '../features/grade'
-import { buildSoloTicket } from '../features/shareCard'
 import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
 import { GradeBadge } from '../ui/GradeBadge'
 import { Icon } from '../ui/Icon'
+import { Overlay, OverlayMark } from '../ui/Overlay'
 import { SectionTitle } from '../ui/SectionTitle'
-import { ShareDialog } from '../ui/ShareDialog'
 import { Stat } from '../ui/Stat'
+
+/*
+  战报导出整条链（对话框 + 显示列表构造 + canvas 画笔）按需加载 ——
+  一局玩完不点「导出战报」的人不该为它下载任何字节。见 ui/ShareTicket.tsx。
+*/
+const ShareTicket = lazy(() => import('../ui/ShareTicket'))
 
 interface Props {
   sessionId: string
@@ -48,7 +53,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
 
   if (error) {
     return (
-      <main className="flex min-h-dvh items-center justify-center px-6">
+      <main className="flex min-h-safe items-center justify-center px-6">
         <p role="alert" className="text-sm text-wrong">
           {error}
         </p>
@@ -57,7 +62,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   }
   if (!data) {
     return (
-      <main className="flex min-h-dvh items-center justify-center px-6">
+      <main className="flex min-h-safe items-center justify-center px-6">
         <p className="text-sm text-ink-faint">结算中…</p>
       </main>
     )
@@ -186,7 +191,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                         width: 'calc(8 * var(--u))',
                         height: 'calc(30 * var(--u))',
                         background: item.song.unitColor ?? 'var(--grad-unit-prism)',
-                        boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
+                        boxShadow: 'var(--ring-hairline)',
                         ['--cut-sm' as string]: 'calc(4 * var(--u))',
                       }}
                     />
@@ -203,11 +208,18 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                       }}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="jp-wrap block truncate text-sm font-bold text-ink">
+                      <span lang="ja" className="jp-wrap block truncate text-sm font-bold text-ink">
                         {item.song.title}
                       </span>
+                      {/* 「你选了：」是中文，后面的曲名是日文 —— 只包日文那一段 */}
                       <span className="jp-wrap block truncate text-xs text-ink-faint">
-                        {item.chosen && !ok ? `你选了：${item.chosen.title}` : item.song.artist}
+                        {item.chosen && !ok ? (
+                          <>
+                            你选了：<span lang="ja">{item.chosen.title}</span>
+                          </>
+                        ) : (
+                          <span lang="ja">{item.song.artist}</span>
+                        )}
                       </span>
                     </span>
                     <span className="hidden shrink-0 text-right sm:block">
@@ -278,13 +290,24 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
       </div>
 
       {shareAt && (
-        <ShareDialog
-          label="导出战报图片"
-          kind="单人"
-          defaultId=""
-          build={(playerId, m) => buildSoloTicket({ ...data, playerId, date: shareAt }, m)}
-          onClose={() => setShareAt(null)}
-        />
+        // 分块在途时也要有话说 —— 空白一拍会读作「点了没反应」。
+        // 用同一个 Overlay，真对话框到位时只是内容换掉，场景不跳
+        <Suspense
+          fallback={
+            <Overlay label="正在准备战报">
+              <OverlayMark />
+              <p className="text-sm text-ink-sub">正在准备战报…</p>
+            </Overlay>
+          }
+        >
+          <ShareTicket
+            kind="solo"
+            label="导出战报图片"
+            defaultId=""
+            input={{ ...data, date: shareAt }}
+            onClose={() => setShareAt(null)}
+          />
+        </Suspense>
       )}
     </main>
   )

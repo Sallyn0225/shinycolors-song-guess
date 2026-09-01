@@ -27,6 +27,15 @@ export function Overlay({ onClick, label, z = 50, children }: Props) {
       [...root.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
         .filter((el) => !el.hasAttribute('disabled'))
 
+    /*
+      记住是谁把这个模态打开的。关掉之后焦点必须回到它 ——
+      不还原的话焦点落回 <body>，键盘用户要从页面最顶端重新 Tab 一遍才能回到
+      刚才那颗按钮，而那颗按钮可能埋在工具条第三位（首页的「游戏信息」正是）。
+      这一层原本把三件更难的事都做对了（clip-path 吃 outline、mask 吃 outline、
+      aria-modal 不管 Tab 顺序），唯独漏了最标准的这一步。
+    */
+    const opener = document.activeElement as HTMLElement | null
+
     const first = focusables()[0] ?? root
     first.focus()
 
@@ -45,7 +54,15 @@ export function Overlay({ onClick, label, z = 50, children }: Props) {
       }
     }
     root.addEventListener('keydown', onKey)
-    return () => root.removeEventListener('keydown', onKey)
+    return () => {
+      root.removeEventListener('keydown', onKey)
+      /*
+        只在触发者还挂在文档里时还原。整屏被换掉时（牌场退出、开局切页）
+        它已经不在 DOM 上，focus() 是空操作，但显式判一下能说清意图：
+        「回到打开它的那颗按钮」，而不是「无论如何抢一次焦点」。
+      */
+      if (opener && document.contains(opener)) opener.focus()
+    }
   }, [])
 
   return (
@@ -55,11 +72,18 @@ export function Overlay({ onClick, label, z = 50, children }: Props) {
       aria-modal="true"
       aria-label={label}
       tabIndex={-1}
-      className="fixed inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center"
+      className="fixed inset-0 flex flex-col items-center justify-center gap-4 text-center"
       style={{
         zIndex: z,
-        background: 'rgb(247 246 251 / 0.9)',
-        backdropFilter: 'blur(calc(6 * var(--u)))',
+        background: 'var(--surface-veil)',
+        backdropFilter: 'var(--blur-veil)',
+        /*
+          内边距写在这里而不是留 px-6：fixed 层不受 body 的安全区内边距管，
+          横屏握着的 iPhone 上刘海在**侧边**，遮罩里的按钮会被圆角削掉一截。
+          取 max() 所以没有安全区的设备上就是原来的 px-6。
+        */
+        paddingInline: 'max(calc(6 * var(--spacing)), var(--sa-l), var(--sa-r))',
+        paddingBlock: 'max(var(--sa-t), var(--sa-b))',
       }}
       {...(onClick ? { onClick } : {})}
     >

@@ -39,6 +39,7 @@ export function Footer() {
             className="font-semibold text-primary underline decoration-primary-lt underline-offset-4 transition-colors hover:text-accent-ink hover:decoration-accent-ink"
           >
             @SallynP
+            <span className="sr-only">（在新标签页打开）</span>
           </a>
         </p>
       </div>

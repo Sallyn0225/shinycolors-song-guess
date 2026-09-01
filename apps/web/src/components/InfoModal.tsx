@@ -9,10 +9,10 @@ interface Props {
 }
 
 /** 三页的抬头。正文每页结构差太多，各自一个小节组件在文件下方 */
-const PAGES: { kicker: string; title: string }[] = [
-  { kicker: 'アソビカタ / HOW TO PLAY', title: '玩法' },
-  { kicker: '免責事項 / DISCLAIMER', title: '免责声明' },
-  { kicker: 'カンシャ / CREDITS', title: '致谢' },
+const PAGES: { kana: string; latin: string; title: string }[] = [
+  { kana: 'アソビカタ', latin: 'HOW TO PLAY', title: '玩法' },
+  { kana: '免責事項', latin: 'DISCLAIMER', title: '免责声明' },
+  { kana: 'カンシャ', latin: 'CREDITS', title: '致谢' },
 ]
 
 /** 致谢清单。链接是自绘 <a>，click 音得手动补 —— 与 ui/Button 内部那条规矩对齐 */
@@ -64,19 +64,26 @@ function PlayBody() {
           考的是对编曲与节奏的记忆，不是歌词。
         </Para>
         <Para>
-          两个难度（イージー / ハード）在片段长度、时限与干扰项上不同：
-          イージー 片段长、干扰项来自不同组合；ハード 片段更短、时限更紧，
-          选项全是同组合或曲名相近的曲子。
+          两个难度（<span lang="ja">イージー</span> / <span lang="ja">ハード</span>
+          ）在片段长度、时限与干扰项上不同：<span lang="ja">イージー</span>{' '}
+          片段长、干扰项来自不同组合；<span lang="ja">ハード</span>{' '}
+          片段更短、时限更紧，选项全是同组合或曲名相近的曲子。
         </Para>
       </section>
       <section className="flex flex-col" style={{ gap: 'calc(7 * var(--u))' }}>
-        <Subhead>联机 · 1v1 空札領地戦</Subhead>
+        <Subhead>
+          联机 · 1v1 <span lang="ja">空札領地戦</span>
+        </Subhead>
         <Para>
-          日式歌牌（かるた）玩法的 1v1 抢牌对局：听歌抢下场上对应的手牌，
-          还有送り札、お手つき，以及只会被播放、场上没有对应牌的空札。
-          先清空自陣者胜。
+          日式歌牌（<span lang="ja">かるた</span>）玩法的 1v1 抢牌对局：听歌抢下场上对应的手牌，
+          还有<span lang="ja">送り札</span>、<span lang="ja">お手つき</span>
+          ，以及只会被播放、场上没有对应牌的<span lang="ja">空札</span>。 先清空
+          <span lang="ja">自陣</span>者胜。
         </Para>
-        <Para>完整规则在联机页面 —— 关掉这个弹窗，从首页的「1v1 空札領地戦」进入查看。</Para>
+        <Para>
+          完整规则在联机页面 —— 关掉这个弹窗，从首页的「1v1{' '}
+          <span lang="ja">空札領地戦</span>」进入查看。
+        </Para>
       </section>
     </div>
   )
@@ -88,8 +95,8 @@ function DisclaimerBody() {
     <div className="flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
       <Para>
         本项目是非官方、非商业的粉丝作品，与株式会社万代南梦宫娱乐（BANDAI NAMCO
-        Entertainment）、「アイドルマスター シャイニーカラーズ」的开发运营方及
-        283Production 均无任何关联，亦未获其认可或授权。
+        Entertainment）、「<span lang="ja">アイドルマスター シャイニーカラーズ</span>
+        」的开发运营方及 283Production 均无任何关联，亦未获其认可或授权。
       </Para>
       <Para>
         游戏内使用的角色语音、图像等素材，版权归 BANDAI NAMCO Entertainment Inc.
@@ -121,6 +128,7 @@ function CreditsBody() {
               className="jp-wrap text-sm font-semibold text-primary underline decoration-primary-lt underline-offset-4 transition-colors hover:text-accent-ink hover:decoration-accent-ink"
             >
               {c.name}
+              <span className="sr-only">（在新标签页打开）</span>
             </a>
             <p className="jp-wrap mt-1 text-xs text-ink-faint">{c.purpose}</p>
           </li>
@@ -180,11 +188,12 @@ export function InfoModal({ onClose }: Props) {
         <div ref={cardRef} className="glass-lit cut-card px-7 pt-11 pb-7 text-left">
           <OverlayMark />
 
+          {/* 日文那一半单独标 lang，拉丁那一半不标（见 ui/SectionTitle 的说明） */}
           <p
             className="mt-4 text-2xs font-semibold text-primary"
             style={{ letterSpacing: 'var(--tracking-title)' }}
           >
-            {current?.kicker}
+            <span lang="ja">{current?.kana}</span> / {current?.latin}
           </p>
           <p className="mt-1.5 text-lg font-bold text-ink">{current?.title}</p>
 

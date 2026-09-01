@@ -138,21 +138,53 @@ export function PrismRail({
   const spectrumRef = useRef(spectrum)
   spectrumRef.current = spectrum
 
+  /*
+    这条光带既不计时也不画频谱 —— 首页 / 大厅 / 开场那条静态分隔线就是这种。
+    那种场合根本不该起 rAF：clipPath 恒为 inset(0 0%)，画布恒为空，
+    而循环里「写 track.style → 读 canvas.clientWidth」恰好是每帧一次**强制同步布局**。
+    实测首页上它以屏幕刷新率（144Hz 机器上 ~145fps）空转，
+    而那三屏同时还铺着全屏 blur 的视频和若干 backdrop-filter 玻璃面 —— 这份空转叠在最上面。
+
+    写成 props 推导出的布尔值而不是写死在调用点：它进 effect 依赖，
+    光带从静态翻成计时态（目前没有这种用法，但组件不该假设）时循环会正确起来。
+  */
+  const isStatic = !getRemaining && !spectrum
+
   useEffect(() => {
     const canvas = canvasRef.current
     const track = trackRef.current
     const root = rootRef.current
     if (!canvas || !track || !root) return
+
+    if (isStatic) {
+      // 静态态只需要这一次：整条点亮，之后没有任何东西会改它
+      track.style.clipPath = 'inset(0 0% 0 0%)'
+      return
+    }
+
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    /*
+      画布的 CSS 尺寸缓存在这里，只由 ResizeObserver 更新。
+
+      原来是每帧读 canvas.clientWidth/clientHeight，而读之前刚写过 track.style.clipPath
+      —— 写后即读会把样式与布局强制刷一遍，等于自愿在每一帧里插一次回流。
+      光带跑的又正好是判定最吃紧的那几秒（Play 的答题窗口、Karuta 的抢牌窗口），
+      这一次回流没有任何理由留在那里。
+    */
+    let cssW = 0
+    let cssH = 0
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const w = canvas.clientWidth
       const h = canvas.clientHeight
       if (w === 0 || h === 0) return
+      cssW = w
+      cssH = h
       canvas.width = Math.round(w * dpr)
       canvas.height = Math.round(h * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -180,8 +212,9 @@ export function PrismRail({
       }
 
       // ── 频谱 ────────────────────────────────────────────────
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
+      // 尺寸取缓存值，不在这里读 DOM（见上面 cssW/cssH 的说明）
+      const w = cssW
+      const h = cssH
       if (w === 0 || h === 0) return
       ctx.clearRect(0, 0, w, h)
       if (!spectrumRef.current) return
@@ -258,7 +291,8 @@ export function PrismRail({
       cancelAnimationFrame(rafRef.current)
       ro.disconnect()
     }
-  }, [])
+    // isStatic 是唯一的依赖：其余 props 都经 ref 每帧取最新，不该重启循环
+  }, [isStatic])
 
   /*
     频谱带的高度就是它的动态范围上限。原来 top 只有 46u（≈49px），
@@ -302,7 +336,7 @@ export function PrismRail({
           top: mode === 'mirror' ? 'calc(50% - 1.5px)' : 'auto',
           bottom: mode === 'mirror' ? 'auto' : 0,
           height: '3px',
-          background: 'rgb(162 162 192 / .34)',
+          background: 'var(--color-track)',
         }}
       />
       {/* 点亮的那一段。白底上 1px 的彩虹会被冲掉，所以给 3px 并垫一层紫影 */}

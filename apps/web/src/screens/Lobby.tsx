@@ -64,6 +64,7 @@ function VisibilityChoice({
   return (
     <fieldset className="mt-5">
       <legend
+        lang="ja"
         className="text-2xs font-semibold text-primary"
         style={{ letterSpacing: 'var(--tracking-title)' }}
       >
@@ -212,12 +213,12 @@ export function Lobby({ onBack }: Props) {
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10"
+      className="mx-auto flex min-h-safe w-full flex-col px-6 py-14 sm:px-10"
       style={{ maxWidth: 'var(--page-narrow)' }}
     >
       {/* 组一「这是什么」。与首页同构：标题居中，说明贴着它，光带作为与操作区的界线 */}
       <header className="anim-appear text-center">
-        <HeroTitle brand="Versus" title="1v1 空札領地戦" />
+        <HeroTitle brand="Versus" title={<>1v1 <span lang="ja">空札領地戦</span></>} />
         <p className="jp-wrap mx-auto mt-5 text-sm leading-relaxed text-ink-sub">
           两个人各自一台设备，听同一段伴奏抢同一张牌。建一间房等人，或者从下面的列表里挑一间进去。
         </p>
@@ -232,15 +233,32 @@ export function Lobby({ onBack }: Props) {
         中间隔着的昵称是两条都要的前置，所以三者归一组、组内收紧。
         不跟着 Hero 居中：输入框与按钮是整宽的，居中只会打断左对齐的扫读线。
       */}
+      {/*
+        标签是常驻的，不拿 placeholder 顶替 —— placeholder 是**例子**不是标签，
+        一开始打字它就没了，而这两个框恰好都要边填边核对（昵称对手会看到、
+        房间码是别人念给你的）。占位文字腾出来说真正没写在别处的事：
+        昵称留空会显示什么、房间码是几位从哪来。
+      */}
       <div className="mt-10 flex flex-col" style={{ gap: 'calc(12 * var(--u))' }}>
-        <Field
-          type="text"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value.slice(0, 16))}
-          onBlur={() => writeNickname(nickname.trim())}
-          placeholder="昵称"
-          aria-label="昵称"
-        />
+        <label className="block">
+          <span
+            className="text-2xs font-semibold text-primary"
+            style={{ letterSpacing: 'var(--tracking-title)' }}
+          >
+            昵称
+          </span>
+          <span className="mt-2 block">
+            <Field
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value.slice(0, 16))}
+              onBlur={() => writeNickname(nickname.trim())}
+              // 这是真实行为（nick() 里 `nickname.trim() || '玩家'`），
+              // 原来只写在代码里，玩家要留空提交一次才知道
+              placeholder="留空则显示「玩家」"
+            />
+          </span>
+        </label>
         <Button
           variant="primary"
           size="lg"
@@ -255,33 +273,53 @@ export function Lobby({ onBack }: Props) {
         </Button>
       </div>
 
-      <div className="mt-5 flex items-stretch gap-3">
-        <div className="min-w-0 flex-1">
-          <Field
-            type="text"
-            code
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
-            placeholder="房间码"
-            aria-label="房间码"
-          />
-        </div>
-        <Button
-          variant="glass"
-          size="lg"
-          onClick={joinByCode}
-          disabled={!connected || code.length !== 6}
-          className="shrink-0"
+      <div className="mt-5">
+        {/*
+          标签不用 <label> 包整行：里面还有「加入」按钮，
+          而 label 的激活行为会把点击转给它标注的那个控件。
+          改用 aria-labelledby / aria-describedby 显式关联。
+        */}
+        <span
+          id="code-label"
+          className="text-2xs font-semibold text-primary"
+          style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          加入
-        </Button>
+          房间码
+        </span>
+        <div className="mt-2 flex items-stretch gap-3">
+          <div className="min-w-0 flex-1">
+            <Field
+              type="text"
+              code
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
+              placeholder="ABC123"
+              aria-labelledby="code-label"
+              aria-describedby="code-hint"
+            />
+          </div>
+          <Button
+            variant="glass"
+            size="lg"
+            onClick={joinByCode}
+            disabled={!connected || code.length !== 6}
+            className="shrink-0"
+          >
+            加入
+          </Button>
+        </div>
+        {/* 「加入」在填满 6 位之前是灰的，不说一句就只能靠试。
+            格式要求要在提交之前给出，不是提交之后 */}
+        <p id="code-hint" className="mt-2 text-2xs text-ink-faint">
+          朋友发给你的 6 位房间码，填满 6 位后「加入」才可点。
+        </p>
       </div>
 
       {error && (
         <p
           role="alert"
           className="cut-slant relative mt-5 px-5 py-3 text-sm text-wrong"
-          style={{ background: 'rgb(179 18 58 / .1)' }}
+          style={{ background: 'var(--surface-alert)' }}
         >
           <span
             aria-hidden
@@ -301,19 +339,30 @@ export function Lobby({ onBack }: Props) {
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          ルーム / ROOMS
+          <span lang="ja">ルーム</span> / ROOMS
         </h2>
         <p className="text-2xs text-ink-faint" style={{ letterSpacing: 'var(--tracking-base)' }}>
           等人 {waitingTotal} · 进行中 {busyTotal}
         </p>
       </div>
 
-      <div
-        role="status"
-        aria-live="polite"
-        className="mt-5 flex flex-col"
-        style={{ gap: 'calc(8 * var(--u))' }}
-      >
+      {/*
+        播报交给下面那行 sr-only 摘要，列表容器本身不再是 live region。
+        原来整份列表挂着 role="status"：房间一有变动就会把最多 8 条双行条目
+        整个念一遍，而且 live region 里还嵌着可聚焦的按钮 —— 两件事都是反模式。
+        真正需要被播报的是「现在有几间可进」，不是每间房的全文。
+      */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {!connected
+          ? '连接已断开，列表可能不是最新的'
+          : rooms === null
+            ? '正在获取房间列表'
+            : rooms.length === 0
+              ? '暂时没有公开房间'
+              : `公开房间 ${rooms.length} 间，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`}
+      </p>
+
+      <div className="mt-5 flex flex-col" style={{ gap: 'calc(8 * var(--u))' }}>
         {rooms === null ? (
           <p className="text-sm text-ink-faint">{connected ? '正在获取房间列表…' : '连接中…'}</p>
         ) : rooms.length === 0 ? (
@@ -347,14 +396,17 @@ export function Lobby({ onBack }: Props) {
         className="mt-12 text-2xs font-semibold text-primary"
         style={{ letterSpacing: 'var(--tracking-title)' }}
       >
-        アソビカタ / HOW TO PLAY
+        <span lang="ja">アソビカタ</span> / HOW TO PLAY
       </h2>
       <p className="jp-wrap mt-4 text-sm leading-relaxed text-ink-sub">
         从 {LIBRARY.songs} 首里抽 {KARUTA_DEFAULTS.poolSize} 首：{KARUTA_DEFAULTS.fieldCards}{' '}
-        首摊在场上（每人自陣{' '}
+        首摊在场上（每人<span lang="ja">自陣</span>{' '}
         {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首是
-        <b className="font-bold text-ink">空札</b>
-        —— 只会被播放、场上没有对应的牌，谁点谁お手つき。先清空自陣者胜。
+        <b lang="ja" className="font-bold text-ink">
+          空札
+        </b>
+        —— 只会被播放、场上没有对应的牌，谁点谁<span lang="ja">お手つき</span>。先清空
+        <span lang="ja">自陣</span>者胜。
       </p>
 
       <dl
@@ -430,19 +482,27 @@ function CreateDialog({
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          シンキ / NEW ROOM
+          <span lang="ja">シンキ</span> / NEW ROOM
         </h2>
 
-        <div className="mt-4">
-          <Field
-            type="text"
-            value={name}
-            onChange={(e) => onName(e.target.value.slice(0, ROOM_NAME_MAX * 2))}
-            placeholder="房间名（留空则用你的昵称）"
-            aria-label="房间名"
-            maxLength={ROOM_NAME_MAX * 2}
-          />
-        </div>
+        {/* 与大厅那两个框同一条规矩：标签常驻，占位文字说真实行为 */}
+        <label className="mt-4 block">
+          <span
+            className="text-2xs font-semibold text-primary"
+            style={{ letterSpacing: 'var(--tracking-title)' }}
+          >
+            房间名
+          </span>
+          <span className="mt-2 block">
+            <Field
+              type="text"
+              value={name}
+              onChange={(e) => onName(e.target.value.slice(0, ROOM_NAME_MAX * 2))}
+              placeholder="留空则用你的昵称"
+              maxLength={ROOM_NAME_MAX * 2}
+            />
+          </span>
+        </label>
 
         <VisibilityChoice value={visibility} onChange={onVisibility} />
 

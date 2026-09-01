@@ -57,7 +57,7 @@ export function Room({ initialRoom, onLeave }: Props) {
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full flex-col justify-center px-6 py-14 sm:px-10"
+      className="mx-auto flex min-h-safe w-full flex-col justify-center px-6 py-14 sm:px-10"
       style={{ maxWidth: 'var(--page-narrow)' }}
     >
       <SectionTitle kana="ルーム" latin="Room" size="md" className="anim-appear" />
@@ -158,7 +158,7 @@ export function Room({ initialRoom, onLeave }: Props) {
             <p
               role="alert"
               className="cut-slant relative mt-5 px-5 py-3 text-sm text-wrong"
-              style={{ background: 'rgb(179 18 58 / .1)' }}
+              style={{ background: 'var(--surface-alert)' }}
             >
               <span
                 aria-hidden

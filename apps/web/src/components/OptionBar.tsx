@@ -68,7 +68,7 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
             background: unit,
             clipPath: CAP_CLIP,
             // 浅色组合（イルミネ的 #fff68d）在白底上会消失，补一圈极淡内描边保底
-            boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
+            boxShadow: 'var(--ring-hairline)',
             /*
               落选项不能用 grayscale：藏青、深红这些会被洗成近黑的重条，
               视觉重量反而压过正确答案那一条 —— 和牌场里敵陣抢过自陣是同一个病。
@@ -88,7 +88,18 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
           type="button"
           onClick={onPick}
           disabled={disabled}
-          aria-label={`选项 ${index + 1}：${option.title}，${option.artist}`}
+          /*
+            这里原来挂着 aria-label={`选项 N：曲名，演唱者`}。两个问题：
+
+            ① 按钮上的 aria-label **覆盖**全部后代内容，所以下面那两枚
+               role="img" 的「正确答案」/「你选的，答错了」读屏根本听不到 ——
+               揭晓时逐条的正误状态对读屏用户等于不存在。
+            ② 曲名是日文，被裹在一句中文 label 里就没法单独标 lang，
+               读屏会按普通话读音去念（WCAG 3.1.2）。
+
+            改成由内容组成可访问名：序号用 sr-only 补，曲名/演唱者各自带 lang="ja"，
+            正误标记也回到名字里。念出来是「选项 1 曲名 演唱者 正确答案」。
+          */
           className="sc-bar flex w-full items-center gap-3 pr-6 text-left transition-transform duration-300 ease-[var(--ease-prism)] enabled:hover:-translate-y-px enabled:active:translate-y-0 sm:gap-4 sm:pr-7"
           style={{
             clipPath: BAR_CLIP,
@@ -124,7 +135,11 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
           )}
 
           <span className="min-w-0 flex-1">
+            {/* 视觉上序号是左边那个大数字（aria-hidden），揭晓后换成缩略图 ——
+                两种情况下读屏都拿不到序号，而键盘映射 1–4 全靠它，所以补一条 sr-only */}
+            <span className="sr-only">选项 {index + 1}</span>
             <span
+              lang="ja"
               // line-clamp-2 靠 display:-webkit-box 生效，和 block 是同一条属性；
               // 两个都写会被 block 覆盖掉，长曲名就会顶到三行、把条撑破一屏
               className={`sc-song jp-wrap line-clamp-2 font-bold ${gray ? 'text-ink-faint' : 'text-ink'}`}
@@ -133,10 +148,19 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
               {option.title}
             </span>
             <span
+              lang="ja"
               className="jp-wrap mt-0.5 block truncate text-ink-faint"
               // 行高要钉死：两行曲名 + 这一行是移动端 .sc-bar 78u 保底的全部内容，
               // 继承值一变，内容高就会越过保底、条重新变高
-              style={{ fontSize: 'calc(14.5 * var(--u))', lineHeight: 1.5 }}
+              //
+              // 12px 地板不是可选项：index.css 里 --text-sm 补地板那段注释写着
+              // 「sm 承的是**演唱者**、说明、难度介绍这些正文」，而这一行正是演唱者，
+              // 却因为要跟条的定高一起算而绕开了 --text-sm。实测 1366×678
+              // （--u 触底 0.78）渲染成 11.31px，掉在自家 12px 正文下限之下。
+              // 保留 14.5 这个倍数（换成 --text-sm 的 13u 会缩小窄屏字号并推翻
+              // 78u 保底的那套算式），只在低钳位托底：
+              // 内容高从 92u 升到 93.4u，桌面 96u 的定高仍然包得住。
+              style={{ fontSize: 'max(12px, calc(14.5 * var(--u)))', lineHeight: 1.5 }}
             >
               {option.artist}
             </span>

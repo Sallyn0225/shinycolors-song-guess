@@ -4,11 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f6fb" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!--
+      Jost 自托管（导入写在 src/index.css 顶部）。它是这套设计语言的**显示体** ——
+      HeroTitle、SectionTitle、房间码、所有 .latin 数字都靠它。挂在 fonts.googleapis.com
+      上等于把这条支柱押在一个对本站受众（中文圈）不可达的域名上：拿不到就整体退回黑体，
+      而且没有任何报错。三个字重的 latin 子集加起来 ~30KB，进构建产物、走同一个域名。
+
+      Noto Sans JP 仍从 Google 拿，但**不再阻塞首屏**：media="print" 让浏览器以最低优先级
+      异步取它，onload 再切回 all。这是整个 <head> 里唯一的第三方请求，取不到的地方正文
+      回落到下面 --font-jp 那条系统 CJK 链（index.css），首屏一帧都不会为它多等。
+      不自托管它的原因是体量：Noto Sans JP 按 unicode-range 切成上百个子集才可用，
+      整族进仓库是几 MB 级的代价，而它只是正文体，回落链已经够用。
+    -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Jost:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap"
     />
     <!-- 棱镜：白底上一枚被削角的晶体 -->
     <link

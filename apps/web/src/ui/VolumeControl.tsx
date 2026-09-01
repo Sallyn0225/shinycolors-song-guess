@@ -92,6 +92,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
       <div className="flex items-baseline justify-between gap-4">
         <span
           id="vol-label"
+          lang="ja"
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
@@ -103,7 +104,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
           className={`text-2xs ${muted ? 'text-ink-faint' : 'latin tnum text-ink-sub'}`}
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {muted ? 'ミュート' : `${pct}%`}
+          {muted ? <span lang="ja">ミュート</span> : `${pct}%`}
         </span>
       </div>
 
@@ -132,7 +133,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
             <span
               aria-hidden
               className="block w-full"
-              style={{ height: TRACK_H, clipPath: SLANT, background: 'rgb(162 162 192 / .34)' }}
+              style={{ height: TRACK_H, clipPath: SLANT, background: 'var(--color-track)' }}
             >
               {/*
                 已选中的一段。整条渐变常在，靠 inset 决定露出多少 —— 与 PrismRail 同一个做法。
@@ -168,7 +169,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
                 transform: 'translateX(-50%)',
                 clipPath: SLANT,
                 background: 'var(--color-primary)',
-                boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)',
+                boxShadow: 'var(--ring-hairline)',
               }}
             />
 

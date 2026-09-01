@@ -246,7 +246,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
   }
 
   return (
-    <main className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-5 py-4 sm:px-10 sm:py-5"
+    <main className="sc-vfit mx-auto flex min-h-safe w-full flex-col px-5 py-4 sm:px-10 sm:py-5"
           style={{ maxWidth: 'var(--page-main)' }}>
       {/* ── 头 ────────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -316,14 +316,18 @@ export function Play({ session, onFinish, onQuit }: Props) {
               {/* truncate 而不是让它换行：这一行折行就把揭晓槽顶高、整页跟着长一截。
                   曲名同时还印在下面那条正确答案的选项条上（line-clamp-2，两行），
                   所以截在这里不丢信息 */}
+              {/* 曲名与演唱者都是日文，标 lang 读屏才会用日语读音（WCAG 3.1.2） */}
               <span
+                lang="ja"
                 className="jp-wrap block truncate font-bold text-ink"
                 style={{ fontSize: 'calc(22 * var(--u))' }}
               >
                 {result.song.title}
               </span>
               {/* 演唱者与曲名同理：这行折行同样会顶高揭晓槽（见 .sc-revealslot 的注释） */}
-              <span className="jp-wrap block truncate text-sm text-ink-sub">{result.song.artist}</span>
+              <span lang="ja" className="jp-wrap block truncate text-sm text-ink-sub">
+                {result.song.artist}
+              </span>
             </span>
             <span
               className="anim-appear ml-auto shrink-0 text-right"
@@ -407,7 +411,10 @@ export function Play({ session, onFinish, onQuit }: Props) {
           <Button variant="primary" size="lg" onClick={next} autoFocus className="anim-appear">
             {index + 1 >= session.total ? '查看结算' : '下一题'}
             <Icon name="next" size="calc(17 * var(--u))" />
-            <span className="ml-1 text-xs font-normal opacity-70">Enter</span>
+            {/* 0.85 不是手感：白字乘 0.70 压在 --grad-brand-ink 上，
+                渐变中点 4.43:1、下缘 3.85:1，12px 正文两处都不达标；
+                0.85 在最差的下缘是 4.81:1。再淡就要换更深的底，不能只调这个数 */}
+            <span className="ml-1 text-xs font-normal opacity-85">Enter</span>
           </Button>
         )}
         <button

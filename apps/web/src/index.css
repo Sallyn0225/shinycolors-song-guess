@@ -1,6 +1,24 @@
 @import 'tailwindcss';
 
 /*
+  Jost —— 这套世界的显示体，自托管。
+
+  只取 **latin** 子集的三个字重：整站的拉丁串是品牌标、区块标题、房间码和数字，
+  全部落在 U+0000–00FF 里（含「Result · 简单」那个中点 U+00B7）。
+  latin-ext / cyrillic 两个子集一个字都用不到，不导入 —— 三个文件加起来 ~30KB。
+
+  字重只有 400/600/700 是设计约束不是省事：DESIGN.md 明写「字重只有三档，
+  没有中间态 —— 这套系统靠字距和大小拉开层级，不靠字重的微调」。
+  加字重之前先回去看那一条。
+
+  fontsource 的这几个文件自带 font-display: swap，所以字体在途时先用回落体排版，
+  不会有一段不可见文字（FOIT）。
+*/
+@import '@fontsource/jost/latin-400.css';
+@import '@fontsource/jost/latin-600.css';
+@import '@fontsource/jost/latin-700.css';
+
+/*
   「Song for Prism」的世界。
 
   白底上铺一层几乎看不见的虹彩镭射与紫色晶体碎片；内容装在半透明白玻璃里；
@@ -59,6 +77,28 @@
   --text-xs: max(12px, calc(11 * var(--u)));
   --text-sm: max(12px, calc(13 * var(--u)));
   --text-base: max(13px, calc(15 * var(--u)));
+  /*
+    下面这两级是后补的，补的理由值得记下来 ——
+
+    它们原本不在这张表里：KarutaTile 的曲名写死 `calc(12.5 * var(--u))`、
+    反应时间徽标写死 `calc(9 * var(--u))`，都直接绕开了上面那五级。
+    绕开的原因是牌高（`max(44px, 62u)`）要跟字号一起算，两个标准级都不合尺寸 ——
+    也就是说，**「定高约束需要一个非标准字号」这条压力每出现一次，就把作者推出
+    token 系统一次，而每推出去一次，地板就掉一次**。实测 1366×678（--u 触底 0.78）：
+    曲名 9.75px、徽标 7.02px，双双低于本表上面那条 11px 的功能性下限。
+    牌面曲名还不是随便什么小字，它是 1v1 玩法的**内容本身**（決まり字靠词头粗体
+    与词尾浅色的明度差读出来），糊掉就没得玩了。
+
+    所以修法不是去调那两个字面量，是把这两个角色**收进表里**：
+    地板长在 token 上，下一次再有定高压力，也带不走它。
+
+    两级在低钳位下会并到同一个 11px。这是可接受的：徽标靠实心色片、判定色与
+    font-semibold 与曲名分开，不靠字号；到 --u=1.0（窄屏）时 12.5 / 11 的差回来。
+    低钳位本来就是「什么都压到地板上」的那一档，那正是地板存在的意义。
+  */
+  --text-tile: max(11px, calc(12.5 * var(--u)));
+  --text-tap: max(11px, calc(9 * var(--u)));
+
   --text-lg: calc(18 * var(--u));
   --text-xl: calc(22 * var(--u));
   --text-2xl: calc(28 * var(--u));
@@ -105,8 +145,19 @@
   --color-correct: #0a6b50;
   --color-wrong: #b3123a;
 
-  --font-jp: 'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', sans-serif;
-  --font-latin: 'Jost', 'Noto Sans JP', sans-serif;
+  /*
+    正文体。Noto Sans JP 现在是**异步**来的（见 index.html），取不到的地方就永远停在
+    这条回落链上 —— 所以链本身必须站得住。原来只列了 Apple 的两个（PingFang SC /
+    Hiragino Sans），Windows 与 Android 上直接掉进 sans-serif，用什么字体由浏览器决定，
+    不由设计决定。补上各平台的对应黑体，四个都是同一类无衬线，换过去不改版面节奏。
+    Microsoft YaHei 含假名，日文术语不会掉成豆腐块。
+  */
+  --font-jp:
+    'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  /* Jost 自托管，所以这条链的后半段只在字体文件真的 404 时才会走到 */
+  --font-latin:
+    'Jost', 'Noto Sans JP', 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', 'Noto Sans SC',
+    sans-serif;
 
   --tracking-tight: 0.08em;
   --tracking-base: 0.1em;
@@ -150,6 +201,36 @@
   --grad-unit-prism:
     repeating-linear-gradient(115deg, rgb(255 255 255 / 0.55) 0 2px, rgb(255 255 255 / 0) 2px 7px),
     linear-gradient(160deg, #ffbad6 0%, #f0c8f5 26%, #8adfff 52%, #b9f2ff 70%, #ffbad6 100%);
+
+  /*
+    ── 半透明面。token 系统原来只管「用哪个色相」，不管「它的半透明版」，
+    于是同一个颜色的 alpha 变体以字面 rgb() 散在 40 多处：改 --color-primary
+    的那天，那些面色会全部留在原地，而且不会有任何东西报错。
+
+    下面只提取**同一意图重复三次以上**的那几个。判定色那一堆浅色面
+    （.07 / .12 / .16 / .18）故意不提取：按 The Tinted-Surface Rule，
+    每一档 alpha 都是对着它自己合成出来的底单独测过文字对比度的，
+    档位是测量结果不是主题变量。把它们并成一个 token 等于宣称它们可以互换，
+    而它们不能 —— 新增有色面板时仍然要按那条规则重算一遍。
+  */
+
+  /* 实心色帽的保底描边。DESIGN.md 的 Unit-Colour-Is-Data Rule 明写这一条：
+     イルミネ的 #fff68d 这类浅色组合在白底上会整个消失，靠这圈 10% 黑才读得出来。
+     四处在用（选项条色帽 / 结算行色条 / 首页入口色帽 / 音量滑块） */
+  --ring-hairline: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+
+  /* 「还没走到的那一段」。棱镜光带的底轨与音量轨道是同一件事，
+     两边原本各写一遍同一个字面值，注释还互相引用 —— 那就是一个 token */
+  --color-track: rgb(162 162 192 / 0.34);
+
+  /* 明底遮罩。这套世界是白的，暗色遮罩会把人从场景里踢出去；
+     用 backdrop-blur 而不是压黑，底下的牌面仍若隐若现，「对局还在」才成立。
+     面与模糊一起给 —— 分开给的话迟早有一处只抄走一半 */
+  --surface-veil: rgb(247 246 251 / 0.9);
+  --blur-veil: blur(calc(6 * var(--u)));
+
+  /* 错误提示条的底。首页 / 大厅 / 房间三处同值同意图 */
+  --surface-alert: rgb(179 18 58 / 0.1);
 
   /* 阴影是紫的，不是黑的。这让斜切形状的阴影跟着 clip-path 走，色调也统一在紫里 */
   --shadow-sm: drop-shadow(0 calc(1 * var(--u)) calc(2 * var(--u)) rgb(71 68 150 / 0.2));
@@ -197,12 +278,53 @@
   --page-narrow: calc(760 * var(--u)); /* 大厅 / 房间：单列表单 */
   --page-card: calc(520 * var(--u)); /* 牌场结算卡 */
 
+  /*
+    安全区。index.html 的 <meta viewport-fit=cover> 让布局视口伸进刘海、圆角与
+    home indicator —— 那是**故意的**：底衬那几层 position:fixed 的虹彩与视频要顶到
+    物理边缘，否则窄边上会露出一圈灰。但「底衬铺满」和「内容也铺满」是两件事，
+    而原来只做了前者，没有任何一处让开后者。
+
+    被压住的正是最不能丢的位置：牌场底部 py-4（16u）之下就是自陣名牌与剩余牌数，
+    而 iPhone 的 home indicator 占 34px；牌场顶部同样只有 16u，敵陣名牌会钻进状态栏。
+    PRODUCT.md 写着「局域网开黑基本都是掏手机」「手机不能将就」，
+    而 The Both-Territories Rule 要求牌场一屏装下 —— 上下各被吃掉一截，这条直接作废。
+
+    做法是**变量化一次，全站生效**，而不是去六个页面壳里各改一遍 padding：
+      · body 让开四条边 —— 普通流里的内容因此全部落在安全区内
+      · --vh-safe 是「一屏」的新定义，min-h-dvh 一律换成它，
+        否则 main 仍按整屏高算，会比 body 的内容盒高出上下安全区那么多、平白多一段滚动
+      · position:fixed 的层不受 body padding 影响，所以底衬照旧铺满（想要的），
+        而浮在最上面的那几个（toast / 掉线横幅 / Overlay）各自单独让开（见下文与各组件）
+
+    @supports 包住是必要的：不认 env() 的浏览器里 `env(...)` 会让整个自定义属性
+    变成 guaranteed-invalid，--vh-safe 跟着失效，min-height 一起没了 —— 页面会塌。
+    先给四个 0px 的确定值，认得的浏览器再覆盖。
+  */
+  --sa-t: 0px;
+  --sa-r: 0px;
+  --sa-b: 0px;
+  --sa-l: 0px;
+
   color-scheme: light;
   /* 浏览器自带的那些表面也归设计系统管 */
   accent-color: var(--color-accent-deep);
   caret-color: var(--color-primary);
   scrollbar-color: var(--color-primary-lt) transparent;
   scrollbar-width: thin;
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  :root {
+    --sa-t: env(safe-area-inset-top, 0px);
+    --sa-r: env(safe-area-inset-right, 0px);
+    --sa-b: env(safe-area-inset-bottom, 0px);
+    --sa-l: env(safe-area-inset-left, 0px);
+  }
+}
+
+:root {
+  /* 「一屏」的可用高度。没有刘海的设备上它就等于 100dvh，这一整套是零改动的 */
+  --vh-safe: calc(100dvh - var(--sa-t) - var(--sa-b));
 }
 
 @layer base {
@@ -212,7 +334,10 @@
 
   body {
     margin: 0;
+    /* box-sizing 由 preflight 全局设成 border-box，所以 body 连内边距一共 100dvh，
+       内容盒正好是 --vh-safe —— 不会因为这圈内边距凭空多出一段滚动 */
     min-height: 100dvh;
+    padding: var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l);
     background: var(--color-ground);
     color: var(--color-ink);
     font-family: var(--font-jp);
@@ -225,7 +350,7 @@
   #root {
     position: relative;
     z-index: 1;
-    min-height: 100dvh;
+    min-height: var(--vh-safe);
   }
 
   ::selection {
@@ -743,6 +868,26 @@
 }
 
 @layer utilities {
+  /*
+    「一屏」。全站的 min-h-dvh 都换成它 —— 页面壳按安全区之内的高度排版，
+    否则 main 比 body 的内容盒高出上下安全区那么多，每一屏都凭空多一段滚动。
+    没有安全区的设备上它逐字等于 100dvh。
+  */
+  .min-h-safe {
+    min-height: var(--vh-safe);
+  }
+  /*
+    浮在最上层的 fixed 元素不受 body 内边距管，各自让开自己贴的那条边。
+    取 max() 而不是相加：没有安全区时保留原来的间距，有安全区时至少让到 home
+    indicator / 状态栏之外，两种设备上看起来都不是「特意为刘海调过」的样子。
+  */
+  .sc-fixed-bottom {
+    bottom: max(calc(6 * var(--spacing)), var(--sa-b));
+  }
+  .sc-fixed-top {
+    padding-top: max(calc(2 * var(--spacing)), var(--sa-t));
+  }
+
   .tnum {
     font-variant-numeric: tabular-nums;
   }

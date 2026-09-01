@@ -89,7 +89,13 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
         type="button"
         onClick={onClick}
         disabled={disabled}
-        aria-label={card.title}
+        /*
+          原来是 aria-label={card.title}。曲名是日文，而 aria-label 的语言取自
+          承载它的元素 —— 挂在这个按钮上就跟着 <html lang="zh-CN"> 走，
+          读屏会用普通话读音念日文曲名。同时它也把下面那枚反应时间徽标
+          （谁点的、多快、判没判中）挡在可访问名之外。
+          改成由内容组成：曲名那一段自己带 lang="ja"，徽标也回到名字里。
+        */
         className="relative flex w-full flex-col justify-center px-2 py-1.5 text-left transition-transform duration-150 enabled:active:scale-[0.97]"
         style={{
           minHeight: 'max(44px, calc(62 * var(--u)))',
@@ -115,9 +121,27 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
           }}
         />
 
+        {/*
+          字号走 --text-tile，不写死倍数：那条地板的由来见 index.css 的 @theme。
+
+          有徽标时曲名收成一行。这不是排版偏好，是**阵形不许重排**那条规矩的算术后果：
+          牌高 `max(44px, 62u)`，1366×678 上是 48.4px，扣掉 py-1.5 只剩 39px 的内容额度。
+          实测（190px 宽的格子）：两行曲名 28.6px + 徽标 16.3px + mt-1 3.1px = 48px，
+          整张牌被顶到 57.3px —— 那一行的所有牌跟着长高，底下的行整体下移。
+          玩家背的就是位置，抢牌的几秒里牌自己挪窝就是 bug（Product Principle 3）。
+
+          收掉的是**词尾**：決まり字是词头，靠加粗读出来，截断只吃掉 ink-faint 的那一截，
+          恰好是这张牌信息量最低的部分。窄屏同理（那里 clamp 本来是 3 行，
+          实测旧版就已经在顶高，这一改反而把它也修好了）。
+        */}
         <span
+          lang="ja"
           className="sc-tile-title jp-wrap ml-2"
-          style={{ fontSize: 'calc(12.5 * var(--u))', lineHeight: 1.3 }}
+          style={{
+            fontSize: 'var(--text-tile)',
+            lineHeight: 1.3,
+            ...(picks.length > 0 ? { WebkitLineClamp: 1 } : {}),
+          }}
         >
           {/* 決まり字：听到这几个字就能锁定这张牌。靠字重与明度，不靠另一种颜色 */}
           <b className="font-bold text-ink">{head}</b>
@@ -134,7 +158,7 @@ export function KarutaTile({ card, kimariji, state, picks, disabled, enemy, onCl
                   key={p.player}
                   className="latin inline-flex items-center gap-1 px-1 py-[1px] font-semibold"
                   style={{
-                    fontSize: 'calc(9 * var(--u))',
+                    fontSize: 'var(--text-tap)',
                     lineHeight: 1.3,
                     background: ok ? 'rgb(10 107 80 / .16)' : 'rgb(179 18 58 / .16)',
                     color: ok ? 'var(--color-correct)' : 'var(--color-wrong)',

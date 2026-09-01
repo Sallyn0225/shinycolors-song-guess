@@ -120,7 +120,8 @@ export function IconButton({ icon, label, href, onClick, pressed }: Props) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleClick}
-          aria-label={label}
+          // 链接会开新标签页，这件事不说出来，读屏用户按下去只会发现上下文没了
+          aria-label={`${label}（在新标签页打开）`}
           className={`${inner} text-primary`}
         >
           <Icon name={icon} size="calc(21 * var(--u))" />

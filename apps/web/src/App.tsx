@@ -123,7 +123,7 @@ export default function App() {
     // 恢复期间不要先闪一下首页 —— 那会让人以为对局已经没了
     if (resuming && screen.name === 'start') {
       return (
-        <main className="flex min-h-dvh flex-col items-center justify-center gap-4">
+        <main className="flex min-h-safe flex-col items-center justify-center gap-4">
           <OverlayMark />
           <p className="text-sm text-ink-sub">正在找回对局…</p>
           <button

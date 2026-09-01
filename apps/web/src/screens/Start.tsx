@@ -60,7 +60,7 @@ function EntryBar({
       <span aria-hidden className="cut-shadow-sm shrink-0" style={{ width: 'calc(60 * var(--u))' }}>
         <span
           className="block h-full"
-          style={{ background: cap, clipPath: CAP_CLIP, boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / .1)' }}
+          style={{ background: cap, clipPath: CAP_CLIP, boxShadow: 'var(--ring-hairline)' }}
         />
       </span>
       <span className="cut-shadow min-w-0 flex-1" style={{ marginLeft: 'calc(-36 * var(--u))' }}>
@@ -134,7 +134,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
 
         再往这一页加独占一行的东西，先把这四档量一遍，别指望还有富余。
       */
-      className="sc-vfit mx-auto flex min-h-dvh w-full flex-col px-6 py-14 sm:px-10 sm:py-6"
+      className="sc-vfit mx-auto flex min-h-safe w-full flex-col px-6 py-14 sm:px-10 sm:py-6"
       style={{ maxWidth: 'var(--page-main)' }}
     >
       {/*
@@ -227,7 +227,9 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
               delay={140 + i * 90}
             >
               <span className="min-w-0 flex-1">
+                {/* 片假名要标 lang，否则读屏按普通话读音念（见 ui/SectionTitle 的说明） */}
                 <span
+                  lang="ja"
                   className="block text-2xs font-semibold text-primary"
                   style={{ letterSpacing: 'var(--tracking-title)' }}
                 >
@@ -255,6 +257,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         <EntryBar cap="var(--color-primary)" onClick={onVersus} delay={320} solid>
           <span className="min-w-0 flex-1">
             <span
+              lang="ja"
               className="block text-2xs font-semibold opacity-80"
               style={{ letterSpacing: 'var(--tracking-title)' }}
             >
@@ -264,11 +267,16 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
               className="sc-title jp-wrap block font-bold"
               style={{ letterSpacing: 'var(--tracking-tight)' }}
             >
-              1v1 空札領地戦
+              1v1 <span lang="ja">空札領地戦</span>
             </span>
+            {/* 日文术语逐个标 lang —— 整句标是错的，这句的主体是中文 */}
             <span className="jp-wrap mt-1 block text-sm opacity-95">
-              歌牌规则：抢牌、送り札、お手つき，外加只会被播放、场上没有对应牌的
-              <b className="font-bold text-accent-lit">空札</b>。先清空自陣者胜。
+              歌牌规则：抢牌、<span lang="ja">送り札</span>、<span lang="ja">お手つき</span>
+              ，外加只会被播放、场上没有对应牌的
+              <b lang="ja" className="font-bold text-accent-lit">
+                空札
+              </b>
+              。先清空<span lang="ja">自陣</span>者胜。
             </span>
           </span>
           <Icon name="next" size="calc(24 * var(--u))" />
@@ -279,7 +287,7 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
         <p
           role="alert"
           className="cut-slant mt-7 px-5 py-3 text-sm text-wrong"
-          style={{ background: 'rgb(179 18 58 / .1)', boxShadow: 'inset 0 0 0 1px var(--color-wrong)' }}
+          style={{ background: 'var(--surface-alert)', boxShadow: 'inset 0 0 0 1px var(--color-wrong)' }}
         >
           {error}
         </p>

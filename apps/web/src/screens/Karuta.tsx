@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   KARUTA_DEFAULTS,
   type CardId,
@@ -17,14 +17,15 @@ import { SlotMap } from '../features/karutaBoard'
 import { versusTier } from '../features/grade'
 import { computeKimariji } from '../features/kimariji'
 import { narrateRound } from '../features/narrate'
-import { buildVersusTicket } from '../features/shareCard'
 import { Button } from '../ui/Button'
 import { Countdown } from '../ui/Countdown'
 import { GradeBadge } from '../ui/GradeBadge'
 import { Icon } from '../ui/Icon'
 import { Overlay, OverlayMark } from '../ui/Overlay'
 import { PrismRail } from '../ui/PrismRail'
-import { ShareDialog } from '../ui/ShareDialog'
+
+/* 战报导出整条链按需加载，与 Result 同一个入口。见 ui/ShareTicket.tsx */
+const ShareTicket = lazy(() => import('../ui/ShareTicket'))
 
 interface Props {
   /** matchStart 的内容由 App 传下来 —— 本组件挂载时那条消息已经过去了 */
@@ -90,7 +91,6 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   const [, forceRender] = useState(0)
 
   const boardRef = useRef<HTMLDivElement>(null)
-  const endDialogRef = useRef<HTMLDivElement>(null)
   /** 本回合的起播时刻与窗口，供光带的 rAF 每帧取剩余比例 */
   const roundEndsAt = useRef(0)
   /** 挑送り札的截止时刻，同样喂给光带 */
@@ -295,30 +295,13 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     else el.removeAttribute('inert')
   }, [blocked])
 
-  // 结算浮层：进入时把焦点带进去，并关在里面
-  useEffect(() => {
-    const root = endDialogRef.current
-    if (!root || !(stage === 'over' && ended)) return
-    const list = () =>
-      [...root.querySelectorAll<HTMLElement>('button:not([disabled])')]
-    list()[0]?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      const items = list()
-      if (!items.length) return
-      const head = items[0] as HTMLElement
-      const tail = items[items.length - 1] as HTMLElement
-      if (e.shiftKey && document.activeElement === head) {
-        e.preventDefault()
-        tail.focus()
-      } else if (!e.shiftKey && document.activeElement === tail) {
-        e.preventDefault()
-        head.focus()
-      }
-    }
-    root.addEventListener('keydown', onKey)
-    return () => root.removeEventListener('keydown', onKey)
-  }, [stage, ended])
+  /*
+    结算浮层的模态行为（进场聚焦 / Tab 圈闭 / 关闭后还原焦点 / 明底遮罩）
+    原来在这里**又实现了一遍** —— 那是 ui/Overlay 的手抄副本，而且抄得不全：
+    圈闭只收集 'button:not([disabled])'，漏掉了链接与输入框。
+    重复的代价是实打实的：同一个「关掉后焦点掉回 body」的缺陷要修两次。
+    现在整块交给 <Overlay>，这个 effect 连同 endDialogRef 一起删掉。
+  */
 
   // 对手掉线的宽限倒计时。到点判负，所以得让人看到还要等多久
   useEffect(() => {
@@ -458,7 +441,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
 
   if (!match) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
+      <main className="flex min-h-safe items-center justify-center">
         <p className="text-sm text-ink-faint">等待对局开始…</p>
       </main>
     )
@@ -666,6 +649,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 style={{ gap: 'calc(10 * var(--u))' }}
               >
                 <span
+                  lang="ja"
                   className="font-bold text-primary"
                   style={{ fontSize: 'calc(22 * var(--u))', lineHeight: 1 }}
                 >
@@ -688,6 +672,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
               <div className="flex items-center justify-center gap-2">
                 {revealKind === 'karafuda' ? (
                   <span
+                    lang="ja"
                     className="cut-slant px-2 py-0.5 text-xs font-bold text-rose-ink"
                     style={{
                       boxShadow: 'inset 0 0 0 1.5px var(--color-rose-ink)',
@@ -719,7 +704,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
               <div role="status" aria-live="polite">
                 {/* 我这一手是 お手つき —— 罚下来的当下就要说，不能拖到 10 秒后的 reveal */}
                 {stage === 'choosing' && myFault && (
-                  <p className="mt-1 text-base font-bold text-wrong">
+                  <p lang="ja" className="mt-1 text-base font-bold text-wrong">
                     お手つき
                     <span className="ml-2 text-xs font-normal text-ink-sub">
                       {myFault.verdict === 'too_early'
@@ -735,11 +720,13 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   reveal &&
                   (myOkuri && !okuriDone ? (
                     <>
-                      <p className="mt-1 text-base font-bold text-rose-ink">送り札を選ぶ</p>
+                      <p lang="ja" className="mt-1 text-base font-bold text-rose-ink">
+                        送り札を選ぶ
+                      </p>
                       <p className="text-xs text-ink-sub">
                         {/* 为什么轮到我挑：是「对手挨罚」还是「我取了敵陣」—— 性质不同 */}
-                        {foeFault ? `${names[foe]} お手つき，` : ''}
-                        从自陣挑 {myOkuri.count} 张送给对手
+                        {foeFault ? <>{names[foe]} <span lang="ja">お手つき</span>，</> : ''}
+                        从<span lang="ja">自陣</span>挑 {myOkuri.count} 张送给对手
                         {myOkuri.count > 1 && `（已选 ${okuriPicks.length}/${myOkuri.count}）`}
                         {' —— '}把最难记的那张丢过去
                       </p>
@@ -749,7 +736,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   ) : (
                     <p className="mt-1 text-xs text-ink-sub">
                       {names[reveal.pending[0]?.player ?? foe]} 正在挑
-                      {myFault ? '要罚给你的那张牌' : '送り札'}…
+                      {myFault ? '要罚给你的那张牌' : <span lang="ja">送り札</span>}…
                     </p>
                   ))}
               </div>
@@ -770,7 +757,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                     label="自动送出前剩余时间"
                     className="mr-1"
                   />
-                  后自动送出自陣待得最久的那张
+                  后自动送出<span lang="ja">自陣</span>待得最久的那张
                 </p>
               )}
 
@@ -803,7 +790,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           {/* 接回一局已经打完的对局：matchEnd 早就发过了，拿不到赛后统计 */}
           {stage === 'over' && !ended && (
             <>
-              <p className="text-lg font-bold text-primary">対局終了</p>
+              <p lang="ja" className="text-lg font-bold text-primary">
+                対局終了
+              </p>
               <p className="mt-1 text-xs text-ink-sub">这一局已经结束了</p>
               <div className="mt-2">
                 <Button variant="ghost" size="sm" onClick={onExit}>
@@ -814,7 +803,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           )}
 
           {stage === 'over' && ended && (
-            <p className="text-xl font-bold text-primary">
+            <p lang="ja" className="text-xl font-bold text-primary">
               {ended.winner === me ? '勝ち' : ended.winner ? '負け' : '引き分け'}
             </p>
           )}
@@ -826,15 +815,25 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   return (
     // 两个领地尽量拉开 —— 中间那段距离就是歌牌的「场」
     <main
-      className="mx-auto flex min-h-dvh w-full flex-col justify-between px-3 py-4 sm:px-6 sm:py-6"
+      className="mx-auto flex min-h-safe w-full flex-col justify-between px-3 py-4 sm:px-6 sm:py-6"
       style={{ maxWidth: 'var(--page-board)' }}
     >
+      {/*
+        牌场是全站唯一一屏没有任何标题元素的界面 —— 读屏的标题导航到这里就断了。
+        视觉上这一屏没有放标题的余量（The Both-Territories Rule：两阵必须一屏装下），
+        所以给一个 sr-only 的 h1，与别处的层级对齐而不占一个像素。
+      */}
+      <h1 className="sr-only">
+        1v1 <span lang="ja">空札領地戦</span> 牌场
+      </h1>
+
       {/* 遮罩打开时整块牌场 inert，所以它必须自成一层、且遮罩在它之外 */}
       <div ref={boardRef} className="flex flex-1 flex-col justify-between">
       {/* ── 敵陣 ───────────────────────────────────────── */}
       <section
         className="shrink-0 px-3 pt-2 pb-3 transition-opacity duration-300 sm:px-4"
         style={{ background: 'rgb(97 95 144 / .05)', opacity: foeReceded ? 0.45 : 1 }}
+        lang="ja"
         aria-label="敵陣"
       >
         {/* 牌多到要滚动时（お手つき 会把一方堆到 22 张），对手还剩几张必须一直看得见 */}
@@ -886,6 +885,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
       <section
         className="shrink-0 px-3 pt-3 pb-2 sm:px-4"
         style={{ background: 'rgb(94 226 255 / .07)' }}
+        lang="ja"
         aria-label="自陣"
       >
         <div className="mb-2">{grid(mySlots, false, onOwnCardClick)}</div>
@@ -893,20 +893,28 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
       </section>
       </div>
 
+      {/* sc-fixed-bottom 取代 bottom-6：fixed 层不受 body 的安全区内边距管，
+          贴底的东西要自己让开 home indicator（见 index.css） */}
       {toast && (
-        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2">
+        <div
+          role="status"
+          aria-live="polite"
+          className="sc-fixed-bottom fixed left-1/2 -translate-x-1/2"
+        >
           <span className="cut-shadow-sm block">
             <span className="glass-lit cut-slant block px-5 py-2 text-xs text-ink">{toast}</span>
           </span>
         </div>
       )}
 
-      {/* 对手掉线：不是弹窗而是常驻横幅——它会一直影响接下来的每一回合 */}
+      {/* 对手掉线：不是弹窗而是常驻横幅——它会一直影响接下来的每一回合。
+          原来的 py-2 拆成 sc-fixed-top + pb-2：贴顶的横幅要自己让开状态栏/刘海，
+          而上下内边距分开写才不会两条规则抢同一个属性 */}
       {peerGraceEnds !== null && stage !== 'over' && (
         <div
           role="status"
-          className="fixed inset-x-0 top-0 z-30 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-wrong"
-          style={{ background: 'rgb(179 18 58 / .12)', backdropFilter: 'blur(calc(6 * var(--u)))' }}
+          className="sc-fixed-top fixed inset-x-0 top-0 z-30 flex items-center justify-center gap-2 px-4 pb-2 text-xs font-semibold text-wrong"
+          style={{ background: 'rgb(179 18 58 / .12)', backdropFilter: 'var(--blur-veil)' }}
         >
           <Icon name="warn" size="calc(13 * var(--u))" />
           <span>{match.players[foe].nickname} 掉线了，等待重连</span>
@@ -972,23 +980,27 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
 
       {/* ── 结算 ─────────────────────────────────────── */}
       {stage === 'over' && ended && (
-        <div
-          ref={endDialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="对局结算"
-          tabIndex={-1}
-          className="fixed inset-0 z-40 flex items-center justify-center px-5"
-          style={{ background: 'rgb(247 246 251 / .9)', backdropFilter: 'blur(calc(6 * var(--u)))' }}
-        >
-          <span className="cut-shadow-lg anim-appear w-full" style={{ maxWidth: 'var(--page-card)' }}>
+        <Overlay label="对局结算" z={40}>
+          {/*
+            maxHeight + overflowY 是跟着 Overlay 一起继承来的既有做法：
+            Overlay 是 justify-center 的，内容高过视口时溢出会平分到上下两端，
+            而滚动条只能往下走 —— 顶部就此够不着。InfoModal 与 ShareDialog 都记过
+            这个坑并自己封了顶，这块结算卡（统计表 + 三颗按钮 + 可能的校正说明）
+            原来没有，是同一个家族的隐患。
+          */}
+          <span
+            className="cut-shadow-lg anim-appear w-full"
+            style={{ maxWidth: 'var(--page-card)', maxHeight: '92dvh', overflowY: 'auto' }}
+          >
             {/*
               cut-card 的 --cut-lg（≈43px）大于 p-8（≈34px），左上角切除区会吃掉
               紧贴顶端的内容 —— OverlayMark 与胜负字正好落在那里。多给一截上内边距。
+              text-left 要显式写回：Overlay 自带 text-center（它默认承载的是
+              居中的几行提示），而这张卡是左对齐的统计卡。
             */}
-            <div className="glass-lit cut-card px-8 pt-12 pb-8">
+            <div className="glass-lit cut-card px-8 pt-12 pb-8 text-left">
               <OverlayMark />
-              <p className="mt-5 text-3xl font-bold text-primary">
+              <p lang="ja" className="mt-5 text-3xl font-bold text-primary">
                 {ended.winner === me ? '勝ち' : ended.winner ? '負け' : '引き分け'}
               </p>
               <p className="jp-wrap mt-1 text-sm text-ink-sub">
@@ -1018,6 +1030,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                 </thead>
                 <tbody className="latin">
                   {[
+                    // 前两项在下面按 ja 的部分渲染，见 <th> 里的 langOf
                     ['剩余自陣', `${left[me]}`, `${left[foe]}`],
                     ['取牌', `${ended.stats.taken[me]}`, `${ended.stats.taken[foe]}`],
                     ['お手つき', `${ended.stats.otetsuki[me]}`, `${ended.stats.otetsuki[foe]}`],
@@ -1033,7 +1046,16 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                         className="py-2.5 text-left text-xs font-normal text-ink-sub"
                         style={{ fontFamily: 'var(--font-jp)' }}
                       >
-                        {k}
+                        {/* 「お手つき」整条是日文，「剩余自陣」只有末两字是 —— 逐条判 */}
+                        {k === 'お手つき' ? (
+                          <span lang="ja">{k}</span>
+                        ) : k === '剩余自陣' ? (
+                          <>
+                            剩余<span lang="ja">自陣</span>
+                          </>
+                        ) : (
+                          k
+                        )}
                       </th>
                       <td className="py-2.5 text-right font-semibold text-ink">{a}</td>
                       <td className="py-2.5 text-right text-ink-sub">{b}</td>
@@ -1080,31 +1102,35 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
               </div>
             </div>
           </span>
-        </div>
+        </Overlay>
       )}
 
       {shareAt && ended && sides && (
-        <ShareDialog
-          label="导出战报图片"
-          kind="对战"
-          // 联机场景下 localStorage 若为空，用本局房间里填过的昵称兜底
-          defaultId={names[me]}
-          build={(playerId, m) =>
-            buildVersusTicket(
-              {
-                playerId,
-                outcome,
-                reason: winReason(ended.winner),
-                rounds: ended.stats.rounds,
-                mine: sides.mine,
-                foe: sides.foe,
-                date: shareAt,
-              },
-              m,
-            )
+        // 分块在途时也要有话说 —— 空白一拍会读作「点了没反应」
+        <Suspense
+          fallback={
+            <Overlay label="正在准备战报" z={60}>
+              <OverlayMark />
+              <p className="text-sm text-ink-sub">正在准备战报…</p>
+            </Overlay>
           }
-          onClose={() => setShareAt(null)}
-        />
+        >
+          <ShareTicket
+            kind="versus"
+            label="导出战报图片"
+            // 联机场景下 localStorage 若为空，用本局房间里填过的昵称兜底
+            defaultId={names[me]}
+            input={{
+              outcome,
+              reason: winReason(ended.winner),
+              rounds: ended.stats.rounds,
+              mine: sides.mine,
+              foe: sides.foe,
+              date: shareAt,
+            }}
+            onClose={() => setShareAt(null)}
+          />
+        </Suspense>
       )}
     </main>
   )

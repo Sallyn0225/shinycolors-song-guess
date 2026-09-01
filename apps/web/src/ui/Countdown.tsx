@@ -131,7 +131,10 @@ export function Countdown({
         aria-hidden
         style={{
           marginLeft: `calc(${size * 0.06} * var(--u))`,
-          fontSize: `calc(${size * 0.34} * var(--u))`,
+          // 0.34 倍是比例，11px 是地板。三处调用（56 / 40 / 26）里后两处在
+          // --u 触底 0.78 时算出 10.6px 与 6.9px —— 后者是送り札那 10 秒里
+          // 「还剩几秒」的单位，小到读不出就等于没写。地板与 --text-2xs 同值
+          fontSize: `max(11px, calc(${size * 0.34} * var(--u)))`,
           fontWeight: 600,
           color: 'var(--color-ink-faint)',
         }}
