@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "包结构总览与红线:audio.ts/net/ws.ts/api.ts/features/* 禁改;UI 文案中文、注释随文件语言"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "新弹窗组件该放 components/ 还是 ui/ 的判定规则"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "IconButton/Overlay/Cut 等形状基元、props 与 a11y 基线,新按钮与翻页弹窗须遵循"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "弹窗翻页涉及焦点管理与键盘事件的 effect 写法"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "弹窗开合与当前页码状态应放哪一层"}
