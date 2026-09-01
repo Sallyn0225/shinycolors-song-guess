@@ -36,6 +36,10 @@ services:
       # 按 IP 的三项房间配额会从「每人」退化成「全局」——不报错，
       # 表现是几个人一起玩时有人建不了房。论证见 DEPLOY.md
       TRUST_PROXY: "1"
+      # 封面走 CDN 的前缀，留空则封面由本进程伺服。值写在同目录 .env 里：
+      #   PUBLIC_ASSET_BASE=https://cdn.example.com
+      # 只对 coverUrl 生效（缩略图是前端相对路径，切片绝不走 CDN）——见 DEPLOY.md「CDN」一节
+      PUBLIC_ASSET_BASE: ${PUBLIC_ASSET_BASE:-}
 
     volumes:
       # 曲库不进镜像：228MB 的商业音源派生物，且每次改代码重建都要重落一层。

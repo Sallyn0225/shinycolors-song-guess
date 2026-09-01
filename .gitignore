@@ -68,3 +68,7 @@ skills-lock.json
 .env
 .env.*
 !.env.example
+
+# 本地密钥（腾讯云子账号 SecretKey，绝不能提交）
+.scg-secretkey.txt
+.scg-setup.py
