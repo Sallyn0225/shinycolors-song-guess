@@ -134,7 +134,9 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
             </span>
             <span
               className="jp-wrap mt-0.5 block truncate text-ink-faint"
-              style={{ fontSize: 'calc(14.5 * var(--u))' }}
+              // 行高要钉死：两行曲名 + 这一行是移动端 .sc-bar 78u 保底的全部内容，
+              // 继承值一变，内容高就会越过保底、条重新变高
+              style={{ fontSize: 'calc(14.5 * var(--u))', lineHeight: 1.5 }}
             >
               {option.artist}
             </span>

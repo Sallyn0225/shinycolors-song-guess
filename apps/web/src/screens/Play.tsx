@@ -322,7 +322,8 @@ export function Play({ session, onFinish, onQuit }: Props) {
               >
                 {result.song.title}
               </span>
-              <span className="jp-wrap block text-sm text-ink-sub">{result.song.artist}</span>
+              {/* 演唱者与曲名同理：这行折行同样会顶高揭晓槽（见 .sc-revealslot 的注释） */}
+              <span className="jp-wrap block truncate text-sm text-ink-sub">{result.song.artist}</span>
             </span>
             <span
               className="anim-appear ml-auto shrink-0 text-right"

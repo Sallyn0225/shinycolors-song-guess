@@ -599,7 +599,9 @@
     实测正好压在原来 58u 的 min-height 边上 —— 差一点就撑高整页，
     而曲名一折行必然撑高（窄屏实测 38u 的槽被顶到 88px）。
     定高 64u 加上曲名单行化（Play.tsx 的 truncate），answering ↔ revealed
-    的页面高度差恒为 0。窄屏保持 min-height，那里这一块本来就要能换行。
+    的页面高度差恒为 0。窄屏同值改为 min-height 保底：曲名、演唱者都
+    单行化之后揭晓内容的高度已确定（封面对 56u 最高），64u 恒高于内容；
+    保留可撑高是给极端长内容留活路，而不是恢复旧行为。
   */
   .sc-revealslot {
     height: calc(64 * var(--u));
@@ -706,14 +708,22 @@
        不覆盖的话 min-height 根本不起作用，窄屏的条会被钉死在桌面的高度上 */
     .sc-bar {
       height: auto;
-      min-height: max(56px, calc(74 * var(--u)));
+      /* 74u 包不住揭晓态：数字列换成 58u 缩略图后文字列窄了 ~45u，
+         一行曲名被挤成两行（内容高恒为 22u*1.22*2 + 2u + 14.5u*1.5 ≈ 77.4u），
+         每条顶高 3.4px、四条就是 13px —— 答题→揭晓页面长高、下一题又缩回。
+         78u 把两行包住，两态与逐题的条都恒等高（演唱者行高已在 OptionBar 钉死，
+         内容高度是常量）。56px 保底：条是触控目标，--u 低钳位时不能低于触控标准 */
+      min-height: max(56px, calc(78 * var(--u)));
     }
     .sc-options {
       gap: calc(11 * var(--u));
     }
     .sc-revealslot {
       height: auto;
-      min-height: calc(38 * var(--u));
+      /* 38u 时答题（空槽）→揭晓（封面对 56u 最高）页面会长高再缩回，快玩就一长一短。
+         64u 与桌面定高同值：曲名/演唱者都单行化后内容恒矮于它，两态高度差回到 0；
+         仍用 min-height 是给极端长内容留撑高的活路，不是恢复旧行为 */
+      min-height: calc(64 * var(--u));
     }
     .sc-rail-spectrum {
       height: calc(112 * var(--u));
