@@ -124,3 +124,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 6: 删除 480px 封面档，缩略图接管揭晓与 CDN 前缀
+
+**Date**: 2026-09-02
+**Task**: 删除 480px 封面档，缩略图接管揭晓与 CDN 前缀
+**Branch**: `main`
+
+### Summary
+
+封面两档里 480px 的 cover 从未以超过 160px 的尺寸显示过（单机揭晓槽 56u、歌牌 30u，都比旁边用 thumb 显示到 58u 的选项条还小），删掉这一档让「揭晓槽 = 选项条已下载的同一资源」成立。Play.tsx / Karuta.tsx 两处揭晓改用与 OptionBar/Result/shareCard 相同的 `/thumb/<id>.webp` 模板字符串（5 处写法一致，不抽助手），协议删 `RevealView.coverUrl` 与 `api.ts` 的 `song.coverUrl`（URL 可由 id 推导，留字段等于两套拼法），服务端删 `/cover/` 静态挂载与 `assetBase`/`coverUrl()`/`PUBLIC_ASSET_BASE`（动手前核对「切片绝不能走 CDN」红线在 DEPLOY.md 与 secrecy spec 完整存续），prepare-audio 只编 thumb 且幂等 stat 改 thumbPath（增量跑不退化全量，产物 12MB→1.8MB），本地 assets/cover 244 文件已删（线上删除留作部署动作）。测试用反向断言 `not.toHaveProperty('coverUrl')` 挡字段加回来，新增 /cover 下线测试——发现 SPA 兜底让已删路由返回 200 text/html 而非 404，断言改为 content-type 不匹配 image/；「答案必在选项里」断言补注释说明它兼负揭晓命中缓存的自动化依据。检查代理另修 5 处标识符 grep 漏网的 spec prose 陈旧引用（挂载清单、Last-Modified 段、体积数字等）。浏览器实测整局单机（内置浏览器 Web Audio 无声，全部走 15s 限时揭晓）：每题选项恰好 4 条 /thumb/ 请求、10 次揭晓全部缓存命中零新增、揭晓槽 49.8px = 56u 不变，整局真实传输仅 246KB，重复加载字节全为 0。沉淀两条 spec：SPA 兜底下删静态路由不能断言 404（断言 content-type）、删除跨层概念的残留清扫必须扫 prose 与路径字面量而非只扫标识符。遗留：线上 assets/cover 删除属部署动作需单独确认；曲目数 233/234/244 在 spec 与文档间的漂移是本次之前的历史遗留，未处理。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e7a1454` | perf(assets): 删除 480px 封面档，揭晓改用 thumb 并移除 PUBLIC_ASSET_BASE |
+| `a4a46d6` | docs: 同步封面档下线后的文档陈述与产物体积数字 |
+| `98e9c28` | docs(spec): 同步挂载与协议陈述，沉淀 SPA 兜底断言与删除清扫经验 |
+
+### Status
+
+[OK] **Completed**
