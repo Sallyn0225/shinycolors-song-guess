@@ -352,10 +352,10 @@ export function Play({ session, onFinish, onQuit }: Props) {
       </div>
 
       {/* ── 选项 ──────────────────────────────────────────── */}
-      {/* relative 仅为承接倒计时覆盖层。倒计时期间选项已在位（disabled）：
-          开播瞬间只揭掉覆盖层，页面不跳动，视线也不用换位置 */}
+      {/* 倒计时期间选项已在位（disabled）：ReadyCountdown 的全屏半透明白底
+          洗住它们，开播瞬间只揭掉覆盖层，页面不跳动，视线也不用换位置 */}
       <section
-        className="sc-options relative mt-2 flex flex-col"
+        className="sc-options mt-2 flex flex-col"
         aria-label="选项"
       >
         {question?.options.map((o, i) => (

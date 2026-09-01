@@ -74,8 +74,11 @@ export function ReadyCountdown({ seconds = 3, onDone, label, size = 96 }: Props)
     <div
       role="timer"
       aria-label={`${label}，还剩 ${num} 秒`}
-      // pointer-events-none：盖在选项区上但不接任何点击，「退出本局」永远可达
-      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      // fixed：数字要在屏幕中央，而不是选项区的中央 —— 大号数字直接压在选项
+      // 文字上读不清，垫一层半透明白底把底下的内容洗淡，数字才立得住。
+      // pointer-events-none：盖住整屏但不接任何点击，「退出本局」永远可达
+      className="anim-appear pointer-events-none fixed inset-0 z-10 flex items-center justify-center"
+      style={{ background: 'var(--color-surface-lit)' }}
     >
       <span
         ref={numRef}
