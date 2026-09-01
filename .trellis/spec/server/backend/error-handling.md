@@ -99,7 +99,7 @@ The four kinds that exist in this package, all justified:
 
 ```ts
 socket.send(...)  // wrapped — the connection may have closed between check and write
-fs.readFile(...)  // wrapped — missing slice/cover becomes a 404
+fs.readFile(...)  // wrapped — missing slice/thumb becomes a 404
 applyLayout(...)  // wrapped — DealError from game-core becomes { code: 'bad_state' }
 pickNextReading() // wrapped — the "no readable song" throw means the match is over
 ```

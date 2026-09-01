@@ -37,6 +37,16 @@ The suite pins cross-package agreement — `/api/difficulties` is asserted equal
 `DIFFICULTY_PRESETS` from `@scg/shared`. Keep adding that kind of assertion for any endpoint
 that merely reflects shared constants; it is the cheapest way to catch a drifting contract.
 
+### A removed static route does not 404 under the SPA fallback
+
+`app.ts`'s `setNotFoundHandler` answers every non-`/api/` GET with `index.html`. Once
+`apps/web/dist` exists — locally after `pnpm --filter @scg/web build`, and always in the
+production image — a path whose static mount was deleted returns **200 text/html**, not 404.
+`expect(res.statusCode).toBe(404)` on such a path only passes on machines without a web
+build, so it flakes by environment. The invariant that holds in every shape is the content
+type: `expect(res.headers['content-type']).not.toMatch(/^image\//)` proves the image bytes
+are gone regardless of the fallback. (The dropped `/cover/` mount is the working example.)
+
 ---
 
 ## `ws/room.test.ts` — a real socket against a real listener

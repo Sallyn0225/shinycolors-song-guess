@@ -343,11 +343,11 @@ A screen the player acts on under a clock has to be measurable, not eyeballed. T
   ends; the top of the page scrolls out of reach because scrollbars only travel downward.
   `.sc-vfit` uses `safe center`, which falls back to `flex-start` the moment content overflows.
 - **A state transition that widens one column re-wraps its row-mates.** The solo reveal swaps
-  the option bar's number glyph (~13px) for a 58u cover thumb; the title column loses ~45u and
+  the option bar's number glyph (~13px) for a 58u thumb; the title column loses ~45u and
   one-line titles wrap to two, so every bar grew 74 → 77.4px and answering → revealed pulsed
   the 375px page by 13px. A row's reserved height must cover the *worst state* of that row,
   not the current one: the narrow `.sc-bar` floor is 78u (content max = 22u·1.22·2 + 2u +
-  14.5u·1.5 ≈ 77.4u), and the narrow `.sc-revealslot` floor is 64u (the 56u cover is the tallest
+  14.5u·1.5 ≈ 77.4u), and the narrow `.sc-revealslot` floor is 64u (the 56u thumb is the tallest
   element once title and artist are single-lined by `truncate`). Pin every line-height inside
   a height-budgeted container — an inherited ratio re-prices the budget from under you.
 

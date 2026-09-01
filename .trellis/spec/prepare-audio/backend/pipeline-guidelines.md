@@ -38,7 +38,7 @@ because it does not help anyone else.
 scan     songs/ → ScannedSong[]  (+ buildMeta → SongMeta[], written to .cache/scan.json)
 analyze  one ffmpeg pass per song → loudness + silences        [StageCache]
 slice    planSlices → encode opus (+ aac) → normalizeMtimes → selfCheck   [StageCache]
-covers   source jpg → cover/thumb webp                          [StageCache]
+covers   source jpg → thumb webp                                  [StageCache]
 manifest analyses + specs → manifest.public/private.json + boundary assertion
 audit    serve the local audit page
 review   risk report → REVIEW_MD / REVIEW_JSON

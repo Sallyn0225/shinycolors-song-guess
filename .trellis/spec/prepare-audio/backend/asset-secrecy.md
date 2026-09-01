@@ -97,7 +97,7 @@ does not exist gives old Safari a 404 instead of audio, which is worse than no f
 
 `scan.ts`, `slice.ts`, `covers.ts` and `manifest.ts` only ever **write**. There is no orphan
 reaping anywhere. Delete a directory from `songs/`, re-run `pnpm assets all`, and the old
-song's 6 slices, 2 webps and 2 cache entries stay on disk — invisible to the manifest but
+song's 6 slices, 1 webp and 2 cache entries stay on disk — invisible to the manifest but
 still served by `fastifyStatic`, which is exactly the leftover-file oracle this document
 exists to prevent.
 
@@ -111,7 +111,7 @@ So the order is fixed:
 1. read the doomed sliceIds out of the **current** `manifest.private.json` before touching
    anything;
 2. delete the `songs/` directory;
-3. delete those slices, `cover/<songId>.webp`, `thumb/<songId>.webp`, and
+3. delete those slices, `thumb/<songId>.webp`, and
    `.cache/{analysis,slices}/<songId>.json`;
 4. only then `pnpm assets all`.
 

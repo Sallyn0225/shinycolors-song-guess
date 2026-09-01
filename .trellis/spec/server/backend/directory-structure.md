@@ -32,7 +32,7 @@ deliberately:
 1. `Fastify({ logger: false, trustProxy })`
 2. the empty-body JSON content-type parser
 3. `Catalog.load()` and `new SoloSessionStore(catalog)`
-4. static mounts for `/cover/` and `/thumb/`
+4. static mount for `/thumb/`
 5. `new Hub(catalog)`, `fastifyWebsocket`, the `/ws` route
 6. the room clip route, `onClose`, `/api/health`
 7. **the optional web root and the SPA `setNotFoundHandler`**

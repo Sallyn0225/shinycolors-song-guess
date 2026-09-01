@@ -15,7 +15,7 @@
 | `assets/manifest.public.json` | `id, title, artist, unit, unitColor` | conceptually yes — the client is told this |
 | `assets/manifest.private.json` | `slices[]`, `durationSec`, `neighbours`, `confusableGroup`, `album`, loudness, `sliceIndex` map | **never** |
 
-Neither file is served as a static asset — only `assets/cover` and `assets/thumb` are
+Neither file is served as a static asset — only `assets/thumb` is
 mounted. The private manifest exists only in server memory, and `sliceId → songId` is the
 only mapping that can turn a clip back into an answer.
 
@@ -45,9 +45,10 @@ and a `404` on a miss.
 `sendClip()` validates the resolved slice id against `/^[0-9A-Z]{20}$/` before touching the
 filesystem — that regex is the path-traversal guard, since the id becomes a path segment.
 
-**Clips must never be served from a CDN.** `SERVER_CONFIG.assetBase` deliberately applies to
-covers and thumbnails only: a one-shot token has to be validated by this process, and a CDN
-both removes that check and caches the same clip for repeated fetches.
+**Clips must never be served from a CDN.** Thumbnails are immutable files with no answer
+information, so edge caching them is fine — but a clip is different: a one-shot token has
+to be validated by this process, and a CDN both removes that check and caches the same
+clip for repeated fetches.
 
 ### Serving audio to a screen that has no session
 
@@ -87,8 +88,8 @@ Three rules in `app.ts` that look like performance tuning and are not:
 - **Clips: `cache-control: no-store`.** Whether a request hits cache is itself observable
   timing information.
 - **Everything static: `lastModified: false`.** The build order is song-title
-  lexicographic order, so `Last-Modified` on 233 covers reconstructs the sort. Both
-  `fastifyStatic` mounts disable it, and `tools/prepare-audio` writes a `CANONICAL_MTIME`
+  lexicographic order, so `Last-Modified` on the cover thumbs reconstructs the sort. Every
+  `fastifyStatic` mount disables it, and `tools/prepare-audio` writes a `CANONICAL_MTIME`
   of `2020-01-01` to the files themselves for the same reason.
 - **`index.html`: `cache-control: no-cache`, everything else `immutable, maxAge 365d`.**
   Not secrecy — Vite output is content-hashed, but a cached `index.html` pins a user to a

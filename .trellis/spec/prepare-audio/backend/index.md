@@ -1,7 +1,7 @@
 # @scg/prepare-audio Guidelines
 
 > `tools/prepare-audio` — a Node CLI that turns `songs/` (233 off-vocal mp3s) into
-> `assets/` (slices, covers, two manifests). It runs offline; it is not part of the server.
+> `assets/` (slices, thumbs, two manifests). It runs offline; it is not part of the server.
 
 ---
 
@@ -15,7 +15,7 @@ src/buildMeta.ts    scan + resolve → SongMeta, confusable groups
 src/analyze.ts      one ffmpeg pass → loudness + silence intervals
 src/planSlices.ts   choose 6 slice start points under a degrade ladder
 src/slice.ts        encode opus (+ optional AAC fallback), pad, id generation
-src/covers.ts       cover/thumb webp
+src/covers.ts       thumb webp
 src/manifest.ts     write manifest.public.json / manifest.private.json + boundary assertion
 src/similarity.ts   title-similarity neighbours, precomputed for distractor selection
 src/review.ts       risk report; src/devserver.ts + src/pages/* serve a local review UI

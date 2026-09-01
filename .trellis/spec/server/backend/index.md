@@ -10,7 +10,7 @@
 ```
 src/index.ts        process entry: keepAlive tuning, listen, SIGTERM
 src/app.ts          buildApp(): all routes, static mounts, /ws registration
-src/config.ts       SERVER_CONFIG from env, coverUrl()
+src/config.ts       SERVER_CONFIG from env
 src/catalog.ts      Catalog.load() — the public/private manifest split
 src/soloSessions.ts SoloSessionStore — in-memory single-player sessions
 src/ws/hub.ts       socket ↔ session ↔ room routing, zod validation, rate limit,

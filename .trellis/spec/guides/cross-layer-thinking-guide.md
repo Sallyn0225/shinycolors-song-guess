@@ -123,6 +123,34 @@ After implementation:
 
 ---
 
+## Identifier Deletion Sweep
+
+Deleting a field, route, or directory is a contract change that reaches **prose**, not
+just code. An identifier-only grep comes back clean while specs and docs still describe
+the removed mechanism — and a spec line describing a mechanism is an instruction someone
+will follow.
+
+### Checklist: After Deleting A Cross-Layer Concept
+
+- [ ] Grep the code identifiers (field name, function name, env key, constant) across
+      all layers
+- [ ] Also grep the **path/route literal** and the **generic word** (`/cover/`, `cover`):
+      specs and docs mention paths in prose ("static mounts for `/cover/` and `/thumb/`",
+      "missing slice/cover becomes a 404") that identifier greps never hit
+- [ ] Include `.trellis/spec/**`, README/DEPLOY/PROGRESS, and env/compose files in the
+      sweep — these are the places prose references live
+- [ ] Re-derive any **numbers that depended on the deleted thing** (file counts, byte
+      totals, test counts) — a rewritten figure next to a stale neighbor is a fresh
+      contradiction
+
+**Real-world example**: Dropping the 480px cover tier, the implementer's grep for
+`coverUrl|PUBLIC_ASSET_BASE|coverPx|COVER_DIR|coverPath` came back empty, yet four spec
+files still referenced the removed mount / env mechanism in prose, and one rewritten
+size figure (212 MB) sat next to an un-recomputed count (1404 = 234 × 6, actual
+1464 = 244 × 6). All were caught only by a second, prose-aware sweep.
+
+---
+
 ## Cross-Platform Template Consistency
 
 In Trellis, command templates (e.g., `record-session.md`) exist in **multiple platforms** with identical or near-identical content. This is a cross-layer boundary.
