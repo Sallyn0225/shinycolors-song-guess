@@ -68,7 +68,8 @@ export const SERVER_CONFIG = {
   trustProxy: bool('TRUST_PROXY'),
 
   /**
-   * 封面/缩略图的外部前缀，可以指向 CDN。
+   * 封面的外部前缀，可以指向 CDN。**只作用于服务端下发的 `coverUrl`** ——
+   * 缩略图是前端写死的相对路径 `/thumb/…`，不受它影响，永远走本进程。
    *
    * **切片绝不能走 CDN**：clip token 是一次性的、必须由本进程校验，
    * 放到 CDN 上等于取消了这层校验，还会因为缓存让同一个切片被反复取到。
