@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "R4 新增 ClipRail 组件与 Play.tsx 接线；此文点名 src/audio.ts 是 UI 改动禁区，本次要在其中加只读 getter，必须先读边界规则"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "ClipRail 是新 ui/ 组件，需遵守 shape primitives、--u 尺寸、a11y 基线与 props 约定"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "rAF 计时 UI、clip-path 陷阱、--u 尺寸与对比度规则——ClipRail 全部命中"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "ClipRail 的 rAF effect 与 Play.tsx 的 useCallback 取值函数，需遵守 effect/ref/cancellation 约定"}
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "R1/R2 改的两个常量都在此文管辖；它还写明「改 preset 的三步」以及 2.0s 宽限期原本被否决的理由，本次要翻面改写"}
+{"file": ".trellis/spec/prepare-audio/backend/pipeline-guidelines.md", "reason": "R3 只跑 scan + manifest 两个 stage 靠的就是 stage 缓存语义，改动前须确认增量假设成立"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "R3 的曲目数/切片数散落在 web、server、tools、文档四层；此文记录的正是「数字没跟着重算」这类漏网"}

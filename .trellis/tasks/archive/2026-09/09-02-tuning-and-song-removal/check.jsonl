@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验证 ClipRail 的 rAF/clip-path/--u/对比度是否达标，以及 audio.ts 层边界有没有被越过"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四个禁区模块的规则；本次动了 src/audio.ts，diff 必须只有新增字段与只读 getter"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "prose 感知的第二遍扫描——本任务验收要求 grep 不到 感謝のコントレイル / 617.8 / 1464 / 244 的陈旧陈述"}
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "核对两个常量的注释是否写清取值依据，以及 spec 里 2.0s 的陈述是否已翻面"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "核对「新建 ClipRail 而非复用 PrismRail」这个决定是否站得住，别造重复组件"}
+{"file": ".trellis/spec/prepare-audio/backend/quality-guidelines.md", "reason": "R3 改了 planSlices 测试与 overrides.json，需按该包的验证约定复核"}
