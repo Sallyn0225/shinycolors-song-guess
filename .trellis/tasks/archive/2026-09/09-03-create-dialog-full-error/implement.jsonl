@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四层职责与禁区规则。本任务全部改动落在 screens/Lobby.tsx，net/ws.ts 一行不许动（R4）——先确认「弹窗内接错误」不需要碰传输层"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "新增的弹窗内错误与提交中两个状态该放哪一层。既有 error 归大厅页所有（房间码加入仍走它，R1），弹窗错误必须是另一个 state 而不是复用同一个"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "ws 消息 effect 里把 error 分流到弹窗/大厅两处的写法，以及 R2 断线兜底：socket 断开时要有清理路径把提交中态放回可点，不能靠组件卸载"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "弹窗内错误条与按钮禁用态的既有语汇：role=\"alert\"、Button 的 disabled 用法、VisibilityChoice 置灰 + 改写 hint 的那套写法就是 R3 要复用的对象"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "禁用态不靠颜色单独表达、对比度与 --u 尺寸规则（AC7），以及本包的验证命令（AC8）"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "ServerMsg 判别联合的收窄写法；分流 error 时要按 t/code 收窄，不能靠 as 断言"}
+{"file": ".trellis/spec/server/backend/error-handling.md", "reason": "server_busy 的语义与两条文案的来源。R4 要求复用既有错误码、不改 hub.ts 的判断顺序，读这里确认前端不需要按 code 做特判也能正确显示"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "error 与 roomList 的契约正文。R3 用到的 limits.publicMax / waitingTotal / busyTotal 都由 roomList 下发，确认本次只读不扩协议"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "弹窗内的错误条与占用行应当复用大厅页既有的呈现语汇，而不是另画一套"}

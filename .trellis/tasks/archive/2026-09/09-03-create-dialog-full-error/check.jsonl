@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验证口径与命令（AC8），以及禁用态、对比度这类会被顺手写错的复核项"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "复核弹窗内错误带 role=\"alert\"、禁用态不靠颜色单独表达、占用提示与 VisibilityChoice 同款语汇（AC7 / R3）"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "复核禁区：net/ws.ts、api.ts、audio.ts、features/ 既有文件一行未改（父任务 AC-P4）"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "复核弹窗错误与大厅错误是两个独立状态：房间码加入失败仍显示在大厅页原处（AC5），弹窗关闭与重新提交都会清空（AC2 / AC6）"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "复核提交中态的所有退出路径都闭合：收到 room、收到 error、socket 断开三条，无一条会把按钮永久卡死（R2 / AC4）"}
+{"file": ".trellis/spec/server/backend/error-handling.md", "reason": "复核未新增错误码、未改 hub.ts 的配额判断与文案（R4）"}
