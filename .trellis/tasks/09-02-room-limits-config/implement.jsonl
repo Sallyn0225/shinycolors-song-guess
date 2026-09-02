@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "roomList / RoomSummary 的契约正文，本次要扩展 roomList 并修订「私人房不计入总数」这条表述"}
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "常量与旋钮的取值规矩，新增的两个分类上限要遵守同一套写法"}
+{"file": ".trellis/spec/server/backend/index.md", "reason": "config.ts / hub.ts 的职责边界与 buildApp({rooms}) 可注入配额的由来"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "私人房保密性的既有约束，决定 privateTotal 能下发到什么粒度"}
+{"file": ".trellis/spec/server/backend/error-handling.md", "reason": "ErrCode 的选用规矩：本次刻意复用 server_busy / bad_state 而不新增错误码"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "Lobby 计数行与 VisibilityChoice 置灰要沿用既有组件与样式约定"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "新增的 limits / privateTotal 两个 state 的放置与 null 首帧处理"}

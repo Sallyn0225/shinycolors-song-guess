@@ -376,6 +376,241 @@ describe('MAX_ROOMS=0 是应急关停开关', () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────
+// 分类上限与私人房开关
+// ─────────────────────────────────────────────────────────
+
+describe('公开房分类上限', () => {
+  let app: FastifyInstance
+  let url: string
+
+  beforeAll(async () => {
+    ;({ app, url } = await makeApp({
+      rooms: { max: 1000, publicMax: 1, maxPerIp: 1000, createPerMin: 1000 },
+    }))
+  }, 30_000)
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('公开房满时拒绝第 2 个公开房，但同一时刻私人房仍能建', async () => {
+    const first = await Client.connect(url)
+    first.send({ t: 'createRoom', nickname: 'A', name: '公开一', visibility: 'public' })
+    await first.wait('room')
+
+    const second = await Client.connect(url)
+    second.send({ t: 'createRoom', nickname: 'B', name: '公开二', visibility: 'public' })
+    const err = await second.wait('error')
+    expect(err.code).toBe('server_busy')
+    expect(err.message).toContain('公开房间已满')
+
+    // 私人房不吃公开房的上限
+    const priv = await Client.connect(url)
+    priv.send({ t: 'createRoom', nickname: 'C', name: '私人照常', visibility: 'private' })
+    expect((await priv.wait('room')).room.visibility).toBe('private')
+    first.close()
+    second.close()
+    priv.close()
+  })
+})
+
+describe('私人房分类上限', () => {
+  let app: FastifyInstance
+  let url: string
+
+  beforeAll(async () => {
+    ;({ app, url } = await makeApp({
+      rooms: { max: 1000, privateMax: 1, maxPerIp: 1000, createPerMin: 1000 },
+    }))
+  }, 30_000)
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('私人房满时拒绝第 2 个私人房，但同一时刻公开房仍能建', async () => {
+    const first = await Client.connect(url)
+    first.send({ t: 'createRoom', nickname: 'A', name: '私人一', visibility: 'private' })
+    await first.wait('room')
+
+    const second = await Client.connect(url)
+    second.send({ t: 'createRoom', nickname: 'B', name: '私人二', visibility: 'private' })
+    const err = await second.wait('error')
+    expect(err.code).toBe('server_busy')
+    expect(err.message).toContain('私人房间已满')
+
+    // 公开房不吃私人房的上限
+    const pub = await Client.connect(url)
+    pub.send({ t: 'createRoom', nickname: 'C', name: '公开照常', visibility: 'public' })
+    expect((await pub.wait('room')).room.visibility).toBe('public')
+    first.close()
+    second.close()
+    pub.close()
+  })
+})
+
+describe('私人房关闭的两条配置路', () => {
+  it('allowPrivate: false 时私人建房被拒（bad_state），公开房不受影响', async () => {
+    const app = await buildApp({
+      rooms: { max: 1000, allowPrivate: false, maxPerIp: 1000, createPerMin: 1000 },
+    })
+    await app.listen({ port: 0, host: '127.0.0.1' })
+    const addr = app.server.address()
+    const url = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const priv = await Client.connect(url)
+      priv.send({ t: 'createRoom', nickname: 'A', name: '进不去', visibility: 'private' })
+      const err = await priv.wait('error')
+      expect(err.code).toBe('bad_state')
+      expect(err.message).toContain('本站未开放私人房间')
+
+      const pub = await Client.connect(url)
+      pub.send({ t: 'createRoom', nickname: 'B', name: '公开照常', visibility: 'public' })
+      expect((await pub.wait('room')).room.visibility).toBe('public')
+      priv.close()
+      pub.close()
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('privateMax: 0 与 allowPrivate: false 走同一条拒绝路径', async () => {
+    const app = await buildApp({
+      rooms: { max: 1000, privateMax: 0, maxPerIp: 1000, createPerMin: 1000 },
+    })
+    await app.listen({ port: 0, host: '127.0.0.1' })
+    const addr = app.server.address()
+    const url = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const c = await Client.connect(url)
+      c.send({ t: 'createRoom', nickname: 'A', name: '进不去', visibility: 'private' })
+      const err = await c.wait('error')
+      expect(err.code).toBe('bad_state')
+      expect(err.message).toBe('本站未开放私人房间')
+      c.close()
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('私人房关闭时，漏传 visibility 的请求同样被拒 —— 不静默降级成公开', async () => {
+    const app = await buildApp({
+      rooms: { max: 1000, allowPrivate: false, maxPerIp: 1000, createPerMin: 1000 },
+    })
+    await app.listen({ port: 0, host: '127.0.0.1' })
+    const addr = app.server.address()
+    const url = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const c = await Client.connect(url)
+      // schema 默认 private：降级等于替玩家做了「公开你的房间」这个决定，所以必须拒
+      c.send({ t: 'createRoom', nickname: 'A', name: '老客户端' } as ClientMsg)
+      const err = await c.wait('error')
+      expect(err.code).toBe('bad_state')
+      expect(err.message).toContain('本站未开放私人房间')
+      c.close()
+    } finally {
+      await app.close()
+    }
+  })
+})
+
+describe('总闸与分类满的顺序', () => {
+  it('max: 0 时仍返回 server_busy，文案是「服务器房间已满」而不是分类满', async () => {
+    const app = await buildApp({ rooms: { max: 0, publicMax: 1000, privateMax: 1000 } })
+    await app.listen({ port: 0, host: '127.0.0.1' })
+    const addr = app.server.address()
+    const url = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const c = await Client.connect(url)
+      c.send({ t: 'createRoom', nickname: 'A', name: '进不去', visibility: 'public' })
+      const err = await c.wait('error')
+      expect(err.code).toBe('server_busy')
+      expect(err.message).toBe('服务器房间已满，稍后再试')
+      c.close()
+    } finally {
+      await app.close()
+    }
+  })
+})
+
+describe('roomList 的私人计数与上限下发', () => {
+  let app: FastifyInstance
+  let url: string
+
+  beforeAll(async () => {
+    ;({ app, url } = await makeApp({
+      rooms: { max: 1000, maxPerIp: 1000, createPerMin: 1000 },
+    }))
+  }, 30_000)
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('建 1 公开 + 1 私人后：rooms 只有公开那条，privateTotal 为 1，limits 三字段正确', async () => {
+    const watcher = await Client.connect(url)
+    watcher.send({ t: 'rooms', subscribe: true })
+    const before = await watcher.wait('roomList')
+    const waitingBase = before.waitingTotal
+    const privateBase = before.privateTotal
+
+    const pub = await Client.connect(url)
+    pub.send({ t: 'createRoom', nickname: 'P', name: '公开房', visibility: 'public' })
+    const pubRoom = await pub.wait('room')
+
+    const priv = await Client.connect(url)
+    priv.send({ t: 'createRoom', nickname: 'Q', name: '私人房不要看', visibility: 'private' })
+    const privRoom = await priv.wait('room')
+
+    // 私人房建立只改变 privateTotal，公开列表的条目与两个 total 都不动
+    const list = await watcher.waitList((m) => m.privateTotal === privateBase + 1)
+    expect(list.rooms.some((r) => r.code === privRoom.room.code)).toBe(false)
+    expect(list.rooms.some((r) => r.code === pubRoom.room.code)).toBe(true)
+    expect(list.waitingTotal).toBe(waitingBase + 1)
+    expect(list.busyTotal).toBe(0)
+
+    // 注入只覆盖了部分配额，缺省字段从 SERVER_CONFIG.rooms 补齐 ——
+    // 环境未配置时 publicMax/privateMax 的默认是 200（MAX_ROOMS 的字面量默认值），
+    // 而不是跟随注入的 max。下发前已各自 min 掉总闸
+    expect(list.limits).toEqual({
+      publicMax: 200,
+      privateMax: 200,
+      allowPrivate: true,
+    })
+
+    // 保密回归：断言原始 JSON 全文，任何新字段泄露都会被抓到
+    const raw = JSON.stringify(list)
+    expect(raw).not.toContain(privRoom.room.code)
+    expect(raw).not.toContain('私人房不要看')
+    watcher.close()
+    pub.close()
+    priv.close()
+  })
+
+  it('lobbyLimits 把分类上限 min 到总闸：max: 2, publicMax: 10 下发 publicMax === 2', async () => {
+    const minApp = await buildApp({ rooms: { max: 2, publicMax: 10 } })
+    await minApp.listen({ port: 0, host: '127.0.0.1' })
+    const addr = minApp.server.address()
+    const minUrl = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const c = await Client.connect(minUrl)
+      c.send({ t: 'rooms', subscribe: true })
+      const list = await c.wait('roomList')
+      expect(list.limits.publicMax).toBe(2)
+      expect(list.limits.privateMax).toBe(2)
+      c.close()
+    } finally {
+      await minApp.close()
+    }
+  })
+})
+
 describe('等待太久的房间会被自动关闭', () => {
   let app: FastifyInstance
   let url: string

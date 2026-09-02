@@ -2,6 +2,7 @@ import {
   ROOM_LIST_MAX,
   clientMsgSchema,
   sanitizeRoomName,
+  type LobbyLimits,
   type PlayerId,
   type RoomSummary,
   type ServerMsg,
@@ -196,7 +197,38 @@ export class Hub {
       })
   }
 
-  private buildList(): { rooms: RoomSummary[]; waitingTotal: number; busyTotal: number } {
+  /** 按可见性分组的房间数。准入判断与列表下发共用同一份口径 */
+  private counts(): { publicCount: number; privateCount: number } {
+    let publicCount = 0
+    let privateCount = 0
+    for (const r of this.rooms.values()) {
+      if (r.visibility === 'public') publicCount++
+      else privateCount++
+    }
+    return { publicCount, privateCount }
+  }
+
+  /** 私人房是否开放。两条配置路（开关 / 上限为 0）在这里合并成一个判断 */
+  private get privateAllowed(): boolean {
+    return this.limits.allowPrivate && this.limits.privateMax > 0
+  }
+
+  /** 下发给客户端的上限。min 掉总闸：分母永远是实际达得到的数 */
+  private lobbyLimits(): LobbyLimits {
+    return {
+      publicMax: Math.min(this.limits.publicMax, this.limits.max),
+      privateMax: Math.min(this.limits.privateMax, this.limits.max),
+      allowPrivate: this.privateAllowed,
+    }
+  }
+
+  private buildList(): {
+    rooms: RoomSummary[]
+    waitingTotal: number
+    busyTotal: number
+    privateTotal: number
+    limits: LobbyLimits
+  } {
     const all = this.publicRooms()
     let waitingTotal = 0
     let busyTotal = 0
@@ -205,8 +237,15 @@ export class Hub {
       if (r.status === 'waiting') waitingTotal++
       else busyTotal++
     }
-    // 两个 total 统计的是**截断前**的全量，客户端才能显示「另有 N 个未显示」
-    return { rooms: all.slice(0, ROOM_LIST_MAX).map((r) => r.summary()), waitingTotal, busyTotal }
+    // 两个 total 统计的是**截断前**的全量，客户端才能显示「另有 N 个未显示」。
+    // privateTotal 只是个数 —— 私人房的可定位字段（码/名/房主/状态）一个都不出门
+    return {
+      rooms: all.slice(0, ROOM_LIST_MAX).map((r) => r.summary()),
+      waitingTotal,
+      busyTotal,
+      privateTotal: this.counts().privateCount,
+      limits: this.lobbyLimits(),
+    }
   }
 
   private signature(): string {
@@ -328,6 +367,31 @@ export class Hub {
         // 这样服务器整体过载时所有人收到的是同一条消息，而不是各自以为自己被限流
         if (this.rooms.size >= this.limits.max) {
           this.reply(socket, { t: 'error', code: 'server_busy', message: '服务器房间已满，稍后再试' })
+          return
+        }
+        // 私人房被关掉时说「未开放」比说「已满 0/0」诚实。
+        // 漏传 visibility 的老客户端会走到这里被拒 —— schema 默认 private，
+        // 把它降级成 public 等于替玩家做了「公开你的房间」这个决定，所以不降级
+        if (msg.visibility === 'private' && !this.privateAllowed) {
+          this.reply(socket, { t: 'error', code: 'bad_state', message: '本站未开放私人房间' })
+          return
+        }
+        // 分类上限用既有的 server_busy：语义就是「服务器这边容不下了」，由 message 区分哪一类满。
+        // 不新增 ErrCode —— 那会让协议面多一个只有一处会发的分支
+        const counts = this.counts()
+        if (msg.visibility === 'public' && counts.publicCount >= Math.min(this.limits.publicMax, this.limits.max)) {
+          this.reply(socket, {
+            t: 'error',
+            code: 'server_busy',
+            message:
+              this.privateAllowed
+                ? '公开房间已满，可以创建私人房间'
+                : '公开房间已满，稍后再试',
+          })
+          return
+        }
+        if (msg.visibility === 'private' && counts.privateCount >= Math.min(this.limits.privateMax, this.limits.max)) {
+          this.reply(socket, { t: 'error', code: 'server_busy', message: '私人房间已满，稍后再试' })
           return
         }
         let mine = 0

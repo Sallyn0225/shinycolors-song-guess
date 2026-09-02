@@ -40,6 +40,14 @@ function findWebRoot(): string | null {
 }
 
 /**
+ * 先单独求值：两个分类上限（`MAX_PUBLIC_ROOMS` / `MAX_PRIVATE_ROOMS`）的默认值
+ * 要跟随它的**实际取值**而不是字面量 200。只配了 `MAX_ROOMS=50` 的部署者，
+ * 分类上限也该是 50 —— 否则「我把上限调到 50」这句话会在大厅里显示成 `公开 0/200`，
+ * 是个假数字。对象字面量里引用不到自己，所以只能提出来。
+ */
+const MAX_ROOMS = count('MAX_ROOMS', 200)
+
+/**
  * 房间配额。
  *
  * 单独抽成一个类型是为了**可注入** —— `buildApp()` 允许覆盖它，
@@ -48,6 +56,17 @@ function findWebRoot(): string | null {
  */
 export interface RoomQuotas {
   max: number
+  /** 同时存在的公开房间数上限。默认跟随 `max` 的实际取值 */
+  publicMax: number
+  /** 同时存在的私人房间数上限。默认跟随 `max` 的实际取值；设成 0 即关闭私人房 */
+  privateMax: number
+  /**
+   * 是否允许创建私人房间。
+   *
+   * 放在「配额」里是因为它和 `privateMax` 是同一件事的两种写法，
+   * 判断点也只有一个（见 hub 的 `privateAllowed`），拆到别处会让准入逻辑要读两个配置源。
+   */
+  allowPrivate: boolean
   maxPerIp: number
   createPerMin: number
   joinFailPerMin: number
@@ -97,8 +116,14 @@ export const SERVER_CONFIG = {
    * 但会误伤正常用户。
    */
   rooms: {
-    /** 全局同时存在的房间数上限。设成 0 即临时关停建房 */
-    max: count('MAX_ROOMS', 200),
+    /** 全局同时存在的房间数上限。设成 0 即临时关停建房，三道闸里最外层的一道 */
+    max: MAX_ROOMS,
+    /** 公开房间数上限。必须用 `count` 不是 `num`：要能设成 0（关掉这一类房间） */
+    publicMax: count('MAX_PUBLIC_ROOMS', MAX_ROOMS),
+    /** 私人房间数上限。与 `ALLOW_PRIVATE_ROOMS=0` 是等价的两条路，Hub 里合并成一个判断 */
+    privateMax: count('MAX_PRIVATE_ROOMS', MAX_ROOMS),
+    /** 是否允许创建私人房间。默认 true —— 不配置就是今天的行为 */
+    allowPrivate: bool('ALLOW_PRIVATE_ROOMS', true),
     /**
      * 单 IP 同时持有的房间数。
      *

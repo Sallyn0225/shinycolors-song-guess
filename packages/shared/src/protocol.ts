@@ -110,10 +110,26 @@ export interface RoomView {
 }
 
 /**
- * 大厅列表里的一条房间。
+ * 大厅侧的准入信息。随 roomList 下发，供 UI 显示占用与决定建房入口的可用性。
  *
- * **只由公开房间生成** —— 私人房间在任何情况下都不会出现在这个结构里，
- * 也不计入 `roomList` 的两个总数。这是「私人」二字唯一的技术含义。
+ * **这些数只是 UX 输入**：服务端在 createRoom 里独立做同样的判断，
+ * 前端把私人选项置灰只是少一次白跑，不是安全边界。
+ */
+export interface LobbyLimits {
+  /** 公开房上限。已取 min(MAX_PUBLIC_ROOMS, MAX_ROOMS)——不显示一个实际达不到的分母 */
+  publicMax: number
+  privateMax: number
+  /** 私人房是否开放。= ALLOW_PRIVATE_ROOMS && privateMax > 0 */
+  allowPrivate: boolean
+}
+
+/**
+ * 房间列表里的一条房间。
+ *
+ * **只由公开房间生成** —— 私人房间的可定位字段（房间码 / 名称 / 房主 / 状态）
+ * 在任何情况下都不会出现在这个结构里，`waitingTotal` / `busyTotal` 也只统计公开房。
+ * 私人房唯一被下发的是一个**聚合数量**（见 `roomList.privateTotal`）：
+ * 它定位不到任何具体房间，也不缩短 32^6 房间码的枚举成本。
  *
  * 不含建房者 IP、不含对局内容、不含任何曲目线索：列表是公网上匿名可读的面，
  * 放进来的每个字段都等于公开。
@@ -295,8 +311,22 @@ export type ServerMsg =
    *
    * 分组是按**能不能加入**，不是按有没有开局：`busyTotal` 同时包含 `full`（满员还在大厅）
    * 和 `playing`（已开局）。把 `full` 算进一个叫 playing 的字段会让 UI 只能撒谎。
+   *
+   * `privateTotal` 是私人房间的**数量**，不是条目 —— 房间码、名称、房主、状态一个不下发。
+   * 这是对「私人房不出现在 roomList 里」这条旧契约的有意收窄：
+   * 一个聚合计数定位不到任何具体房间，也不缩短 32^6 房间码的枚举成本
+   * （枚举的实际成本由 joinFailPerMin 决定，与知不知道「有几个」无关）。
+   * 换来的是玩家能看懂「为什么建不了房」。公开房总数不另设字段：
+   * `waitingTotal + busyTotal` 已经是它，再加一个就有了两个可能互相矛盾的真相源。
    */
-  | { t: 'roomList'; rooms: RoomSummary[]; waitingTotal: number; busyTotal: number }
+  | {
+      t: 'roomList'
+      rooms: RoomSummary[]
+      waitingTotal: number
+      busyTotal: number
+      privateTotal: number
+      limits: LobbyLimits
+    }
   /**
    * 房间被服务端单方面关闭，客户端应当退回大厅。
    *

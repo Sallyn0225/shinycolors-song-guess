@@ -161,9 +161,17 @@ player shares one bucket. That degrades safely (stricter, not looser) but does m
 is documented in `DEPLOY.md` rather than left to be discovered.
 
 The checks in `createRoom` run in a fixed order, and the order carries meaning: global
-capacity (`server_busy`) before per-IP holdings and rate (`too_many_rooms`), so that an
-overloaded server tells everyone the same thing instead of letting each caller conclude they
-personally were throttled.
+capacity (`server_busy`) first, then visibility admission and the per-visibility caps
+(`bad_state` "private not offered here" / `server_busy` "public full" / `server_busy`
+"private full"), then per-IP holdings and rate (`too_many_rooms`). The invariant is
+**global before class before personal**: an overloaded server tells everyone the same thing
+instead of letting each caller conclude they personally were throttled. Within that frame,
+a closed private-room configuration answers `bad_state` before any "full" wording — "not
+offered here" is more honest than "full 0/0" — and a rejected `private` request is never
+silently downgraded to public: `visibility` defaults to `private` in the schema precisely so
+an old client that omits the field hits the rejection and learns the room would not have
+been exposed. The caps live in `RoomQuotas` alongside `max`; the list the lobby renders takes
+`min(cap, max)` per class so it never shows a denominator that cannot be reached.
 
 `joinRoom` counts **failures** only, and refuses before looking up the code once the bucket is
 full. This is the actual guarantee behind a "private" room: 32^6 is about 1.07 billion codes,

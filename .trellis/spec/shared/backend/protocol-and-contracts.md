@@ -53,10 +53,17 @@ published. `Room.creatorIp` exists for per-IP quotas and is deliberately absent 
 `summary()` and `roomView()`; `apps/server/src/ws/lobby.test.ts` pins the exact key set so a
 future field cannot be added there without someone noticing.
 
-Private rooms never appear in `roomList` and are not counted in its totals. That is the
-entire technical meaning of "private" — see `JOIN_FAIL_PER_MIN` in
-[the server's realtime guidelines](../../server/backend/realtime-guidelines.md) for the other
-half, which is what stops the 6-character code from being enumerated.
+Private rooms never carry an *identifiable* form in `roomList`: no code, no name, no host
+nickname, no status. What the message does carry is `privateTotal`, one aggregate number,
+plus a `limits` object (`publicMax` / `privateMax` / `allowPrivate`). An aggregate count
+identifies no room and does not shorten the 32^6 code enumeration — the cost of guessing a
+code is still governed by `JOIN_FAIL_PER_MIN` in [the server's realtime guidelines](../../server/backend/realtime-guidelines.md).
+
+Two totals stay public-only on purpose: `waitingTotal` and `busyTotal` count public rooms
+exactly (they are pre-truncation totals), so no separate `publicTotal` field exists — adding
+one would create two sources of truth that can drift. The public count shown in the lobby is
+their sum. `limits` is a UX input only; the server re-validates every `createRoom` itself and
+never trusts the client's view of the limits.
 
 ---
 

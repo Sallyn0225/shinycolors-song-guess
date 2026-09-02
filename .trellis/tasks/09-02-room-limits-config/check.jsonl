@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "server 测试写法与验证命令，阶段 4 新增用例要照它"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "核对 privateTotal 的下发没有越过保密边界"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "核对协议扩展是纯加法、注释与实现一致"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "前端 lint / typecheck 与可访问性检查口径"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "config → 协议 → hub → 前端四层的口径一致性检查"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "核对 counts() 与既有 publicRooms() 没有重复口径"}

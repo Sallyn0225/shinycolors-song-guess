@@ -5,6 +5,7 @@ import {
   ROOM_LIST_MAX,
   ROOM_NAME_MAX,
   sanitizeRoomName,
+  type LobbyLimits,
   type RoomSummary,
   type RoomVisibility,
 } from '@scg/shared'
@@ -53,13 +54,20 @@ function writeNickname(v: string): void {
 function VisibilityChoice({
   value,
   onChange,
+  allowPrivate,
 }: {
   value: RoomVisibility
   onChange: (v: RoomVisibility) => void
+  /** 服务端下发的开关。false 只是把私人项置灰（UX），真正的拒绝在服务端 */
+  allowPrivate: boolean
 }) {
   const OPTIONS: { v: RoomVisibility; label: string; hint: string }[] = [
     { v: 'public', label: '公开', hint: '出现在大厅列表里，谁都能进' },
-    { v: 'private', label: '私人', hint: '不进列表，只有拿到房间码的人能进' },
+    {
+      v: 'private',
+      label: '私人',
+      hint: allowPrivate ? '不进列表，只有拿到房间码的人能进' : '本站已关闭私人房间',
+    },
   ]
   return (
     <fieldset className="mt-5">
@@ -71,51 +79,58 @@ function VisibilityChoice({
         コウカイ / VISIBILITY
       </legend>
       <div className="mt-3 flex flex-col" style={{ gap: 'calc(8 * var(--u))' }}>
-        {OPTIONS.map((o) => (
-          <label key={o.v} className="cut-shadow-sm block cursor-pointer">
-            <span
-              className="glass-lit cut-slant relative flex items-center gap-3 px-5 py-3"
-              style={{ minHeight: '44px' }}
+        {OPTIONS.map((o) => {
+          const disabled = o.v === 'private' && !allowPrivate
+          return (
+            <label
+              key={o.v}
+              className={disabled ? 'cut-shadow-sm block opacity-60' : 'cut-shadow-sm block cursor-pointer'}
             >
-              {/* 描边要跟着斜切走，不能用 inset box-shadow —— 见 index.css「坑三」 */}
               <span
-                aria-hidden
-                className="cut-ring cut-ring-slant"
-                style={
-                  {
-                    '--ring': value === o.v ? '2px' : '1.5px',
-                    '--ring-color':
-                      value === o.v ? 'var(--color-accent-ink)' : 'var(--color-primary)',
-                  } as React.CSSProperties
-                }
-              />
-              <input
-                type="radio"
-                name="visibility"
-                value={o.v}
-                checked={value === o.v}
-                onChange={() => onChange(o.v)}
-                className="sr-only"
-              />
-              <span
-                aria-hidden
-                className="block shrink-0"
-                style={{
-                  width: 'calc(10 * var(--u))',
-                  height: 'calc(10 * var(--u))',
-                  // 选中深青、未选浅紫，都是实心：
-                  // inset 阴影会被菱形的 clip-path 削成四个碎点，像个转圈的加载图标
-                  background: value === o.v ? 'var(--color-accent-ink)' : 'var(--color-primary-lt)',
-                  clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)',
-                }}
-              />
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block text-sm font-bold text-ink">{o.label}</span>
-                <span className="mt-0.5 block text-2xs text-ink-sub">{o.hint}</span>
+                className="glass-lit cut-slant relative flex items-center gap-3 px-5 py-3"
+                style={{ minHeight: '44px' }}
+              >
+                {/* 描边要跟着斜切走，不能用 inset box-shadow —— 见 index.css「坑三」 */}
+                <span
+                  aria-hidden
+                  className="cut-ring cut-ring-slant"
+                  style={
+                    {
+                      '--ring': value === o.v ? '2px' : '1.5px',
+                      '--ring-color':
+                        value === o.v ? 'var(--color-accent-ink)' : 'var(--color-primary)',
+                    } as React.CSSProperties
+                  }
+                />
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={o.v}
+                  checked={value === o.v}
+                  onChange={() => onChange(o.v)}
+                  disabled={disabled}
+                  className="sr-only"
+                />
+                <span
+                  aria-hidden
+                  className="block shrink-0"
+                  style={{
+                    width: 'calc(10 * var(--u))',
+                    height: 'calc(10 * var(--u))',
+                    // 选中深青、未选浅紫，都是实心：
+                    // inset 阴影会被菱形的 clip-path 削成四个碎点，像个转圈的加载图标
+                    background: value === o.v ? 'var(--color-accent-ink)' : 'var(--color-primary-lt)',
+                    clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)',
+                  }}
+                />
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block text-sm font-bold text-ink">{o.label}</span>
+                  <span className="mt-0.5 block text-2xs text-ink-sub">{o.hint}</span>
+                </span>
               </span>
-            </span>
-          </label>
-        ))}
+            </label>
+          )
+        })}
       </div>
     </fieldset>
   )
@@ -131,6 +146,10 @@ export function Lobby({ onBack }: Props) {
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null)
   const [waitingTotal, setWaitingTotal] = useState(0)
   const [busyTotal, setBusyTotal] = useState(0)
+  /** 私人房间只以数量出现在协议里 —— 看不到条目，但占用要数得出来 */
+  const [privateTotal, setPrivateTotal] = useState(0)
+  /** null = 还没收到过 roomList。按 null 走保守分支：未知不等于禁止 */
+  const [limits, setLimits] = useState<LobbyLimits | null>(null)
 
   const [creating, setCreating] = useState(false)
   const [roomName, setRoomName] = useState('')
@@ -153,6 +172,8 @@ export function Lobby({ onBack }: Props) {
         setRooms(msg.rooms)
         setWaitingTotal(msg.waitingTotal)
         setBusyTotal(msg.busyTotal)
+        setPrivateTotal(msg.privateTotal)
+        setLimits(msg.limits)
       } else if (msg.t === 'error') {
         setError(msg.message)
       }
@@ -191,7 +212,9 @@ export function Lobby({ onBack }: Props) {
         t: 'createRoom',
         nickname: nick(),
         ...(name ? { name } : {}),
-        visibility,
+        // 私人房关闭时不许留着一个选中却提交不出去的选项；
+        // 发出去的永远是服务端会接受的那一个
+        visibility: effectiveVisibility,
       }),
     )
   }
@@ -210,6 +233,8 @@ export function Lobby({ onBack }: Props) {
 
   const preset = DIFFICULTY_PRESETS[KARUTA_DEFAULTS.difficulty]
   const hidden = Math.max(0, waitingTotal + busyTotal - (rooms?.length ?? 0))
+  /** 上限未知（首帧）时不禁止私人 —— 置灰一个其实开着的选项更糟 */
+  const effectiveVisibility: RoomVisibility = limits !== null && !limits.allowPrivate ? 'public' : visibility
 
   return (
     <main
@@ -342,6 +367,20 @@ export function Lobby({ onBack }: Props) {
           <span lang="ja">ルーム</span> / ROOMS
         </h2>
         <p className="text-2xs text-ink-faint" style={{ letterSpacing: 'var(--tracking-base)' }}>
+          {limits !== null && (
+            <>
+              {/* 占用与上限是一行，等人/进行中是另一行：可见性和能不能加入是两个维度 */}
+              公开 {waitingTotal + busyTotal}/{limits.publicMax} ·{' '}
+              {limits.allowPrivate ? (
+                <>
+                  私人 {privateTotal}/{limits.privateMax}
+                </>
+              ) : (
+                <>私人 已关闭</>
+              )}
+              <br />
+            </>
+          )}
           等人 {waitingTotal} · 进行中 {busyTotal}
         </p>
       </div>
@@ -357,9 +396,11 @@ export function Lobby({ onBack }: Props) {
           ? '连接已断开，列表可能不是最新的'
           : rooms === null
             ? '正在获取房间列表'
-            : rooms.length === 0
-              ? '暂时没有公开房间'
-              : `公开房间 ${rooms.length} 间，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`}
+            : limits === null
+              ? `公开房间 ${rooms.length} 间，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`
+              : limits.allowPrivate
+                ? `公开房间 ${waitingTotal + busyTotal} 间（上限 ${limits.publicMax}），私人房间 ${privateTotal} 间（上限 ${limits.privateMax}），等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`
+                : `公开房间 ${waitingTotal + busyTotal} 间（上限 ${limits.publicMax}），私人房间已关闭，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`}
       </p>
 
       <div className="mt-5 flex flex-col" style={{ gap: 'calc(8 * var(--u))' }}>
@@ -482,6 +523,7 @@ export function Lobby({ onBack }: Props) {
         <CreateDialog
           name={roomName}
           visibility={visibility}
+          allowPrivate={limits === null || limits.allowPrivate}
           onName={setRoomName}
           onVisibility={setVisibility}
           onCancel={() => setCreating(false)}
@@ -495,6 +537,7 @@ export function Lobby({ onBack }: Props) {
 function CreateDialog({
   name,
   visibility,
+  allowPrivate,
   onName,
   onVisibility,
   onCancel,
@@ -502,6 +545,8 @@ function CreateDialog({
 }: {
   name: string
   visibility: RoomVisibility
+  /** 上限未知（首帧）时按开放处理 —— 未知不等于禁止 */
+  allowPrivate: boolean
   onName: (v: string) => void
   onVisibility: (v: RoomVisibility) => void
   onCancel: () => void
@@ -546,7 +591,7 @@ function CreateDialog({
           </span>
         </label>
 
-        <VisibilityChoice value={visibility} onChange={onVisibility} />
+        <VisibilityChoice value={allowPrivate ? visibility : 'public'} onChange={onVisibility} allowPrivate={allowPrivate} />
 
         <div className="mt-7 flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
           <Button variant="primary" size="lg" full onClick={onConfirm}>
