@@ -57,7 +57,29 @@ class Client {
     throw new Error(`等待 ${t} 超时。已收到：${this.received.map((m) => m.t).join(', ') || '（空）'}`)
   }
 
-  /** 等到订阅推送里出现满足条件的一版列表 */
+  /**
+   * 等一条满足条件的消息。
+   *
+   * `wait(t)` 只取缓冲区里**第一条**同类型消息，断不了「先 peer offline、后 peer online」
+   * 这种同类型的先后序列 —— 那种断言必须按内容找。
+   */
+  async waitWhere(pred: (m: ServerMsg) => boolean, timeoutMs = 4000): Promise<ServerMsg> {
+    const deadline = Date.now() + timeoutMs
+    while (Date.now() < deadline) {
+      const hit = this.received.find(pred)
+      if (hit) return hit
+      await new Promise((r) => setTimeout(r, 20))
+    }
+    throw new Error(`等待指定消息超时。已收到：${this.received.map((m) => m.t).join(', ') || '（空）'}`)
+  }
+
+  /**
+   * 等到订阅推送里出现满足条件的一版列表。
+   *
+   * **扫的是整个缓冲区**（从新到旧），不只是调用之后新到的那些。所以断言
+   * 「某房间已从列表消失」时，订阅必须晚于建房 —— 否则建房前那一版空快照
+   * 会凭空满足条件，断言看着绿，实际什么也没验。要么调整订阅顺序，要么先 `clear()`。
+   */
   async waitList(
     pred: (m: Extract<ServerMsg, { t: 'roomList' }>) => boolean,
     timeoutMs = 4000,
@@ -635,3 +657,231 @@ describe('等待太久的房间会被自动关闭', () => {
     c.close()
   }, 30_000)
 })
+
+// ─────────────────────────────────────────────────────────
+// 全员离线即时回收
+// ─────────────────────────────────────────────────────────
+
+describe('全员离线即时回收', () => {
+  let app: FastifyInstance
+  let url: string
+  const open: Client[] = []
+
+  const client = async () => {
+    const c = await Client.connect(url)
+    open.push(c)
+    return c
+  }
+
+  beforeAll(async () => {
+    ;({ app, url } = await makeApp({
+      // 保持默认的 abandonedTtlMs（65s），不缩短 TTL ——
+      // 这样测试里 2 秒短超时的断言能严格证明房间是在事件触发时立刻回收，
+      // 而不是靠 65 秒后的清扫兜底
+      rooms: { max: 1000, maxPerIp: 1000, createPerMin: 1000 },
+    }))
+  }, 30_000)
+
+  afterAll(async () => {
+    for (const c of open) c.close()
+    await app.close()
+  })
+
+  it('T1 一人掉线 + 一人退出：房间立刻从列表消失（<2s，不等 65s 的 TTL）', async () => {
+    const hostA = await client()
+    hostA.send({ t: 'createRoom', nickname: 'A', name: '房T1', visibility: 'public' })
+    const roomA = await hostA.wait('room')
+
+    const clientB = await client()
+    clientB.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await clientB.wait('welcome')
+
+    const watcherC = await client()
+    watcherC.send({ t: 'rooms', subscribe: true })
+    await watcherC.waitList((m) => m.rooms.some((r) => r.code === roomA.room.code))
+
+    // A 掉线，B 退出
+    hostA.close()
+    clientB.send({ t: 'leaveRoom' })
+    clientB.close()
+
+    // C 在 2 秒超时内必须收到不含该房的新列表（短超时证明回收不等 65s 的 abandonedTtlMs）
+    const list = await watcherC.waitList((m) => !m.rooms.some((r) => r.code === roomA.room.code), 2000)
+    expect(list.rooms.some((r) => r.code === roomA.room.code)).toBe(false)
+  })
+
+  it('T2 凭证作废：一人掉线 + 一人退出后，A 用原 resumeToken 重连告知新连接且收不到对局状态', async () => {
+    const hostA = await client()
+    hostA.send({ t: 'createRoom', nickname: 'A', name: '房T2', visibility: 'public' })
+    const welcomeA = await hostA.wait('welcome')
+    const roomA = await hostA.wait('room')
+
+    const clientB = await client()
+    clientB.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await clientB.wait('welcome')
+
+    const watcher = await client()
+    watcher.send({ t: 'rooms', subscribe: true })
+    await watcher.waitList((m) => m.rooms.some((r) => r.code === roomA.room.code))
+
+    // A 掉线，B 退出
+    hostA.close()
+    clientB.send({ t: 'leaveRoom' })
+    clientB.close()
+
+    // 确认已完成回收
+    await watcher.waitList((m) => !m.rooms.some((r) => r.code === roomA.room.code), 2000)
+
+    // A 带旧凭证重连：必须被告知这是一次新连接，且收不到 room 或 stateSync
+    const reconnA = await client()
+    reconnA.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await reconnA.wait('welcome')
+    expect(w.resumed).toBe(false)
+    expect(w.resumeToken).toBe('')
+    expect(reconnA.received.some((m) => m.t === 'room' || m.t === 'stateSync')).toBe(false)
+  })
+
+  it('T3 双方同时掉线：都不发 leaveRoom 直接断开，房间同样立刻回收且凭证作废', async () => {
+    const hostA = await client()
+    hostA.send({ t: 'createRoom', nickname: 'A', name: '房T3', visibility: 'public' })
+    const welcomeA = await hostA.wait('welcome')
+    const roomA = await hostA.wait('room')
+
+    const clientB = await client()
+    clientB.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await clientB.wait('welcome')
+
+    const watcherC = await client()
+    watcherC.send({ t: 'rooms', subscribe: true })
+    await watcherC.waitList((m) => m.rooms.some((r) => r.code === roomA.room.code))
+
+    // 双方都不发 leaveRoom，直接断开连接
+    hostA.close()
+    clientB.close()
+
+    // 2 秒内从列表消失
+    const list = await watcherC.waitList((m) => !m.rooms.some((r) => r.code === roomA.room.code), 2000)
+    expect(list.rooms.some((r) => r.code === roomA.room.code)).toBe(false)
+
+    // 凭证作废
+    const reconn = await client()
+    reconn.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await reconn.wait('welcome')
+    expect(w.resumed).toBe(false)
+    expect(w.resumeToken).toBe('')
+  })
+
+  /**
+   * D3 明确接受的行为变更：单人房主断开连接后房间立刻消失、凭证作废。
+   * 重连宽限保护的是「还有人在等你回来」；独处一室的人掉线，没有人在等待，故不再保活 65 秒。
+   */
+  it('T4 单人房主掉线（D3 有意接受的行为变更）：独自断开后房间立刻消失且凭证作废', async () => {
+    const hostA = await client()
+    hostA.send({ t: 'createRoom', nickname: 'A', name: '单人房', visibility: 'public' })
+    const welcomeA = await hostA.wait('welcome')
+    const roomA = await hostA.wait('room')
+
+    // 订阅必须**晚于**建房：`waitList` 扫的是整个缓冲区，建房之前那一版快照里本来就没有这间房，
+    // 「房间已消失」的断言会被它凭空满足。订阅在后，首推里就带着这间房，
+    // 之后再出现「不含该房」的一版才只可能是真的回收了
+    const watcher = await client()
+    watcher.send({ t: 'rooms', subscribe: true })
+    await watcher.waitList((m) => m.rooms.some((r) => r.code === roomA.room.code))
+
+    // 房主独自断开
+    hostA.close()
+
+    // 列表在 2 秒内移除该房
+    const list = await watcher.waitList((m) => !m.rooms.some((r) => r.code === roomA.room.code), 2000)
+    expect(list.rooms.some((r) => r.code === roomA.room.code)).toBe(false)
+
+    // 原凭证作废
+    const reconn = await client()
+    reconn.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await reconn.wait('welcome')
+    expect(w.resumed).toBe(false)
+    expect(w.resumeToken).toBe('')
+  })
+
+  it('T5 回归护栏：一人掉线但另一人在线时，房间不回收且掉线方可在宽限内重连', async () => {
+    const hostA = await client()
+    hostA.send({ t: 'createRoom', nickname: 'A', name: '有人等待', visibility: 'public' })
+    const welcomeA = await hostA.wait('welcome')
+    const roomA = await hostA.wait('room')
+
+    const clientB = await client()
+    clientB.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await clientB.wait('welcome')
+
+    const watcher = await client()
+    watcher.send({ t: 'rooms', subscribe: true })
+    await watcher.waitList((m) => m.rooms.some((r) => r.code === roomA.room.code))
+
+    // 仅 A 掉线，B 仍然在线
+    hostA.close()
+    await clientB.waitWhere((m) => m.t === 'peer' && m.playerId === 'A' && !m.online)
+
+    // 稍候 400ms（大于一个 250ms 的 LIST_FLUSH_MS），房间绝不能被回收。
+    // 要主动拉一版**新的**列表快照：掉线不标脏列表，只看 `lists.at(-1)` 拿到的
+    // 会是掉线前那一版，那样断言即使房间真被回收了也照样过
+    await new Promise((r) => setTimeout(r, 400))
+    watcher.clear()
+    watcher.send({ t: 'rooms', subscribe: true })
+    const fresh = await watcher.wait('roomList')
+    expect(fresh.rooms.some((r) => r.code === roomA.room.code)).toBe(true)
+
+    // A 在宽限期内重连成功接回原座位
+    const reconnA = await client()
+    reconnA.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await reconnA.wait('welcome')
+    expect(w.resumed).toBe(true)
+    expect(w.playerId).toBe('A')
+
+    const roomMsg = await reconnA.wait('room')
+    expect(roomMsg.room.code).toBe(roomA.room.code)
+
+    // 对手侧也要复原：B 必须收到 A 重新上线（AC5）
+    const back = await clientB.waitWhere((m) => m.t === 'peer' && m.playerId === 'A' && m.online)
+    expect(back).toMatchObject({ t: 'peer', playerId: 'A', online: true })
+  })
+
+  it('T6 名额释放：公开房占满后全员离线，立刻可以再建新公开房', async () => {
+    const tightApp = await buildApp({
+      rooms: { max: 1000, publicMax: 1, maxPerIp: 1000, createPerMin: 1000 },
+    })
+    await tightApp.listen({ port: 0, host: '127.0.0.1' })
+    const addr = tightApp.server.address()
+    const tightUrl = `ws://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/ws`
+
+    try {
+      const a = await Client.connect(tightUrl)
+      a.send({ t: 'createRoom', nickname: 'A', name: '房一', visibility: 'public' })
+      const roomA = await a.wait('room')
+
+      // 尝试建第二间，已被 publicMax: 1 阻挡
+      const b = await Client.connect(tightUrl)
+      b.send({ t: 'createRoom', nickname: 'B', name: '房二', visibility: 'public' })
+      const err = await b.wait('error')
+      expect(err.code).toBe('server_busy')
+      expect(err.message).toContain('公开房间已满')
+
+      // A 离线 → 全员离线，立刻触发回收释放配额。
+      // 用列表推送等回收落地，而不是睡一个固定毫秒数 ——
+      // 睡多久都只是猜，而这里等的正是「房间真的出表了」这件事
+      b.send({ t: 'rooms', subscribe: true })
+      await b.wait('roomList')
+      a.close()
+      await b.waitList((m) => !m.rooms.some((r) => r.code === roomA.room.code), 2000)
+
+      // B 再次建房立刻成功，证明名额已释放，不再被拒
+      b.send({ t: 'createRoom', nickname: 'B', name: '房二再试', visibility: 'public' })
+      const roomB = await b.wait('room')
+      expect(roomB.room.name).toBe('房二再试')
+
+      b.close()
+    } finally {
+      await tightApp.close()
+    }
+  })
+})
+

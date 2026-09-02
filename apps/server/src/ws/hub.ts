@@ -87,27 +87,18 @@ export class Hub {
       const waitedTooLong =
         room.status === 'waiting' && now - room.createdAt > this.limits.waitingTtlMs
       /**
-       * 全员掉线的房间。
+       * 全员掉线房间的清扫兜底。
        *
-       * `disconnect` 只 detach 不清座位（要留给重连），所以这种房间既不 `isEmpty`
-       * 也够不到 30 分钟的 `ROOM_TTL_MS` —— 在有房间列表之前这只是浪费一点内存，
-       * 现在它会**在大厅里显示成一个能加入的活房间**。宽限一过就必须清掉。
-       *
-       * 用 lastActivity 是因为最后一次 detach 会 touch()，之后没人 ping，时间就冻在那里。
+       * 正常情况下，连接断开或玩家主动退出时只要触发 `allOffline`，就会在 `disconnect` /
+       * `leaveRoom` 事件里通过 `dropIfDeserted` 立刻被回收，不再等 TTL。
+       * 此处保留原有的 `abandonedTtlMs`（默认 65s）仅作为异常路径（如内部状态未触发 disconnect）
+       * 的兜底机制，正常运行时不应当命中。
        */
       const abandoned = room.allOffline && now - room.lastActivity > this.limits.abandonedTtlMs
 
       if (room.isEmpty || stale || waitedTooLong || abandoned) {
         if (waitedTooLong && !room.isEmpty) {
           room.broadcastClosed('idle')
-          // 座位马上要没了，指向这个房间的会话必须同步清干净，
-          // 否则它们后续的消息会打在一个已 dispose 的 Room 上
-          for (const s of this.sessions.values()) {
-            if (s.room === room) {
-              s.room = null
-              s.playerId = null
-            }
-          }
         }
         this.dropRoom(room)
       }
@@ -124,9 +115,55 @@ export class Hub {
       const token = room.seatOf(p)?.resumeToken
       if (token) this.bySeatToken.delete(token)
     }
+    // 房间马上要 dispose 了，任何还指向它的会话必须同步断开引用，
+    // 否则它们后续的消息会打在一个已 dispose 的 Room 上
+    for (const s of this.sessions.values()) {
+      if (s.room === room) {
+        s.room = null
+        s.playerId = null
+      }
+    }
     room.dispose()
     this.rooms.delete(room.code)
     this.markListDirty()
+  }
+
+  /**
+   * 房里一条活连接都不剩就立刻回收。
+   *
+   * 判的是 `allOffline` 而不是 `isEmpty`：`detach` 只清连接不清座位（为了重连），
+   * 所以「一人掉线 + 一人退出」留下的房间既不空、也够不到 ROOM_TTL_MS，
+   * 靠 sweep 要等 abandonedTtlMs（默认 65s）+ 一跳清扫。那 70 秒里它会挂在大厅上、
+   * 占着公开房名额、还能被自己接回一间没有对手的房。
+   *
+   * 重连宽限保护的是「还有人在等你回来」；没人在等的时候，它什么也没有保护。
+   */
+  private dropIfDeserted(room: Room): void {
+    if (!room.allOffline) return
+    this.dropRoom(room)
+  }
+
+  /**
+   * 座位被一条新连接接管后，作废所有仍指向该座位的旧会话指针。
+   *
+   * 半开连接（拔网线、断电）不会发 FIN，最长要等一个协议心跳周期才判死；这段时间里
+   * 客户端已经用新 socket `hello` 接回了座位，`reattach` 也把 `seat.conn` 换成了新连接。
+   * 但旧 socket 的会话还留在 `sessions` 里，`room` / `playerId` 照旧 —— 等它的 close
+   * 迟到时，`disconnect()` 会拿着这份陈旧指针 `detach(pid)`，把**新连接**的座位置空、
+   * 广播 peer 离线，若对手此时也不在线还会被 `dropIfDeserted` 当场销毁整个房间。
+   *
+   * 座位所有权随 `reattach` 转移；转移之后旧会话的指针已经不代表这个座位了。
+   *
+   * 判据必须同时比对 `room` 和 `playerId`：只比 `room` 会连对手的会话一起误伤。
+   */
+  private releaseSeatPointers(room: Room, playerId: PlayerId, keep: Session): void {
+    for (const s of this.sessions.values()) {
+      if (s === keep) continue
+      if (s.room === room && s.playerId === playerId) {
+        s.room = null
+        s.playerId = null
+      }
+    }
   }
 
   roomByCode(code: string): Room | null {
@@ -147,9 +184,11 @@ export class Hub {
   disconnect(socket: Socket): void {
     const s = this.sessions.get(socket)
     if (!s) return
-    // 掉线不立刻踢人：保留座位等重连，宽限到期才判负
-    if (s.room && s.playerId) s.room.detach(s.playerId)
+    const room = s.room
+    // 掉线不立刻踢人：保留座位等重连，宽限到期才判负（若还有人在等）
+    if (room && s.playerId) room.detach(s.playerId)
     this.sessions.delete(socket)
+    if (room) this.dropIfDeserted(room)
   }
 
   private conn(socket: Socket): Connection {
@@ -318,6 +357,9 @@ export class Hub {
           const room = this.bySeatToken.get(msg.resumeToken)
           const pid = room?.reattach(msg.resumeToken, this.conn(socket)) ?? null
           if (room && pid) {
+            // 座位所有权已经转到这条连接上，先把旧会话的指针作废再指向自己 ——
+            // 否则半开的旧 socket 迟到的 close 会把这条新连接 detach 掉
+            this.releaseSeatPointers(room, pid, s)
             s.room = room
             s.playerId = pid
             s.listening = false
@@ -488,6 +530,7 @@ export class Hub {
         s.room = null
         s.playerId = null
         this.markListDirty()
+        this.dropIfDeserted(room)
         break
       }
       case 'ready':

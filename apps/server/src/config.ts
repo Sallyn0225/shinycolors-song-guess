@@ -145,14 +145,16 @@ export const SERVER_CONFIG = {
     waitingTtlMs: num('WAITING_TTL_MS', 15 * 60_000),
 
     /**
-     * 全员掉线的房间还留多久。
+     * 全员离线房间的**清扫兜底**时长。
      *
      * 掉线不会立刻清座位（要留给重连），所以这类房间既不 `isEmpty` 也不会因
-     * `ROOM_TTL_MS` 过期——在有房间列表之前它只是浪费一点内存，
-     * 有了列表之后它会**顶在大厅里显示成一个可以加入的活房间**，长达半小时。
+     * `ROOM_TTL_MS` 过期。正常路径下这已经不靠 TTL 了：`Hub.dropIfDeserted` 在
+     * `disconnect` / `leaveRoom` 的同一条调用栈里判 `allOffline`，一条活连接都不剩
+     * 就当场回收——重连宽限保护的是「还有人在等你回来」，没人在等时它什么也没保护。
      *
-     * **绝不能小于 `disconnectGraceSeconds`**：小了就等于取消了重连宽限，
-     * 刷新一下页面座位就没了。默认取宽限 + 5 秒。
+     * 这个值只兜底那些没有触发 `disconnect` 的异常路径（进程内部状态不一致之类），
+     * 正常运行时 `sweep()` 的 `abandoned` 分支不应当命中。默认仍取宽限 + 5 秒：
+     * 兜底口径比宽限更晚，才不会抢在「还有人在等」的房间前面把座位收走。
      */
     abandonedTtlMs: num('ABANDONED_TTL_MS', (KARUTA_DEFAULTS.disconnectGraceSeconds + 5) * 1000),
   },
