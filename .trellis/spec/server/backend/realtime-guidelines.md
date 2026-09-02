@@ -131,6 +131,24 @@ broadcasts `peer{online:false, graceEndsAtServer}`. `Hub.sweep()` calls
 `forfeitIfAbandoned()` every 15s, which ends the match after
 `KARUTA_DEFAULTS.disconnectGraceSeconds`.
 
+### Seat ownership transfers with `reattach`; stale session pointers must be voided
+
+**A successful `reattach` moves ownership of the seat to the new connection. Every other
+session still pointing at that `(room, playerId)` must have its pointers cleared in the same
+step** — `Hub.releaseSeatPointers(room, pid, keep)` in the `hello` branch.
+
+The failure it prevents is the half-open socket from the section below. A player who pulls
+their cable sends no FIN, so the old socket's close can arrive up to a heartbeat period
+*after* the client has already reconnected on a new socket and `reattach` has swapped
+`seat.conn`. That late close reaches `disconnect()`, which reads the old session's stale
+`playerId` and calls `room.detach(pid)` — nulling the **new** connection's seat and
+broadcasting `peer{online:false}`. With immediate reclamation in place the blast radius is
+larger still: if the opponent is also offline at that moment, `dropIfDeserted` destroys the
+room and invalidates both seat tokens.
+
+The match must compare **both** `room` and `playerId`. Matching on `room` alone also clears
+the opponent's session in the same room.
+
 ---
 
 ## Heartbeat: two layers, both needed
@@ -177,23 +195,31 @@ been exposed. The caps live in `RoomQuotas` alongside `max`; the list the lobby 
 full. This is the actual guarantee behind a "private" room: 32^6 is about 1.07 billion codes,
 but without a failure limit that is a few hours of brute force, not a lifetime.
 
-## Four ways a room ends
+## Five ways a room ends
 
-`ROOM_TTL_MS` alone is not enough once rooms are publicly listed. All four live in `sweep()`:
+`ROOM_TTL_MS` alone is not enough once rooms are publicly listed. One exit fires on the event
+stack (`disconnect` / `leaveRoom`); the other four are `sweep()` fallbacks:
+
+### Immediate reclamation on desertion
+
+**"Reconnect grace protects the expectation that someone is waiting for you to return. A room with no live connections left is recycled immediately, and its seat tokens are invalidated on the spot."**
+
+The criterion for immediate reclamation in `Hub.disconnect()` and `leaveRoom` is `room.allOffline`, **not** `room.isEmpty`:
+- `detach()` unsets the live socket connection but deliberately retains the seat for reconnects.
+- Consequently, a room where one player disconnected and the other left (or both disconnected, or a solo host disconnected) is neither empty nor expired.
+- When no live connection remains in the room, there is nobody left to wait. Holding the room for 65s only advertised dead rooms in the lobby, burned public room quota, and allowed lonely players to reconnect to ghost rooms.
+- Therefore, `dropIfDeserted()` triggers `dropRoom()` on disconnect and `leaveRoom` as soon as `allOffline` is met.
+
+### Sweep fallbacks
 
 | Condition | Bound | Why it exists |
 |---|---|---|
-| `isEmpty` — every seat released | next sweep (≤5s) | normal "leave room" |
+| `isEmpty` — every seat released | next sweep (≤5s) | fallback for any path where seats were freed |
 | `stale` — `ROOM_TTL_MS` since last activity | 30 min | original catch-all |
 | `waitedTooLong` — `waiting` past `waitingTtlMs` | 15 min | nobody ever came; host is told via `roomClosed` |
-| `abandoned` — `allOffline` past `abandonedTtlMs` | 65s | **the one the list forced** |
+| `abandoned` — `allOffline` past `abandonedTtlMs` | 65s | **fallback only** (if abnormal path bypassed disconnect); normal exits clean up immediately |
 
-`abandoned` is the subtle one. `disconnect()` only detaches the connection — the seat is held
-for the reconnect grace — so a room whose players both vanished is neither empty nor stale,
-and `lastActivity` freezes at the last `detach()` because nobody is left to ping. Before the
-room list this merely wasted a little memory; afterwards it **advertises a dead room as
-joinable for half an hour**. `abandonedTtlMs` must stay above
-`KARUTA_DEFAULTS.disconnectGraceSeconds`, or reclaiming the room cancels the reconnect promise.
+`abandoned` in `sweep()` is now a pure safety net. Normal disconnect or leave paths reclaim deserted rooms immediately on the event stack.
 
 `waitedTooLong` measures from `createdAt`, not `lastActivity`: a host sitting in their own
 room pings every 2s and would otherwise never time out.
@@ -221,5 +247,4 @@ broadcast volume would otherwise be.
 `hello` resolves a `resumeToken` through `Hub.bySeatToken`, not by walking every room calling
 `reattach`. With a bounded-but-large room count the scan is wasted work, and worse, `reattach`
 broadcasts on success — so the scan's correctness rested on an unwritten assumption that
-tokens never collide. The index makes that explicit. `dropRoom()` is the single exit for a
-room precisely so the index, the timers and the map are cleared together.
+tokens never collide. The index makes that explicit. `dropRoom()` is the single exit for a room precisely so the index, the timers, the map, and any lingering session references (`s.room = null`, `s.playerId = null`) are cleared together.

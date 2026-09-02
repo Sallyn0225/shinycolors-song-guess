@@ -1,20 +1,20 @@
 # Quality Guidelines
 
-> 49 tests in two files, at two very different levels. Both build a real app; neither mocks
-> the catalog.
+> 102 tests, at two very different levels — routes through `inject()`, and real sockets
+> against a real listener. Both build a real app; neither mocks the catalog.
 
 ---
 
 ## Verification
 
 ```bash
-pnpm --filter @scg/server test        # vitest run — 49 tests
+pnpm --filter @scg/server test        # vitest run — 102 tests
 pnpm --filter @scg/server typecheck   # tsc --noEmit
 pnpm -r test && pnpm -r typecheck     # before reporting done
 ```
 
 The tests require built assets: `Catalog.load()` reads `assets/manifest.*.json`, and
-`app.test.ts` asserts `/api/health` reports **233** songs. If the catalog is missing, run
+`app.test.ts` asserts `/api/health` reports **243** songs. If the catalog is missing, run
 `pnpm assets all` first — a failure here is an environment problem, not a code problem.
 
 There is no `vitest.config.ts`; vitest runs on defaults and collects `src/**/*.test.ts`.

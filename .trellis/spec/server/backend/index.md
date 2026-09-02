@@ -14,13 +14,13 @@ src/config.ts       SERVER_CONFIG from env
 src/catalog.ts      Catalog.load() — the public/private manifest split
 src/soloSessions.ts SoloSessionStore — in-memory single-player sessions
 src/ws/hub.ts       socket ↔ session ↔ room routing, zod validation, rate limit,
-                    the public room registry and its coalesced list push
+                    instant cleanup on desertion, the public room registry and its coalesced list push
 src/ws/room.ts      one 1v1 room: seats, round state machine, timers, broadcasts
 src/ws/quota.ts     IpQuota — per-IP sliding windows for room creation and join failures
 src/ws/timing.ts    PlayerTiming — the anti-cheat reaction-time adjudicator
 ```
 
-94 tests: `app.test.ts` drives routes through `app.inject()`, `ws/room.test.ts` and
+102 tests: `app.test.ts` drives routes through `app.inject()`, `ws/room.test.ts` and
 `ws/lobby.test.ts` drive real `ws` clients against a real listening server, `ws/quota.test.ts`
 is a plain unit test with fake timers.
 
