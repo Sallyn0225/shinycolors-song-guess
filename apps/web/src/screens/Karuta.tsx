@@ -645,7 +645,8 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
                   決まり字 是唯一能把 24 张同时可选的牌压成可扫描集合的装置，
                   不教它的人是在玩一个严格更难的游戏，而且不知道为什么难。
 
-                  放在记忆阶段而不是规则页：这里正是玩家盯着牌面的那 30 秒。
+                  放在记忆阶段而不是规则页：这里正是玩家盯着牌面的那一分钟
+                  （长度读 KARUTA_DEFAULTS.memorizeSeconds，不写死）。
                 */}
                 {/*
                   这个 <p> 是 **flex 容器**（为了让 swap 图标与文字同一基线）。

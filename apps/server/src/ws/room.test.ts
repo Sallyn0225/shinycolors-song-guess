@@ -117,7 +117,7 @@ async function startMatch() {
   const startA = await a.wait('matchStart')
   await b.wait('matchStart')
 
-  // 跳过 30 秒记忆阶段
+  // 跳过记忆阶段（不等自然超时，长度由 KARUTA_DEFAULTS.memorizeSeconds 决定）
   a.send({ t: 'memorizeDone' })
   b.send({ t: 'memorizeDone' })
 
