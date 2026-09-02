@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "房间与回合的时序契约正文，本次要新增一条房间生命周期规则（一条活连接都不剩即回收）"}
+{"file": ".trellis/spec/server/backend/index.md", "reason": "hub.ts / room.ts 的职责边界与 buildApp({rooms}) 可注入配额的由来，决定回收逻辑放在 Hub 而不是 Room"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "服务端改动的验证口径与测试写法约定"}
+{"file": ".trellis/spec/shared/backend/tuning-constants.md", "reason": "abandonedTtlMs / disconnectGraceSeconds 两个常量的取值规矩，本次不改值但要改它们的语义说明"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "确认「服务端回收 → 客户端 welcome resumed:false」这条既有链路足以让前端零改动"}

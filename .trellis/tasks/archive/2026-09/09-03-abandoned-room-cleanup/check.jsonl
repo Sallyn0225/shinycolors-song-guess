@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "服务端改动的验证口径：typecheck / lint / test 与用例数比对"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "核对新增的回收路径没有破坏「回合永远按服务器定时器推进」与掉线宽限的既有时序"}
+{"file": ".trellis/spec/server/backend/index.md", "reason": "核对 dropRoom 仍是房间退场的唯一出口、清理步骤一步不漏"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "核对「服务端回收 → welcome resumed:false → 前端回首页」这条跨层链路完整"}
