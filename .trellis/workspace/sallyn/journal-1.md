@@ -219,3 +219,40 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 10: 建房弹窗内展示拒绝错误与占用提示
+<!-- trellis-session: v=2 fp=78a590b92c560c17 -->
+
+**Date**: 2026-09-03
+**Task**: 建房弹窗内展示拒绝错误与占用提示
+**Package**: web
+**Branch**: `main`
+
+### Summary
+
+实现并在建房弹窗内展示公开房间已满等错误提示，补齐提交中禁用防连击，并在提交前提供占用指示
+
+### Main Changes
+
+- 建房弹窗打开时将 WebSocket error 分流至弹窗内部，弹窗保持打开以允许切换选项重试
+- 增加 submitting 状态与 submittingRef 同步锁，提交中禁用按钮并防高频连击消耗配额
+- VisibilityChoice 支持 limits、公开房总数与私人房总数，在提交前指示占用情况与已满提示
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `09d9837` | feat(web): show room creation error inside dialog with pending state and quota hint |
+
+### Testing
+
+- [OK] pnpm typecheck、pnpm test 及 apps/web build 均全绿通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续推进父任务下其余子任务（09-03-local-stats-trophy / 09-03-abandoned-room-cleanup）
