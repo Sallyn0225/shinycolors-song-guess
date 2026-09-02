@@ -196,3 +196,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 9: 结算页 BGM 与跨屏续播
+<!-- trellis-session: v=2 fp=ed11a37722b556c6 -->
+
+**Date**: 2026-09-03
+**Task**: 结算页 BGM 与跨屏续播
+**Package**: web
+**Branch**: `main`
+
+### Summary
+
+将 App.tsx 中管辖背景视频与 BGM 的单一 ambient 变量拆分为 video 与 bgm 两个独立判断，环境 BGM 覆盖范围扩展至单机结算页（result），进结算淡入、结算返回首页无缝续播不重起；背景视频铺设范围保持 start/lobby/room 不动，杜绝视觉副作用。同步修正 secrecy-and-anticheat.md 的覆盖屏描述（AC8）。禁区文件零改动，全仓 typecheck 和 270 项测试全绿通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f2a7996` | feat(web): separate video and BGM conditions, enable ambient BGM on result screen |
+
+### Status
+
+[OK] **Completed**
