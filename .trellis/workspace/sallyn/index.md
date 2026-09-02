@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 5
-- **Last Active**: 2026-08-31
+- **Total Sessions**: 7
+- **Last Active**: 2026-09-02
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~126 | Active |
+| `journal-1.md` | ~175 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-09-02 | 单机计分与倒计时手感调整、联机记忆时长、下架感謝のコントレイル | `ce49ade`, `c8e87f2`, `261e4c2`, `64d01fa`, `dd4096d` | `main` |
 | 5 | 2026-08-31 | 桌面端密度与版心收紧，结算页按钮并行 | `a53f427`, `362c43b` | `feat/desktop-density-tuning` |
 | 4 | 2026-08-31 | 首页与联机大厅的 Hero 布局与标题重构 | `d3230c9`, `59e1e9e`, `5a898d8`, `7efaa52` | `main` |
 | 3 | 2026-08-30 | 移除误入曲库的人声版 リフレクトサイン (2022 Ver.) | `a02a215` | `main` |

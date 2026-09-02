@@ -147,3 +147,29 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 7: 单机计分与倒计时手感调整、联机记忆时长、下架感謝のコントレイル
+<!-- trellis-session: v=2 fp=e5a3707b7cccc4ca -->
+
+**Date**: 2026-09-02
+**Task**: 单机计分与倒计时手感调整、联机记忆时长、下架感謝のコントレイル
+**Branch**: `main`
+
+### Summary
+
+四项改动一次落地：speedGraceSeconds 1.5→1.8s（立项 2.0 实测偏易后折中）、memorizeSeconds 30→60s、下架 感謝のコントレイル（曲库 244→243 首 / 1464→1458 切片，含源文件与产物）、单机答题新增 ClipRail 片段播放倒计时条（audio.ts 仅加只读 getter）。trellis-check 全量审查发现 4 处 prose 漏改，全部集中在 memorizeSeconds 那条线——因为 implement.md 的 grep 词表只覆盖了下架关键词，改 N 个常量就需要 N 个扫描词，且改值时标识符 grep 完全无效，已沉淀为 cross-layer-thinking-guide 的 Constant Value Change Sweep。另订正 DEPLOY.md 反代读超时的因果陈述：兜住 proxy_read_timeout 的是 app.ts 每 25 秒的无条件心跳，不是记忆阶段时长；memorizeSeconds 是唯一有应用外消费方的旋钮，已记入 tuning-constants.md。typecheck 5/5、测试 262 项全绿。遗留：线上 VPS 素材同步（部署动作）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce49ade` | feat(web): 单机答题增加片段播放倒计时条 |
+| `c8e87f2` | feat(shared): 速度分宽限期 1.5→1.8s、联机记忆阶段 30→60s |
+| `261e4c2` | chore(assets): 下架 感謝のコントレイル，曲库 244→243 首、1464→1458 切片 |
+| `64d01fa` | docs: 同步下架与调参后的文档数字，订正反代读超时的因果陈述 |
+| `dd4096d` | docs(spec): 沉淀常量改值的 prose 清扫与记忆阶段的部署耦合 |
+
+### Status
+
+[OK] **Completed**
