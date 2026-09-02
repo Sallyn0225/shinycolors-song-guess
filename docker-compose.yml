@@ -28,6 +28,10 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-5179}:5179"
 
+    env_file:
+      - path: .env
+        required: false
+
     environment:
       # 容器内仍监听 0.0.0.0，否则同网络的 caddy 连不进来
       HOST: 0.0.0.0
