@@ -74,19 +74,49 @@ Same shape of reasoning elsewhere in the file:
 - `SCORING.speedCurve = 1.6` (applied as `left ** (1 / speedCurve)`) keeps most of the
   speed bonus alive through the first ~40% of the *decay window*. Linear decay made a
   normal-speed correct answer feel like a failure.
-- `SCORING.speedGraceSeconds = 1.5` is why "decay window" is not the same as "time limit".
-  The bonus stays at maximum for the first 1.5s after playback starts; only `limitMs -
-  1.5s` is subject to decay. Without it the top solo tier was unreachable in practice:
+- `SCORING.speedGraceSeconds = 1.8` is why "decay window" is not the same as "time limit".
+  The bonus stays at maximum for the first 1.8s after playback starts; only `limitMs -
+  1.8s` is subject to decay. Without it the top solo tier was unreachable in practice:
   0.95 score rate required answering within **1.62s** on hard, where `clipSeconds` is 6 —
-  you had to commit after hearing a quarter of the clip. With it the bar is 2.88s (hard)
-  and 3.69s (easy). 1.0s was tried and only moved hard to 2.46s; 2.0s reaches 3.30s but
-  visibly flattens the fast-vs-slow spread.
+  you had to commit after hearing a quarter of the clip. The predecessor values: 1.5s
+  reached 2.88s (hard) / 3.69s (easy) but measured too hard in play; 2.0s reached
+  3.30s / 4.11s but then played too easy (mid-window answers barely lost any speed
+  bonus), so it settled at 1.8s, which reaches 3.13s (hard) / 3.91s (easy). The accepted
+  cost versus 1.5s is a visibly weaker fast-vs-slow spread (the threshold moves right and
+  the decay window shrinks with it, steepening the per-second decay) — chosen deliberately
+  in exchange for the top tier being reachable. 1.0s was also tried and only moved hard
+  to 2.46s; it stayed too tight.
 
   Two properties worth keeping. It is **absolute, not proportional** — human reaction time
   does not shrink because the limit went from 15s to 10s, so this must never become a
   fraction of `answerSeconds`. And it absorbs **startup latency**: `elapsedMs` is measured
   from the server's `servedAt` stamp, but the client still needs a round trip plus decode
   before sound comes out, and that loss has nothing to do with recognition skill.
+
+---
+
+## The knob that reaches deployment
+
+`KARUTA_DEFAULTS.memorizeSeconds` is the longest gap between two **business** messages in a
+match — during the memorize phase the server sends nothing while players study the board.
+At 60s that gap now equals nginx's `proxy_read_timeout` default, so on paper the phase
+length has become an infra concern.
+
+It is not, and the reason matters: `apps/server/src/app.ts` pings every
+`SERVER_CONFIG.wsHeartbeatMs` (25s) from a plain `setInterval` that knows nothing about
+game phase. The proxy's read timer resets on that ping, so the real floor is **25s, not
+`memorizeSeconds`**. `DEPLOY.md` recommends 120s and both sample configs set it.
+
+What to keep in mind when raising this knob further:
+
+- The heartbeat is what decouples game pacing from proxy timeouts. If `wsHeartbeatMs` is
+  ever raised, or made conditional on activity, this decoupling disappears and every phase
+  length becomes a deploy constraint.
+- `DEPLOY.md`'s pre-launch checklist has a step that parks a room in the memorize phase to
+  exercise `proxy_read_timeout`. It states a duration in prose — changing this constant
+  makes that step verify the wrong thing until the number is updated too.
+
+No other knob in these two files has a consumer outside the app. This one does.
 
 ---
 
@@ -99,6 +129,11 @@ Same shape of reasoning elsewhere in the file:
 3. Update the comment if the reason changed. Every non-obvious value in these two files
    carries the measurement or the failed alternative that produced it — that is the format
    to follow when adding one.
+4. **Sweep the prose for the old number.** Tests and types cannot catch a comment or a doc
+   sentence that restates the value; those go stale silently. Grep the old literal together
+   with the constant's topic words, and where a comment merely restates the number, delete
+   the number instead of updating it. See `guides/cross-layer-thinking-guide.md` →
+   *Constant Value Change Sweep*.
 
 `KARUTA_DEFAULTS` has an internal invariant that `dealMatch` enforces at runtime
 (`packages/game-core/src/deal.ts`): `poolSize === fieldCards + karafuda`, and `fieldCards`

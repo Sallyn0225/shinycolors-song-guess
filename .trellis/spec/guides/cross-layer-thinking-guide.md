@@ -151,6 +151,39 @@ size figure (212 MB) sat next to an un-recomputed count (1404 = 234 × 6, actual
 
 ---
 
+## Constant Value Change Sweep
+
+Changing a tuning constant's **value** reaches prose the same way a deletion does, but the
+grep shape is different: the identifier (`memorizeSeconds`) is still there and still
+correct, so an identifier grep is useless. What goes stale is every place a human wrote
+the *old number* in words — doc prose, code comments, test comments, checklists.
+
+### Checklist: After Changing Any Constant's Value
+
+- [ ] Grep the **old literal** (`30`, `1.5`) scoped to the constant's topic words, not the
+      bare number — `"30 秒"`, `"记忆阶段"`, `"memorize"` — a bare `30` drowns in noise
+- [ ] Sweep comments and test comments, not just docs: a comment restating the value is the
+      same duplicated fact as a hardcoded literal, and nothing type-checks it
+- [ ] Prefer deleting the number over updating it — `// 跳过记忆阶段（长度由
+      KARUTA_DEFAULTS.memorizeSeconds 决定）` cannot go stale again
+- [ ] **One grep term per changed constant.** A task that changes N constants needs N sweep
+      terms; the plan's grep list tends to cover only the headline change
+- [ ] Ask whether the new value crosses an **infra threshold** — timeouts, buffer sizes,
+      proxy defaults, cache TTLs. A game-feel number that grows past a deploy default stops
+      being purely a game-feel number
+
+**Real-world example**: A four-item task changed `speedGraceSeconds` (1.5 → 1.8),
+`memorizeSeconds` (30 → 60), removed a song, and added a UI rail. The `implement.md` prose
+sweep listed only the song-removal terms (`感謝のコントレイル|617.8|1464|244`), and that
+line came back genuinely clean. The `memorizeSeconds` line — which had no sweep term at all
+— left four stale statements: two in `DEPLOY.md` (including an ops checklist step that
+would no longer exercise the thing it was written to verify), one comment in `Karuta.tsx`
+restating "那 30 秒" next to a countdown that reads the constant, and one in
+`room.test.ts`. The sweep was not weak; its **term list was scoped to one of the four
+changes**.
+
+---
+
 ## Cross-Platform Template Consistency
 
 In Trellis, command templates (e.g., `record-session.md`) exist in **multiple platforms** with identical or near-identical content. This is a cross-layer boundary.
