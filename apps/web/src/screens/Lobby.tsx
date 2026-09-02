@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   DIFFICULTY_PRESETS,
   KARUTA_DEFAULTS,
@@ -55,18 +55,52 @@ function VisibilityChoice({
   value,
   onChange,
   allowPrivate,
+  limits,
+  publicCount,
+  privateTotal,
 }: {
   value: RoomVisibility
   onChange: (v: RoomVisibility) => void
   /** 服务端下发的开关。false 只是把私人项置灰（UX），真正的拒绝在服务端 */
   allowPrivate: boolean
+  limits: LobbyLimits | null
+  publicCount: number
+  privateTotal: number
 }) {
-  const OPTIONS: { v: RoomVisibility; label: string; hint: string }[] = [
-    { v: 'public', label: '公开', hint: '出现在大厅列表里，谁都能进' },
+  const publicFull = limits !== null && publicCount >= limits.publicMax
+  const privateFull = limits !== null && allowPrivate && privateTotal >= limits.privateMax
+
+  const publicHint =
+    limits === null
+      ? '出现在大厅列表里，谁都能进'
+      : publicFull
+        ? allowPrivate
+          ? `公开房间已满（${publicCount}/${limits.publicMax}），可以创建私人房间`
+          : `公开房间已满（${publicCount}/${limits.publicMax}），稍后再试`
+        : `出现在大厅列表里，谁都能进（${publicCount}/${limits.publicMax}）`
+
+  const privateHint = !allowPrivate
+    ? '本站已关闭私人房间'
+    : limits === null
+      ? '不进列表，只有拿到房间码的人能进'
+      : privateFull
+        ? `私人房间已满（${privateTotal}/${limits.privateMax}），稍后再试`
+        : `不进列表，只有拿到房间码的人能进（${privateTotal}/${limits.privateMax}）`
+
+  const OPTIONS: { v: RoomVisibility; label: string; hint: string; disabled: boolean; full: boolean }[] = [
+    {
+      v: 'public',
+      label: '公开',
+      hint: publicHint,
+      disabled: false,
+      full: publicFull,
+    },
     {
       v: 'private',
       label: '私人',
-      hint: allowPrivate ? '不进列表，只有拿到房间码的人能进' : '本站已关闭私人房间',
+      hint: privateHint,
+      disabled: !allowPrivate,
+      full: privateFull,
     },
   ]
   return (
@@ -80,11 +114,17 @@ function VisibilityChoice({
       </legend>
       <div className="mt-3 flex flex-col" style={{ gap: 'calc(8 * var(--u))' }}>
         {OPTIONS.map((o) => {
-          const disabled = o.v === 'private' && !allowPrivate
+          const dimmed = o.disabled || o.full
           return (
             <label
               key={o.v}
-              className={disabled ? 'cut-shadow-sm block opacity-60' : 'cut-shadow-sm block cursor-pointer'}
+              className={
+                o.disabled
+                  ? 'cut-shadow-sm block opacity-60'
+                  : dimmed
+                    ? 'cut-shadow-sm block opacity-60 cursor-pointer'
+                    : 'cut-shadow-sm block cursor-pointer'
+              }
             >
               <span
                 className="glass-lit cut-slant relative flex items-center gap-3 px-5 py-3"
@@ -108,7 +148,7 @@ function VisibilityChoice({
                   value={o.v}
                   checked={value === o.v}
                   onChange={() => onChange(o.v)}
-                  disabled={disabled}
+                  disabled={o.disabled}
                   className="sr-only"
                 />
                 <span
@@ -140,7 +180,9 @@ export function Lobby({ onBack }: Props) {
   const [nickname, setNickname] = useState(readNickname)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [connected, setConnected] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [connected, setConnected] = useState(() => socket.connected)
   const [rtt, setRtt] = useState<number | null>(null)
 
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null)
@@ -155,11 +197,21 @@ export function Lobby({ onBack }: Props) {
   const [roomName, setRoomName] = useState('')
   const [visibility, setVisibility] = useState<RoomVisibility>('public')
 
+  const creatingRef = useRef(false)
+  creatingRef.current = creating
+
+  const submittingRef = useRef(false)
+  submittingRef.current = submitting
+
   useEffect(() => {
     const subscribe = () => socket.send({ t: 'rooms', subscribe: true })
 
     const offStatus = socket.onStatus((c) => {
       setConnected(c)
+      if (!c) {
+        submittingRef.current = false
+        setSubmitting(false)
+      }
       // 重连之后要重新订阅：服务端的订阅挂在连接上，断了就没了
       if (c) subscribe()
     })
@@ -175,7 +227,16 @@ export function Lobby({ onBack }: Props) {
         setPrivateTotal(msg.privateTotal)
         setLimits(msg.limits)
       } else if (msg.t === 'error') {
-        setError(msg.message)
+        submittingRef.current = false
+        setSubmitting(false)
+        if (creatingRef.current) {
+          setCreateError(msg.message)
+        } else {
+          setError(msg.message)
+        }
+      } else if (msg.t === 'room') {
+        submittingRef.current = false
+        setSubmitting(false)
       }
     })
     // 这个 interval 同时驱动 RTT 和列表里的「几分钟前」，不需要第二个定时器
@@ -205,7 +266,11 @@ export function Lobby({ onBack }: Props) {
   }
 
   const create = () => {
+    if (submittingRef.current || !connected) return
+    submittingRef.current = true
+    setSubmitting(true)
     setError(null)
+    setCreateError(null)
     const name = sanitizeRoomName(roomName)
     void withAudio(() =>
       socket.send({
@@ -218,6 +283,13 @@ export function Lobby({ onBack }: Props) {
       }),
     )
   }
+
+  const cancelCreate = useCallback(() => {
+    setCreating(false)
+    setCreateError(null)
+    submittingRef.current = false
+    setSubmitting(false)
+  }, [])
 
   const joinByCode = () => {
     setError(null)
@@ -290,6 +362,7 @@ export function Lobby({ onBack }: Props) {
           full
           onClick={() => {
             setError(null)
+            setCreateError(null)
             setCreating(true)
           }}
           disabled={!connected}
@@ -523,10 +596,15 @@ export function Lobby({ onBack }: Props) {
         <CreateDialog
           name={roomName}
           visibility={visibility}
-          allowPrivate={limits === null || limits.allowPrivate}
+          limits={limits}
+          publicCount={waitingTotal + busyTotal}
+          privateTotal={privateTotal}
+          submitting={submitting}
+          error={createError}
+          connected={connected}
           onName={setRoomName}
           onVisibility={setVisibility}
-          onCancel={() => setCreating(false)}
+          onCancel={cancelCreate}
           onConfirm={create}
         />
       )}
@@ -537,7 +615,12 @@ export function Lobby({ onBack }: Props) {
 function CreateDialog({
   name,
   visibility,
-  allowPrivate,
+  limits,
+  publicCount,
+  privateTotal,
+  submitting,
+  error,
+  connected,
   onName,
   onVisibility,
   onCancel,
@@ -545,13 +628,19 @@ function CreateDialog({
 }: {
   name: string
   visibility: RoomVisibility
-  /** 上限未知（首帧）时按开放处理 —— 未知不等于禁止 */
-  allowPrivate: boolean
+  limits: LobbyLimits | null
+  publicCount: number
+  privateTotal: number
+  submitting: boolean
+  error: string | null
+  connected: boolean
   onName: (v: string) => void
   onVisibility: (v: RoomVisibility) => void
   onCancel: () => void
   onConfirm: () => void
 }) {
+  const allowPrivate = limits === null || limits.allowPrivate
+
   // Overlay 自己只关住 Tab，Esc 要在这里补——模态没有 Esc 会让键盘用户走不掉
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -591,12 +680,44 @@ function CreateDialog({
           </span>
         </label>
 
-        <VisibilityChoice value={allowPrivate ? visibility : 'public'} onChange={onVisibility} allowPrivate={allowPrivate} />
+        <VisibilityChoice
+          value={allowPrivate ? visibility : 'public'}
+          onChange={onVisibility}
+          allowPrivate={allowPrivate}
+          limits={limits}
+          publicCount={publicCount}
+          privateTotal={privateTotal}
+        />
 
         <div className="mt-7 flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
-          <Button variant="primary" size="lg" full onClick={onConfirm}>
-            创建
+          <Button
+            variant="primary"
+            size="lg"
+            full
+            onClick={onConfirm}
+            disabled={!connected || submitting}
+            aria-busy={submitting}
+          >
+            {submitting ? '创建中…' : '创建'}
           </Button>
+
+          {error && (
+            <p
+              role="alert"
+              className="cut-slant relative px-5 py-3 text-sm text-wrong"
+              style={{ background: 'var(--surface-alert)' }}
+            >
+              <span
+                aria-hidden
+                className="cut-ring cut-ring-slant"
+                style={
+                  { '--ring': '1px', '--ring-color': 'var(--color-wrong)' } as React.CSSProperties
+                }
+              />
+              {error}
+            </p>
+          )}
+
           <button
             type="button"
             onClick={onCancel}
