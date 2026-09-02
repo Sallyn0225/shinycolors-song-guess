@@ -204,27 +204,31 @@ export default function App() {
     }
   }
 
-  // 背景视频只铺在「还没开局」的那几屏。Play / Karuta 上一切会动的东西都在跟
-  // 听力和抢牌抢注意力，而且那两屏本来就在解码音频、跑 rAF 计时，
-  // 再挂一路 24fps 视频解码是白白给判定让路
-  const ambient = screen.name === 'start' || screen.name === 'lobby' || screen.name === 'room'
+  // 背景视频只铺在「还没开局」的那几屏（start / lobby / room）。
+  // Play / Karuta 上一切会动的东西都在跟听力和抢牌抢注意力，而且那两屏本来就在解码音频、
+  // 跑 rAF 计时，再挂一路 24fps 视频解码是白白给判定让路；结算页（result）同样不铺视频，
+  // 避免干扰战报排版与文字对比度（Backdrop 的 data-ambient 属性）。
+  const video = screen.name === 'start' || screen.name === 'lobby' || screen.name === 'room'
 
   /*
-    环境 BGM 跟着同一个判断走：铺视频的那三屏有，Play 与 Karuta 没有。
-    理由和视频那条一样 —— 那两屏的注意力已经被听力和抢牌占满，再垫一层音乐
-    是拿判定去换气氛。
+    环境 BGM 的范围比背景视频多一屏：铺视频的那三屏 + 结算页（result）。
+    对局中（Play / Karuta）注意力被听力和抢牌占满，不垫背景音乐；而单机结算页
+    既不抢判定也不跑高频音频，可以淡入环境 BGM，并且在返回首页或再来一局时
+    与首页平滑衔接（续播不重起）。
 
     `!resuming` 是第二个条件：正在找回对局时不起 BGM，对局可能下一秒就恢复，
     不该让开场的音乐压在牌场的第一声上。找回失败退回首页时 resuming 转 false，
     这里会再跑一次，那时候起 BGM 才是对的。
   */
+  const bgm = video || screen.name === 'result'
+
   useEffect(() => {
-    ambience.setEnabled(ambient && !resuming)
-  }, [ambient, resuming])
+    ambience.setEnabled(bgm && !resuming)
+  }, [bgm, resuming])
 
   return (
     <>
-      <Backdrop video={ambient} />
+      <Backdrop video={video} />
       {/*
         开场遮罩在场时**不渲染首页**。不是为了省渲染，是为了让开场那枚票券
         直接浮在与首页完全相同的场景上：遮罩因此不必自己糊一道白幕去挡住底下的文字，

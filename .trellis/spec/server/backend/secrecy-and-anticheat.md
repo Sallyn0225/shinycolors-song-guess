@@ -52,7 +52,7 @@ clip for repeated fetches.
 
 ### Serving audio to a screen that has no session
 
-The ambient BGM on the home / lobby / room screens needed clips, but those screens have no
+The ambient BGM on the home / lobby / room / result screens needed clips, but those screens have no
 solo session and no room, so neither existing token map applies. `ambience.ts` adds a third
 one, and the shape of that decision is the reusable part:
 
