@@ -193,9 +193,5 @@
     "_comment": "以下曲目的 artist 也是作曲者，但已通过 albums.json 的 exact 规则在 album 层解决，不需要逐曲覆盖。留档说明依据。",
     "星の声": "Song for Prism 主题曲，シャイニーカラーズ 名义全体曲（Lantis LACM-24437）。artist 的『秋浦智裕』是词曲编。",
     "Bouncy Girl / Fashionable": "PANOR@MA WING 08 整卷即シーズ（Tower Records / Lantis / HMV 商品页均标 'PANOR@MA WING 08 / シーズ'，dmusic 标 'Bouncy Girl / シーズ'）。artist 的『THE IDOLM@STER』是通用品牌署名，不可作为组合别名。"
-  },
-  "excludeSlicePositions": {
-    "_comment": "切片位置需要特殊处理的曲目。感謝のコントレイル 617.8 秒是全库唯一 >400s 的离群值，可能是 live / 长篇编成，默认的分数偏移可能落到结构差异很大的段落。跑完 audit 后按需填入手工偏移。",
-    "感謝のコントレイル": null
   }
 }

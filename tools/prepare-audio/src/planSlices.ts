@@ -114,7 +114,7 @@ function planWith(
   const chosen: number[] = []
   const out: PlannedSlice[] = []
 
-  // 按比例的分数偏移，而不是固定秒数——时长跨 159~618s，固定偏移会切到短曲的 EOF 之外
+  // 按比例的分数偏移，而不是固定秒数——时长跨 134.8~378.1s，固定偏移会切到短曲的 EOF 之外
   SLICE.fractions.forEach((f, index) => {
     const target = Math.min(Math.max(durationSec * f, lo), hi)
     let best: number | null = null
@@ -140,7 +140,7 @@ function planWith(
  * 为一首歌规划切片位置。
  *
  * 纯函数：只依赖时长和静音区间，不碰 I/O。可以直接单测极端情况
- * （159s 的 キズナシェアリング 和 618s 的 感謝のコントレイル）。
+ * （134.8s 的 デビ太郎のうた 和 378.1s 的 銀翼のアヴニール -become the brave-）。
  */
 export function planSlices(durationSec: number, silences: readonly Interval[]): SlicePlan {
   for (let level = 0; level < LADDER.length; level++) {

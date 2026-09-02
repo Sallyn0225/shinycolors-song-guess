@@ -27,17 +27,17 @@ describe('planSlices', () => {
     }
   })
 
-  // 全库最短：キズナシェアリング 159.2s
-  it('最短曲（159.2s）不会切到 EOF 之外', () => {
-    const duration = 159.2
+  // 全库最短：デビ太郎のうた 134.8s
+  it('最短曲（134.8s）不会切到 EOF 之外', () => {
+    const duration = 134.8
     const { slices } = planSlices(duration, [])
     expect(slices.length).toBeGreaterThanOrEqual(3)
     for (const s of slices) assertInBounds(s.startSec, duration)
   })
 
-  // 全库最长：感謝のコントレイル 617.8s
-  it('最长曲（617.8s）的切片铺开在全曲而非挤在开头', () => {
-    const duration = 617.8
+  // 全库最长：銀翼のアヴニール -become the brave- 378.12s
+  it('最长曲（378.12s）的切片铺开在全曲而非挤在开头', () => {
+    const duration = 378.12
     const { slices } = planSlices(duration, [])
     expect(slices).toHaveLength(SLICE.count)
     for (const s of slices) assertInBounds(s.startSec, duration)
@@ -79,8 +79,8 @@ describe('planSlices', () => {
   it('任意两段的重叠都不超过 50%（含降级路径）', () => {
     const cases: Array<{ duration: number; silences: Interval[] }> = [
       { duration: 241, silences: [] },
-      { duration: 159.2, silences: [] },
-      { duration: 617.8, silences: [] },
+      { duration: 134.8, silences: [] },
+      { duration: 378.12, silences: [] },
       { duration: 170, silences: [[0, 0.563], [166.32, 169.967]] },
       { duration: 200, silences: Array.from({ length: 20 }, (_, i): Interval => [i * 10 + 4, i * 10 + 10]) },
     ]

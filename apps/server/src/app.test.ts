@@ -44,7 +44,7 @@ describe('健康检查', () => {
   it('曲库加载成功', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/health' })
     expect(res.statusCode).toBe(200)
-    expect(res.json().songs).toBe(244)
+    expect(res.json().songs).toBe(243)
   })
 
   it('难度表与 shared 一致', async () => {
