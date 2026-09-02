@@ -53,6 +53,8 @@ export class AudioEngine {
   private current: AudioBufferSourceNode | null = null
   /** 当前这次播放的结束时刻（ctx 时间轴）。由引擎自己维护，避免 React state 走味 */
   private playUntil = 0
+  /** 当前这次播放的开始时刻（ctx 时间轴）。与 playUntil 同步维护，给 playRemaining 当分母 */
+  private playStartedAt = 0
   /** 只保留 3 个解码好的 buffer（15s mono 解码后约 2.9MB），移动端不会被杀 */
   private readonly cache = new Map<string, AudioBuffer>()
   private readonly order: string[] = []
@@ -253,6 +255,21 @@ export class AudioEngine {
     return ctx !== null && ctx.currentTime < this.playUntil
   }
 
+  /**
+   * 本次播放的剩余比例 0~1。没在播（或已 stop）时为 0。
+   * 纯读，不新增计时器——播放结束时刻仍由 play() 自己调度，这里只把
+   * `playUntil - currentTime` 除以本次播放的总长换算成比例给倒计时条用。
+   * t0 有 LEAD_SEC 的调度提前量，currentTime < playStartedAt 时算出 >1，钳到 1：
+   * 那 60ms 里「还没出声」，满格是对的。
+   */
+  get playRemaining(): number {
+    const ctx = this.ctx
+    const span = this.playUntil - this.playStartedAt
+    if (!ctx || span <= 0) return 0
+    const r = (this.playUntil - ctx.currentTime) / span
+    return Math.min(1, Math.max(0, r))
+  }
+
   stop(): void {
     if (this.current) {
       try {
@@ -263,6 +280,7 @@ export class AudioEngine {
       this.current = null
     }
     this.playUntil = 0
+    this.playStartedAt = 0
   }
 
   /** 把本地 Date.now() 时刻换算成 AudioContext 时间轴上的时刻 */
@@ -308,6 +326,7 @@ export class AudioEngine {
     src.stop(t0 + dur + 0.01)
     this.current = src
     this.playUntil = t0 + dur
+    this.playStartedAt = t0
 
     return { startedAtCtxTime: t0 }
   }

@@ -12,6 +12,7 @@ import { audio } from '../audio'
 import { OptionBar, type OptionState } from '../components/OptionBar'
 import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
+import { ClipRail } from '../ui/ClipRail'
 import { Countdown } from '../ui/Countdown'
 import { Icon } from '../ui/Icon'
 import { PrismRail, type Crease } from '../ui/PrismRail'
@@ -67,6 +68,12 @@ export function Play({ session, onFinish, onQuit }: Props) {
 
   /** 剩余毫秒。数字与光带读同一个 deadlineRef，两者不可能对不上 */
   const getMsLeft = useCallback(() => Math.max(0, deadlineRef.current - performance.now()), [])
+
+  /**
+   * 片段播放的剩余比例。audio 是单例、playRemaining 是 getter，包一层箭头函数即可；
+   * 重听后引擎重新调度 playUntil，这条自然重新填满，与答题窗口的重置语义无关。
+   */
+  const getClipRemaining = useCallback(() => audio.playRemaining, [])
 
   /** 曲库有兜底副本时才把它交给音频引擎；没有就别去试，只会白等一次 404 */
   const fallbackOf = useCallback(
@@ -293,6 +300,16 @@ export function Play({ session, onFinish, onQuit }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── 片段播放剩余 ──────────────────────────────────── */}
+      {/*
+        与答题光带同屏的第二条计时：光带计「本题还剩多久」，这条计「片段还能听多久」。
+        2px 素条从左向右排空，与「两端向中收 + 彩虹」的光带在方向和颜色上都不同。
+        无条件渲染——loading / countdown / revealed 时播放本就没在走，条子空着，
+        按 phase 挂卸会在每次揭晓、每道题切换时抽掉一行，.sc-vfit 布局随之跳动。
+        mt-3 起步让开 PrismRail 的折痕（bottom:-1px 往下伸 12u）。
+      */}
+      <ClipRail getRemaining={getClipRemaining} label="片段播放剩余时间" className="mt-3" />
 
       {/* ── 揭晓：曲名与演唱者 ────────────────────────────── */}
       <div
