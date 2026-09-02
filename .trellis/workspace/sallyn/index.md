@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-09-03
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~258 | Active |
+| `journal-1.md` | ~282 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-09-03 | 全员离线房间即时回收 + 半开重连竞态修复 | `6f503fe`, `701b79e`, `c1223aa` | `main` |
 | 10 | 2026-09-03 | 建房弹窗内展示拒绝错误与占用提示 | `09d9837` | `main` |
 | 9 | 2026-09-03 | 结算页 BGM 与跨屏续播 | `f2a7996` | `main` |
 | 7 | 2026-09-02 | 单机计分与倒计时手感调整、联机记忆时长、下架感謝のコントレイル | `ce49ade`, `c8e87f2`, `261e4c2`, `64d01fa`, `dd4096d` | `main` |

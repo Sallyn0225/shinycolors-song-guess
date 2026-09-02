@@ -256,3 +256,27 @@
 ### Next Steps
 
 - 继续推进父任务下其余子任务（09-03-local-stats-trophy / 09-03-abandoned-room-cleanup）
+
+
+## Session 11: 全员离线房间即时回收 + 半开重连竞态修复
+<!-- trellis-session: v=2 fp=e75074c79506b509 -->
+
+**Date**: 2026-09-03
+**Task**: 全员离线房间即时回收 + 半开重连竞态修复
+**Branch**: `main`
+
+### Summary
+
+房里一条活连接都不剩时立刻 dropRoom 并作废座位凭证，取代原先依赖 abandonedTtlMs(65s)+5s 清扫的滞后回收；判据是 allOffline 而非 isEmpty，因为 detach 保留座位给重连。sweep 的 abandoned 分支逻辑与常量未动，降级为异常路径兜底。顺带修了被本次改动放大的半开连接竞态：reattach 成功时用 releaseSeatPointers 转移座位所有权，否则半开旧 socket 迟到的 close 会 detach 掉新连接、并在对手也离线时把房间销毁。检查阶段用双向变异测试验证了新用例并非空跑，据此抓出 T4 的空断言（订阅早于建房，waitList 扫全缓冲区被建房前的空快照凭空满足）。server 94->102 测试，全仓 278 全绿。仓库无 lint 脚本，AC7 的 lint 条款为空条款。遗留：阶段 5 手工验收未跑；shared/web 的 spec 测试数字陈旧未订正。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6f503fe` | feat(server): reclaim deserted rooms immediately and invalidate seat tokens |
+| `701b79e` | test(server): cover the half-open reconnect race |
+| `c1223aa` | docs: update room lifecycle docs for instant reclamation |
+
+### Status
+
+[OK] **Completed**
