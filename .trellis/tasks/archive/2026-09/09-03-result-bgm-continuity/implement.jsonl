@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四层布局与「UI 工作不许改 audio.ts / net/ws.ts / api.ts / features 既有文件」的硬约束。本任务只改 App.tsx 的一处判断，ambience.ts 不在禁区但也不需要动，边界要先确认"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "ambience 是模块单例、永不进 React state，BGM 的开关真相归引擎所有。拆判断时不能把 ambience 的状态搬进组件 state"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "effect 的依赖与清理规矩。R3 的「续播不重起」直接取决于那个 useEffect 的依赖数组写成什么"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "旁路音频链那一节说明 BGM 为什么必须绕开 master / analyser；改启停判断时不能顺手把接线改错，也记录了本包的验证命令"}

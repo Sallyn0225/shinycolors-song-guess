@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验证命令与复核清单；重点核对旁路链未被改动、禁区文件零 diff"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "复核 audio.ts / net/ws.ts / api.ts / features 既有文件一行未改"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "复核 BGM 那个 effect 的依赖数组：result→start 之间不得触发重跑，play→result 必须触发一次"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "复核没有把 ambience 的开关状态复制进 React state，单例仍是唯一真相"}
