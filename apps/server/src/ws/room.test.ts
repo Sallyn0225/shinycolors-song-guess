@@ -529,4 +529,77 @@ describe('重连', () => {
     expect(w.resumeToken).toBe('')
     c.close()
   })
+
+  /**
+   * 半开连接：旧 socket 还没死，新 socket 已经接回了座位。
+   *
+   * 拔网线/断电的一方不会发 FIN，旧 socket 的 close 最长要等一个协议心跳周期才到；
+   * 而客户端这边早就用新 socket `hello` 接回了座位。旧会话的 `room`/`playerId` 若不作废，
+   * 那条迟到的 close 会 detach 掉**新连接**的座位。
+   */
+  async function halfOpenRoom() {
+    const a1 = await TestClient.connect()
+    const b = await TestClient.connect()
+    a1.send({ t: 'createRoom', nickname: 'A' })
+    const welcomeA = await a1.wait('welcome')
+    const roomA = await a1.wait('room')
+    b.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await b.wait('welcome')
+
+    // 关键：a1 **不关闭**，模拟半开
+    const a2 = await TestClient.connect()
+    a2.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await a2.wait('welcome')
+    expect(w.resumed).toBe(true)
+    expect(w.playerId).toBe('A')
+
+    // reattach 会广播 peer 上线，先把它消化掉，后面的 peer 断言才干净
+    const online = await b.wait('peer')
+    expect(online.online).toBe(true)
+
+    return { a1, a2, b, code: roomA.room.code }
+  }
+
+  it('半开连接：旧 socket 迟到的 close 不能把已接回座位的新连接踢下线', async () => {
+    const { a1, a2, b, code } = await halfOpenRoom()
+
+    b.clear()
+    a1.close()
+
+    // 给迟到的 close 充分的时间落地（远大于一次事件循环）
+    await new Promise((r) => setTimeout(r, 800))
+    expect(b.received.some((m) => m.t === 'peer')).toBe(false)
+    expect(b.received.some((m) => m.t === 'roomClosed')).toBe(false)
+
+    // 新连接仍然在座：ready 会广播一版房间视图，而不是回 not_in_room
+    a2.clear()
+    a2.send({ t: 'ready', ready: true })
+    const view = await a2.wait('room')
+    expect(view.room.code).toBe(code)
+    expect(a2.received.some((m) => m.t === 'error')).toBe(false)
+
+    a2.close()
+    b.close()
+  }, 30_000)
+
+  it('半开连接：对手也离线时，旧 socket 的 close 不能让房间被当成全员离线销毁', async () => {
+    const { a1, a2, b, code } = await halfOpenRoom()
+
+    // 对手先走，此时房里唯一的活连接是 a2
+    b.close()
+    await new Promise((r) => setTimeout(r, 300))
+
+    // 迟到的半开 close：若旧会话指针还在，这里会 detach 掉 a2 的座位，
+    // 房间随即满足 allOffline 被 dropIfDeserted 就地销毁
+    a1.close()
+    await new Promise((r) => setTimeout(r, 800))
+
+    a2.clear()
+    a2.send({ t: 'ready', ready: true })
+    const view = await a2.wait('room')
+    expect(view.room.code).toBe(code)
+    expect(a2.received.some((m) => m.t === 'error')).toBe(false)
+
+    a2.close()
+  }, 30_000)
 })
