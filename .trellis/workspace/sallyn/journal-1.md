@@ -173,3 +173,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 8: 公开/私人房分类上限配置与大厅房间数展示
+<!-- trellis-session: v=2 fp=room-limits-config-20260902 -->
+
+**Date**: 2026-09-02
+**Task**: 09-02-room-limits-config
+**Branch**: `main`
+
+### Summary
+
+三个新部署旋钮一次落地：ALLOW_PRIVATE_ROOMS / MAX_PUBLIC_ROOMS / MAX_PRIVATE_ROOMS 进 RoomQuotas，分类上限默认跟随 MAX_ROOMS 的实际取值（不是字面量 200），MAX_ROOMS 保留为全局总闸。createRoom 校验链扩为六步（总闸 → 私人房开关 → 分类上限 → 按 IP 持有 → 频次），关闭私人房时拒绝且不降级为公开——visibility 默认 private 的失败方向在此闭环。roomList 增 privateTotal 聚合计数与 limits（分母 min 总闸），私人房 code/name/host/status 依旧零下发，lobby.test.ts 用 JSON 全文 not.toContain 断言兜底未来字段泄露。大厅计数行改两行（公开 x/N · 私人 y/M + 等人/进行中），sr-only 摘要带上限，私人房关闭时弹窗选项置灰+说明、服务端独立校验不变。浏览器实测三项人工确认全过（默认态计数、ALLOW_PRIVATE_ROOMS=0 置灰、跨标签页私人计数+1）；dev 联调时默认端口 5179 被一个拒绝访问的遗留 node 进程占用，改用 PORT=5181 + API_TARGET 绕开。typecheck 5/5、测试 262→270（server 86→94）；pnpm -r lint 在本仓结构性不存在，PRD 该条以 typecheck+test 代替。一处测试预期修正值得记住：buildApp 的 rooms 注入是 { ...SERVER_CONFIG.rooms, ...opts.rooms }，未注入的 publicMax 取环境默认 200 而非跟随注入的 max: 1000——这正是「分类上限跟随 MAX_ROOMS 实际取值」的正确表现，不是 bug。spec 同步三份（protocol-and-contracts 契约改写、server index 旋钮清单+测试数 72→94 补正、realtime-guidelines 校验顺序），secrecy-and-anticheat 与 tuning-constants 核查后确认不涉及房间、未动。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b0b602c` | feat(server,web,shared): 公开/私人房分类上限配置与大厅房间数展示 |
+| (archive) | chore(task): archive 09-02-room-limits-config |
+
+### Status
+
+[OK] **Completed**
