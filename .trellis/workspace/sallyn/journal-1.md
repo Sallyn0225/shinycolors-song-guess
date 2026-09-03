@@ -361,3 +361,28 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 15: 联机歌牌音效：程序化合成替换素材包
+<!-- trellis-session: v=2 fp=71d183d7ca1481a9 -->
+
+**Date**: 2026-09-03
+**Task**: 联机歌牌音效：程序化合成替换素材包
+**Branch**: `main`
+
+### Summary
+
+把 sfx.ts 从 fetch+decodeAudioData 换成运行时 Web Audio 合成，音色参数拆到可单测的 sfxVoices.ts（16 个音色）；联机牌场 Karuta.tsx 接入抢牌/送札/对局节点/对手上下线音效；删除 public/sfx 素材并同步 LICENSE、NOTICE、spec index。过程中修掉三个计划外问题：判定音原计划挂 roundResult 会迟到 10 秒（改挂自带 taps/winner 的 roundReveal 并按回合号去重）、sfx.play 只判 ctx 存在不判是否 running 导致挂起期间音效会攒着齐发（改判 audio.unlocked）、reattach 的 peer 广播不排除当事人导致自己重连误响 peerOn（加座位守卫）。三条契约已写入 server realtime-guidelines 与 web quality-guidelines。遗留：case 'peer' 的横幅与宽限倒计时仍未按 playerId 过滤，属 reconnect-recovery 范围。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3b53d2d` | feat(sfx): synthesise UI sound cues at runtime instead of loading assets |
+| `0b7d939` | chore(sfx): drop the CC0 audio pack now that cues are synthesised |
+| `7536d03` | feat(pvp): give the karuta board sound cues for taps, okuri and peer events |
+| `4868f23` | docs: record the peer-broadcast contract and the suspended-context audio gate |
+
+### Status
+
+[OK] **Completed**
