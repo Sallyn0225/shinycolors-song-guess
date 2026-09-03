@@ -93,6 +93,12 @@ else.
 Several fields exist to solve a specific problem and will look redundant to anyone who
 does not know it. Keep the doc comments when you touch them:
 
+- `hello.claim` — `false` means seat probing only (zero side effects on server room/socket state).
+  Omitted or `true` means seat claiming. Deliberately defined without `.default(true)` to avoid
+  `z.input` vs `z.infer` optionality drift between client sender and server receiver.
+- `seatOffer` — response to `hello{claim:false}` probe. Three states:
+  `ok` (seat reclaimable within grace period), `busy` (seat currently occupied by another active connection),
+  `gone` (seat expired, room destroyed, or token voided).
 - `PlayerView.rttMs` — both players' RTT is public. Transparency was chosen over pretending
   the match is symmetric.
 - `ping.rttMs` — client-reported and therefore forgeable. The server clamps and

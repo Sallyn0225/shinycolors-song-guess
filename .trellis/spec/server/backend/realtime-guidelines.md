@@ -108,15 +108,25 @@ Use `broadcast()` only for messages that are genuinely identical for both player
 
 ---
 
-## Reconnect
+## Reconnect and Recovery
 
-Three pieces, all of which have to agree:
+Four pieces, all of which have to agree:
 
-1. **Seat token.** `join()` mints `randomBytes(16).toString('hex')`; the client stores it in
-   `sessionStorage` (not `localStorage` — two tabs on one machine must be two players).
-2. **`hello` with `resumeToken`.** `Hub` scans every room for a matching token, calls
-   `room.reattach()`, and replies `welcome{resumed:true}` + `room` + `syncMessage()`.
-3. **`welcome{resumed:false}` is a real answer.** When the token is not recognised the
+1. **Seat token & Storage.** `join()` mints `randomBytes(16).toString('hex')`. The client stores
+   it in `localStorage` alongside an expiration timestamp (`RESUME_TTL_MS`), allowing reconnection
+   even if the browser or tab was accidentally closed within the grace window (60s). Tab-level
+   distinction (`sessionStorage` flag `scg.seatHeldInThisTab`) separates in-tab reloads (silent auto-claim)
+   from new tabs.
+2. **Seat probing (`hello{claim:false}`).** When a new tab opens with an existing credential, it must
+   **never auto-claim** (which would snatch the seat from a live session or half-open socket). Instead, it
+   sends a zero-side-effect probe: `hello{resumeToken, claim:false}`. The server checks `seatHasConnection(p)`
+   and responds with `seatOffer{available, reason: 'ok' | 'busy' | 'gone'}` without mutating any room or socket state.
+   - `ok`: seat is disconnected and within grace period; client offers "Rejoin / Forfeit".
+   - `busy`: seat is currently connected in another tab/socket; client displays occupied status and retries.
+   - `gone`: room closed, seat expired, or token already voided; client silently forgets credentials.
+3. **`hello` with `resumeToken` (claim).** When claiming (`claim: true` or omitted), `Hub` calls `room.reattach()`,
+   replies `welcome{resumed:true}` + `room` + `syncMessage()`, and broadcasts `peer{online:true}`.
+4. **`welcome{resumed:false}` is a real answer.** When the token is not recognised the
    server still replies, saying so. Without it the client sits forever on a "reconnecting"
    screen waiting for a `stateSync` that will never come — `apps/web/src/App.tsx` uses this
    exact case to return the player to the home screen with an explanation.
@@ -130,6 +140,13 @@ They get the board, the memorize deadline and the current round's end time so th
 broadcasts `peer{online:false, graceEndsAtServer}`. `Hub.sweep()` calls
 `forfeitIfAbandoned()` every 15s, which ends the match after
 `KARUTA_DEFAULTS.disconnectGraceSeconds`.
+
+### Forfeiting from Reconnection
+
+When a player selects "Forfeit reconnection" in a new tab:
+- If `available` (`reason: 'ok'`), client claims the seat (`hello{claim:true}`) then immediately sends `{t: 'leaveRoom'}`.
+  This triggers `Room.leave()`, broadcasting `peerLeft` to the surviving opponent and returning the room to `waiting`.
+- If `busy` or `gone`, client performs a pure local cleanup (`forgetSeat()`), avoiding invalid claims.
 
 ---
 

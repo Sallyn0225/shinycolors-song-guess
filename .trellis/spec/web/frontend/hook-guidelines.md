@@ -39,6 +39,45 @@ message needs the same treatment.
 
 ---
 
+## StrictMode runs every effect twice — never guard on what the effect itself writes
+
+`main.tsx` wraps `<App/>` in `<StrictMode>`, so in development every effect runs
+**mount → cleanup → mount**. An early-return guard that reads a value the effect's own body
+mutates passes on the first run and bails on the second — and the second run is the one
+whose subscriptions survive.
+
+```tsx
+// Wrong — parkSeat() is precisely what makes hasResumeToken false
+useEffect(() => {
+  if (!socket.hasResumeToken) return   // 2nd run: already false → bails out here
+  const parked = socket.parkSeat()     // moves the token off resumeToken
+  socket.connect()
+  const off = socket.onStatus((c) => { if (c) probe() })
+  probeTimer.current = window.setInterval(probe, PROBE_RETRY_MS)
+  return () => { off(); window.clearInterval(probeTimer.current) }
+}, [])
+
+// Correct — branch on the idempotent mutator's own return value
+useEffect(() => {
+  const parked = socket.parkSeat()     // idempotent: same value on re-entry
+  if (!parked) return
+  ...
+}, [])
+```
+
+The failure is silent and **dev-only**: the first run's listener and timer die with its
+cleanup, the second run registers nothing, and `ws.onopen` arrives after both — so the seat
+probe was never sent and the reconnect UI looked broken end to end while the server was
+returning the correct `seatOffer` all along. Production builds do not double-invoke, which
+reverses the usual direction of this codebase's traps: it breaks **only** locally.
+
+This does not contradict "seed from the singleton's current value" above — `useState(() =>
+socket.hasResumeToken)` runs during render, before any effect has mutated anything. The rule
+is about *effect guards*: a singleton accessor read in one must either be untouched by that
+effect, or be replaced by the return value of the idempotent mutator itself.
+
+---
+
 ## Async effects: the `cancelled` flag
 
 Every effect that awaits must guard against unmounting and against re-running:

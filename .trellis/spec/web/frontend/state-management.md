@@ -15,8 +15,9 @@
 | local persistent stats | localStorage facade (`useState` in screen on mount, written on solo settlement) | `records.ts`, `features/records.ts` |
 | long-lived connections and caches | module singleton | `audio`, `socket`, `api` |
 
-Nothing is lifted higher than it needs to be. `App` holds only the `Screen` union and the
-resume flag; each screen owns everything else and it dies with the screen.
+Nothing is lifted higher than it needs to be. `App` holds only the `Screen` union, the resume
+flag and the seat offer being decided on `Splash`; each screen owns everything else and it
+dies with the screen.
 
 ---
 
@@ -78,6 +79,7 @@ type Screen =
   | { name: 'play'; session: SessionInfo }
   | { name: 'result'; sessionId: string; difficulty: Difficulty }
   | { name: 'lobby' }
+  | { name: 'room'; room: RoomView }
   | { name: 'karuta'; match: MatchView; memorizeEndsAtServer: number; resumed: boolean }
   | { name: 'records' }
 ```
@@ -103,6 +105,61 @@ Any clear action (`clearRecords()`) updates `localStorage` and resets screen sta
 
 ---
 
+## A credential with a TTL expires from "last held", not from "issued"
+
+The seat token lives in `localStorage['scg.resumeToken']` as `{ token, exp }`, while
+`sessionStorage['scg.seatHeldInThisTab']` marks the tab that owns it. That pair is what
+separates the two recovery paths: **same-tab F5** (marker present → silent auto-claim) from
+**new tab** (no marker → probe with `hello{claim:false}` and offer 找回 / 放弃). The storage
+split is deliberate — `localStorage` is what lets a *closed* tab's credential survive,
+`sessionStorage` is what still distinguishes the tabs.
+
+`exp` must track **the last moment this client was still in the seat**, so the 2 s ping loop
+in `GameSocket` pushes it forward, throttled to 10 s (`localStorage` writes are synchronous
+and the board judges in milliseconds — do not write it every tick).
+
+Writing `exp` only when the token is issued silently redefines it as "75 s after sitting
+down". A match runs far longer than that, so the credential expires **while the match is
+still running**: the disconnect offer never appears, and same-tab F5 stops recovering too,
+because both paths are gated on `hasResumeToken`. Grace is 60 s server-side, so the throttle
+must stay under `TTL − grace` (75 − 60 = 15 s) for the worst-case `exp` to still cover the
+whole window.
+
+The local `exp` is only a convenience. The authority on whether a seat can be reclaimed is
+always the server's `seatOffer` — never decide "it's gone" from the client clock alone.
+
+---
+
+## One flag cannot mean both "in progress" and "what this visit is"
+
+`resuming` in `App.tsx` is a **loading state**: it has to flip to `false` the moment recovery
+succeeds, or the 「正在找回对局…」 placeholder never leaves. `Splash` needs a different
+question answered — *is this visit a return to a match already in progress?* — and there,
+success is exactly when the answer becomes `true`. The two meanings demand opposite values
+at the same instant, so one flag cannot carry both.
+
+Passing the loading flag for both made `Splash` fall back to its first-visit branch and play
+the full 5–6 s opening greeting before handing off, because recovery almost always completes
+before the user clicks the overlay away — the click is the audio-unlock gesture, so the
+overlay outlives the recovery by design.
+
+Derive the second meaning rather than adding a second flag; `screen` already records it:
+
+```tsx
+// Wrong
+<Splash resume={resuming} />
+
+// Correct — while the overlay is still up, reaching karuta/room can only be recovery
+const resumePath = resuming || screen.name === 'karuta' || screen.name === 'room'
+<Splash resume={resumePath} />
+```
+
+Deriving also sidesteps a race: both failure paths (the `RESUME_TIMEOUT_MS` timer and
+`welcome{resumed:false}`) leave `screen` on `start` and flip `resuming` off, so the fallback
+to the normal opening happens on its own — there is no timer to cancel on success.
+
+---
+
 ## The three singletons
 
 **`audio` (`AudioEngine`)** — owns the `AudioContext`, an LRU of 3 decoded buffers, the
@@ -111,7 +168,8 @@ analyser, and `preferFallback`. It exposes state as getters computed from the au
 because a flag plus `setTimeout` let a stale timer kill a new playback's visualisation.
 
 **`socket` (`GameSocket`)** — owns the WebSocket, the clock offset, the ping loop, backoff
-reconnect, and the seat token in `sessionStorage`. `connect()` is idempotent. `clock` is a
+reconnect, and the seat credential (`localStorage` + the per-tab marker in `sessionStorage`,
+see above). `connect()` is idempotent. `clock` is a
 plain public field, read via `socket.toLocalTime(serverTime)`; it changes every 2s and
 nothing re-renders on it.
 
