@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "验证命令与 clip-path / --u / 对比度三类陷阱的复核清单，三块图表全部相关"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "复核奖杯屏的形状原语、尺寸单位与 a11y 基线是否合规"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "复核禁区规则：features/ 既有文件、audio.ts、net/ws.ts、api.ts 一行未改"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "复核统计数据的真相位置与读写时机是否与既有口径一致"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复核走势带/列表行/Stat 是复用而非另起一套语汇"}

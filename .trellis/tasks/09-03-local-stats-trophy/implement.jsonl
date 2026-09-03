@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四层目录职责与「UI 工作不许改 audio/ws/api/features 既有文件」的硬约束，决定新模块放哪一层"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "新增 features/records.ts、records.ts、screens/Records.tsx 各自该落在哪一层的判据"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "本地存储 vs React state 的边界：统计的真相在 localStorage，屏挂载读一次"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "形状原语、--u 尺寸、a11y 基线；奖杯屏的图表与分段切换都要照这套写"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "clip-path 吃 outline、--u 低钳位、对比度规则——三块图表全部踩在这些坑上"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "Records 的判别联合与 strict 下的 Record<Difficulty, …> 写法"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "结算页记录点的 effect 写法与幂等，不能依赖挂载次数"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "走势带/列表行/Stat 都要复用结算页既有语汇而不是新画一套"}

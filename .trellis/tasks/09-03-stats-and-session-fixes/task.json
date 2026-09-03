@@ -1,0 +1,31 @@
+{
+  "id": "stats-and-session-fixes",
+  "name": "stats-and-session-fixes",
+  "title": "结算 BGM、本地战绩统计、建房提示与空房回收",
+  "description": "一次用户反馈里的四件事：单机结算页补 BGM 并与首页续播；新增本地战绩统计与首页奖杯面板；公开房已满的提示要落在建房弹窗内；全员离线的房间立刻回收、不再让人接回幽灵房。四个子任务各自可独立验收。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "sallyn",
+  "assignee": "sallyn",
+  "createdAt": "2026-09-03",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-03-result-bgm-continuity",
+    "09-03-local-stats-trophy",
+    "09-03-create-dialog-full-error",
+    "09-03-abandoned-room-cleanup"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
