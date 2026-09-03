@@ -16,11 +16,13 @@ src/ambience.ts   Ambience singleton — opening greeting + looping BGM on a byp
 src/sfx.ts        Sfx singleton — the other bypass consumer; fire-and-forget UI sound cues,
                   decoded-buffer cache, mute/sfxOn gate, public/sfx/*.wav (CC0, see CREDITS.md)
 src/net/ws.ts     GameSocket singleton — WebSocket, clock sync, reconnect, seat token
-src/features/     pure logic: kimariji, karutaBoard (SlotMap), narrate  — 21 tests live here
+src/records.ts    localStorage facade for solo match statistics (safe try/catch, version fallback)
+src/features/     pure logic: kimariji, karutaBoard (SlotMap), narrate, grade, opening,
+                  shareCard, units, records — 106 tests live here
 src/components/   OptionBar, KarutaTile, RoomCard — game-specific, stateless
 src/ui/           Backdrop, Button, Countdown, Cut, Field, Icon, IconButton/ToolRail,
                   Overlay, Presence, PrismRail, ReadyCountdown, SectionTitle, Stat, VolumeControl
-src/screens/      Start, Lobby, Room, Play, Karuta, Result — one per screen, own the state
+src/screens/      Start, Lobby, Room, Play, Karuta, Result, Records — one per screen, own the state
                   Splash — the opening overlay; not one of the mutually exclusive screens,
                   it sits over them and carries the gesture that unlocks audio
 src/index.css     the entire design system: tokens, shape primitives, .sc-* sizing, animations

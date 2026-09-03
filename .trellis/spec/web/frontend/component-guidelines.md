@@ -123,7 +123,14 @@ that DESIGN.md explicitly bars from body text, and a page title is held to body 
 | `.cut-hex` | hexagon | thumbnails, cover art |
 | `.cut-bar` | pointed both ends | status bars |
 
-Corner sizes come from `--cut-sm/md/lg`. Ad-hoc polygons are written inline as module
+Corner sizes come from `--cut-sm/md/lg` — and **the variable a class reads is not named after
+the class**: `.cut-card` reads `--cut-lg` (default `40 * --u`), `.cut-card-sm` reads `--cut-md`
+(default `20 * --u`). Overriding the size means setting one of those three names. Writing a
+plausible-looking `['--cut-card']` sets a variable nobody reads, so the corner silently stays at
+the 40u default — and 40u is wider than a `p-4` inset, so the cut eats the top-left of the
+content. `Karuta.tsx` already carries a comment about that collision; do not rediscover it.
+
+Ad-hoc polygons are written inline as module
 constants (`BAR_CLIP`, `CAP_CLIP`, `TILE_CLIP`) when a component needs a shape no primitive
 covers — that is fine, but **count the vertices**: omitting the final `0 CUT` vertex turns a
 corner cut into a full-height diagonal that silently slices anything hugging the left edge.
@@ -185,6 +192,28 @@ Three traps:
   2.5.5 (44px).
 - **A component class that must beat a Tailwind utility cannot be a utility.** See
   `.sc-panelrow` in `index.css`.
+- **`ui/Button` ignores the `style` you pass it.** It spreads `{...rest}` *before* writing its
+  own `style={{ minHeight: MIN_H[size], ...bg }}`, so an incoming `style` is overwritten
+  wholesale — no type error, no warning, the declaration just never lands. A `Button` that needs
+  a different surface takes a new `variant`, not a `style`. Carry destructive or state meaning
+  in the icon, `text-*` token and the wording instead.
+
+---
+
+## `ui/Button` already plays the click sound
+
+`Button` calls `sfx.play('click')` inside its own handler, before the caller's `onClick`
+(`ui/Button.tsx:80-83`). **Call sites must not add their own `sfx.play('click')`** — the button
+then answers one press with two overlapping clicks.
+
+The comment in that file states the reason the cue lives in the component: site-wide feedback
+has to be *consistent*, and spreading it across call sites eventually misses one, which is the
+one people notice. That argument holds in the other direction too, and this is the mistake that
+actually gets made.
+
+Raw `<button>` elements — segmented tabs, close affordances, `OptionBar`'s answer tiles — do not
+route through `Button`, so those **do** play their own cue. The rule is about the component, not
+about buttons in general.
 
 ---
 
@@ -210,6 +239,13 @@ Non-negotiable, and each item is here because its absence broke something real:
   `你选的，答错了`).
 - **A whole-screen click target still needs a real focusable button inside it.** `onClick`
   on a `div` is mouse-only.
+- **A ranking is a list, not a table**, and an ARIA role you open you must also close:
+  `role="table"` + `role="row"` with no `role="cell"` inside is a tree a screen reader cannot
+  walk. Rankings, leaderboards and stat rows are `<ul>`/`<li>` with an `aria-label` on the list.
+- **Do not put `aria-label` on a row that already contains readable text.** The label *replaces*
+  the subtree, so a percentage, an `n/m` sample count and a "highest"/"lowest" marker that were
+  all visible on screen collapse into whatever one string the label happens to say. Label the
+  container; let the visible text speak for the row.
 - **Colour is never the only signal.** 決まり字 is marked with weight and lightness, not a
   second hue; correct/wrong carry an icon as well as a tint.
 

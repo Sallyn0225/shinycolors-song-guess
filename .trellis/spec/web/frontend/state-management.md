@@ -12,6 +12,7 @@
 | server-authoritative game state | `useState` in the screen, replaced wholesale from messages | `match`, `result`, `ended`, `reveal` |
 | local UI state | `useState` in the screen | `selected`, `toast`, `okuriPicks`, `memorizeLeft` |
 | timing / identity the render never reads | `useRef` | `deadlineRef`, `roundEndsAt`, `startedAtCtx`, `armed`, `tappedRef` |
+| local persistent stats | localStorage facade (`useState` in screen on mount, written on solo settlement) | `records.ts`, `features/records.ts` |
 | long-lived connections and caches | module singleton | `audio`, `socket`, `api` |
 
 Nothing is lifted higher than it needs to be. `App` holds only the `Screen` union and the
@@ -78,6 +79,7 @@ type Screen =
   | { name: 'result'; sessionId: string; difficulty: Difficulty }
   | { name: 'lobby' }
   | { name: 'karuta'; match: MatchView; memorizeEndsAtServer: number; resumed: boolean }
+  | { name: 'records' }
 ```
 
 A discriminated union in `useState`, switched in `App.tsx#body()`. Data needed by a screen
@@ -88,6 +90,16 @@ is carried in its own variant, so a screen can never be rendered without it.
 
 `<Play key={screen.session.sessionId} />` forces a full remount per session, which throws
 away every ref and effect. Reach for `key` rather than writing reset logic.
+
+---
+
+## Local statistics: truth in localStorage, read once on mount
+
+Solo match statistics are stored locally on the client (`records.ts`, `features/records.ts`).
+The single source of truth is `localStorage['scg.stats']`.
+The statistics screen (`screens/Records.tsx`) loads the snapshot into `useState` once on mount (`useState(() => loadRecords())`).
+Writes only happen when solo match settlements are completed (`recordSolo(sessionId, summary)` in `screens/Result.tsx`).
+Any clear action (`clearRecords()`) updates `localStorage` and resets screen state immediately.
 
 ---
 
