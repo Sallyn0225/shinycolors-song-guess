@@ -52,6 +52,26 @@ Two rules generalise from it:
   at both call sites; adding a third bypass consumer means adding a third call at each site.
   Two visible call sites beat an implicit subscription inside a module nobody may edit.
 
+### `audio.bypass` non-null does not mean the context is running
+
+`audio.ts` exposes two getters that are easy to confuse:
+
+| getter | true when | use it to |
+|---|---|---|
+| `bypass` | `ctx !== null` | obtain `{ ctx, out }` — it says the context **exists** |
+| `unlocked` | `ctx !== null && ctx.state === 'running'` | decide whether scheduling will actually be heard |
+
+Gate playback on `unlocked`. A suspended `AudioContext` has a frozen `currentTime`, so
+anything scheduled at `currentTime + n` while it is suspended queues at the same instant and
+fires as one burst when the context resumes.
+
+This was harmless while sound cues were only triggered by gestures — a gesture implies a
+running context. It stopped being harmless when `Karuta` began playing cues from **network
+events** (`matchStart`, `peer`, `roundResult`): a tab backgrounded or interrupted mid-match
+accumulates one cue per opponent tap and dumps them all on return. Any new non-gesture audio
+trigger inherits this, so the gate belongs in the engine (`sfx.play` checks it once), not at
+call sites.
+
 ---
 
 ## `clip-path` — four traps, all of which fail silently
@@ -430,6 +450,19 @@ learned what happened after the cards had already changed hands.
 空札 is 6 of 24 rounds, and お手つき is the game's central punishment. When a mechanic
 punishes the player, name it while the punishment is happening, mark what caused it, and put
 the text in a live region — the reveal narration arriving later does not cover the window.
+
+The rule covers audio, and the message to hang it on is `roundReveal`, not `roundResult`:
+
+- `roundReveal` already carries `taps` and `winner` (`protocol.ts`). It is what `faults`
+  reads to mark the mis-tapped card, and it arrives the instant the round is judged.
+- `roundResult` arrives only after the 10-second okuri window closes. Attaching the verdict
+  cue there means the player who fouled hears it once the cards have already changed hands.
+
+Judging twice is safe to rely on: `resolveRound`'s `provisional` and `finishRound`'s `result`
+run the same `adjudicate` over the same taps, and the okuri choice only feeds `transfers` —
+it cannot change a `verdict`. Rounds with no okuri skip `roundReveal` entirely and go straight
+to `roundResult`, so a handler placed on both needs to de-duplicate by round number
+(`Karuta`'s `judgedRound` ref) rather than assume it fires once.
 
 ## Colour: check contrast against the surface the text actually lands on
 

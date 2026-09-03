@@ -106,6 +106,25 @@ Use `broadcast()` only for messages that are genuinely identical for both player
 (`roundArm`, `roundStart`, `roundReveal`, `peer`, `rematchState`). Anything carrying a
 `MatchView` or `RoomView` goes through `broadcastMatch`.
 
+### `broadcast()` does not exclude the subject — `peer` reaches the player it is about
+
+`broadcast()` sends to both seats unconditionally, so `reattach()`'s
+`broadcast({ t: 'peer', playerId: p, online: true })` is delivered **to `p` as well**. Since
+`ws.ts` re-sends `hello` with the `resumeToken` on every `onopen`, a player whose own socket
+blips mid-match receives a `peer{online:true}` describing themselves while their opponent may
+still be disconnected.
+
+That is correct on the wire — `peer` is a room fact, not a "your opponent" notification, and
+the name says `playerId`, not `foe`. The contract it imposes is on the client: **every
+`case 'peer'` handler must compare `msg.playerId` against its own seat before rendering
+anything phrased as being about the opponent.** Karuta's audio cue does this; the "对手已重连"
+toast and the `setPeerGraceEnds(null)` reset next to it still do not, and will misfire on a
+self-reconnect.
+
+If a future message genuinely means "about the other player", send it with `send(peer, …)`
+rather than teaching each client to filter — but do not retrofit that onto `peer`, whose
+`playerId` field several handlers now read.
+
 ---
 
 ## Reconnect and Recovery
