@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
+- **Total Sessions**: 14
 - **Last Active**: 2026-09-03
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~335 | Active |
+| `journal-1.md` | ~363 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-09-03 | 断线重连找回与放弃重连 | `9f18c9c`, `3cbaac7`, `77e9a4e` | `feat/reconnect-recovery` |
 | 13 | 2026-09-03 | PVP 主动退出流程与 peerLeft 契约 | `489970c`, `ff0b97e`, `173eae8` | `main` |
 | 12 | 2026-09-03 | 本地战绩统计与奖杯面板 | `5b6e9ff`, `935b55f`, `ab39e30`, `c2d422f` | `main` |
 | 11 | 2026-09-03 | 全员离线房间即时回收 + 半开重连竞态修复 | `6f503fe`, `701b79e`, `c1223aa` | `main` |

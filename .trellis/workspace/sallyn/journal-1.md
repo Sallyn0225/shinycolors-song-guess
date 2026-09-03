@@ -333,3 +333,31 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 14: 断线重连找回与放弃重连
+<!-- trellis-session: v=2 fp=66ccabfb8b5ed01a -->
+
+**Date**: 2026-09-03
+**Task**: 断线重连找回与放弃重连
+**Branch**: `feat/reconnect-recovery`
+
+### Summary
+
+掉线方重开链接后能在宽限期内找回对局。座位凭证从 sessionStorage 搬到 localStorage 并带过期戳，防抢座改由新增的零副作用探测 hello{claim:false} -> seatOffer{ok|busy|gone} 承担，刻意不放进 reattach()（那会砸掉半开连接的正常重连）；Splash 上摆出「找回对局 / 放弃重连」二选一。
+
+手动走查暴露出三个缺陷，都已修并沉淀进 spec：(1) 凭证过期戳从「发放时刻」起算，一局牌远超 75s，凭证在对局进行中就自己过期，找回入口和同标签页 F5 一起废掉 —— 改为由心跳续期，跟着「最后一次还在座位上」走；(2) 启动 effect 拿 socket.hasResumeToken 当早退判据，而 parkSeat() 正是把它改成 false 的那个动作，StrictMode 双跑时第二遍直接返回，探测消息一次都没发出去 —— 只在 dev 复现，与本项目惯常的「本地好、线上坏」方向相反；(3) resuming 一个 state 同时表达「加载中」和「这次打开的性质」，两者在恢复成功那一刻要求相反的值，导致刷新后 Splash 掉回首次访问支线、完整播一遍开场问候 —— 改为由 screen 推导。
+
+验证：pnpm -r test 114 passed（座位探测 6 条：零副作用 / ok / busy / gone / 放弃重连 / 回归护栏）、typecheck 全绿；Playwright 端到端走查了新标签页找回、同标签页 F5 静默恢复、首次访问三条路径；用户在手机 + 电脑真机联机复测通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9f18c9c` | feat(pvp): offer a disconnected player their seat back on reopen |
+| `3cbaac7` | docs: record the seat-credential contract and two dev-only React traps |
+| `77e9a4e` | chore(task): add planning artifacts for the reconnect recovery task |
+
+### Status
+
+[OK] **Completed**
