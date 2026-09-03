@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
@@ -15,11 +15,29 @@ interface ManifestPublic {
   units: ManifestUnit[]
 }
 
-describe('COUNTED_UNITS 与 manifest 一致性（双向断言）', () => {
-  const manifestPath = fileURLToPath(
-    new URL('../../../../assets/manifest.public.json', import.meta.url),
-  )
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as ManifestPublic
+const manifestPath = fileURLToPath(
+  new URL('../../../../assets/manifest.public.json', import.meta.url),
+)
+
+/**
+ * `assets/` 是 1.7GB 商业音源的派生物，不入库也不该入库（见 NOTICE），
+ * 所以 CI 上没有这个文件，而本地开发机上有。
+ *
+ * 这一组断言的**全部价值**在于拿这张手写表去对真实曲库：把 manifest 换成一份入库的
+ * fixture，断言就退化成表在自我印证，漏掉一个组合照样全绿。所以宁可在没有曲库的环境里
+ * 显式跳过，也不把它降级成假数据。口径与 `ci.yml` 里被排除的 server 那 4 个测试一致 ——
+ * 那里的说法是「失败是环境问题不是代码问题」。
+ *
+ * 读取必须是**惰性**的：`describe.skip` 依然会执行回调体来收集用例，
+ * 在顶层直接 readFileSync 的话，跳过与否都已经抛在收集阶段了。
+ */
+const hasManifest = existsSync(manifestPath)
+const describeWithManifest = hasManifest ? describe : describe.skip
+
+describeWithManifest('COUNTED_UNITS 与 manifest 一致性（双向断言）', () => {
+  const manifest = hasManifest
+    ? (JSON.parse(readFileSync(manifestPath, 'utf-8')) as ManifestPublic)
+    : { units: [] as ManifestUnit[] }
   const nonShuffleInManifest = manifest.units.filter((u) => u.kind !== 'shuffle')
 
   it('9 个常设组合 + 全体曲，数量与 manifest 中非 shuffle 组合一致', () => {

@@ -619,9 +619,32 @@ feedback loop for those users.
 
 ```bash
 pnpm --filter @scg/web typecheck
-pnpm --filter @scg/web test        # 21 tests, none of them may be edited
+pnpm --filter @scg/web test        # 113 tests, none of them may be edited
 pnpm --filter @scg/web build
 ```
+
+### A green `test` here does not mean a green CI — `assets/` only exists on your machine
+
+`apps/web` is one of the packages CI runs in full, and it can only stay that way because none
+of its tests read the catalogue. `assets/` is a derivative of 1.7GB of commercial audio: it is
+not in the repo and never will be (see `NOTICE`), so on CI the path simply does not exist.
+`ci.yml` already excludes four `apps/server` tests for exactly this reason.
+
+A test that reads `assets/manifest.public.json` therefore passes locally and fails on CI, and
+the local run gives you no hint at all. If a table genuinely has to be checked against the real
+catalogue — which is the only way such a check is worth anything, since a committed fixture
+just lets the table confirm itself — gate it and let it skip where the catalogue is absent:
+
+```ts
+const hasManifest = existsSync(manifestPath)
+const describeWithManifest = hasManifest ? describe : describe.skip
+```
+
+Read the file **lazily**. `describe.skip` still runs the callback to collect its tests, so a
+top-level `readFileSync` throws during collection whether or not the block is skipped.
+
+Before adding any test that touches a path outside `apps/web`, hide the file and run the suite
+once — that is the only check that actually reproduces CI.
 
 Plus, by hand: keyboard-only run (`1`–`4` / `R` / `Enter`), reduced-motion, Tab through every
 screen checking the focus ring survives the clip, and both 1536×1024 and 390×844.
