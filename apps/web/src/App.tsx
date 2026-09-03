@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Difficulty, MatchView, RoomView } from '@scg/shared'
 
 import { ambience } from './ambience'
@@ -11,7 +11,7 @@ import { Play } from './screens/Play'
 import { Records } from './screens/Records'
 import { Result } from './screens/Result'
 import { Room } from './screens/Room'
-import { Splash } from './screens/Splash'
+import { Splash, type SeatOfferState } from './screens/Splash'
 import { Start } from './screens/Start'
 import { Backdrop } from './ui/Backdrop'
 import { OverlayMark } from './ui/Overlay'
@@ -27,13 +27,27 @@ type Screen =
 
 /** 找回座位的等待上限。到点还没恢复就当新会话，别让人一直卡在恢复界面 */
 const RESUME_TIMEOUT_MS = 6000
+/** 座位仍在被占用（busy）时探测重试的间隔 */
+const PROBE_RETRY_MS = 3000
+
+/** 探测结果要交给 Splash 呈现的状态（类型定义在 Splash.tsx） */
+export type { SeatOfferState }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'start' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  /** 刷新/断线后本地还留着座位凭证 —— 先试着接回原来的对局 */
-  const [resuming, setResuming] = useState(() => socket.hasResumeToken)
+  /**
+   * 三岔启动（design.md）：读本地凭证 ——
+   * - 无 / 已过期 → 首次访问，什么都不做（与以前一致）；
+   * - 有，且本标签页持有过（`tabHeldSeat`）→ 今天的路：connect + 自动认领，静默恢复；
+   * - 有，但是新标签页 → connect + `hello{claim:false}` 探测，按 seatOffer 分支。
+   */
+  const [resuming, setResuming] = useState(() => socket.hasResumeToken && socket.tabHeldSeat)
+  /** 探测到的座位状态，非空时 Splash 在 resume 支线上摆出「找回 / 放弃」二选一 */
+  const [offer, setOffer] = useState<SeatOfferState | null>(null)
+  /** busy 自动重试的定时器句柄 */
+  const probeTimer = useRef(0)
   /** 开场遮罩还没被点掉。它同时是音频解锁所需的那次用户手势，见 screens/Splash.tsx */
   const [opened, setOpened] = useState(false)
 
@@ -53,13 +67,100 @@ export default function App() {
     }
   }, [])
 
-  // 页面一进来就带着座位凭证连一次。服务端认得就把牌面推回来，认不得就当新会话。
   useEffect(() => {
-    if (!socket.hasResumeToken) return
+    if (socket.tabHeldSeat) {
+      // 无凭证 → 首次访问，与以前完全一致
+      if (!socket.hasResumeToken) return
+      // 同标签页刷新：既有的静默自动认领路径，一个字没改
+      socket.connect()
+      const t = window.setTimeout(() => setResuming(false), RESUME_TIMEOUT_MS)
+      return () => window.clearTimeout(t)
+    }
+    /*
+      新标签页：connect() 的 onopen 会自动带凭证认领 —— 那是抢座，
+      所以先把凭证从自动认领路径上摘下来暂存，再连一条干净的连接。
+      之后探测（claim:false，零副作用）问服务端「这个座位能不能找回」，
+      座位仍在线（busy）就绝不认领，防抢座在认领之前拦住。
+
+      判据用 `parkSeat()` 的返回值，**不能用 `hasResumeToken`** ——
+      `parkSeat()` 正是把凭证从 `resumeToken` 上摘走的那个动作，
+      摘完 `hasResumeToken` 就是 false 了。StrictMode 下 effect 跑两遍
+      （mount → cleanup → mount），第二遍要是拿它当早退条件，会在
+      「凭证已被第一遍摘走」的状态下直接返回：监听和重试定时器都随
+      cleanup 没了，而 onopen 是 cleanup 之后才到的 —— 探测一次都发不出去，
+      表现就是修好的服务端配着一个永远不弹的界面。
+      `parkSeat()` 幂等，重复调用返回同一份暂存，第二遍照常装配。
+    */
+    const parked = socket.parkSeat()
+    // 没有凭证（也没有暂存）= 首次访问，什么都不做
+    if (!parked) return
     socket.connect()
-    const t = window.setTimeout(() => setResuming(false), RESUME_TIMEOUT_MS)
-    return () => window.clearTimeout(t)
+    setResuming(false)
+    const probe = () => socket.send({ t: 'hello', resumeToken: parked, claim: false })
+    // 连接建立后探一次（status 回调对已建立的连接不会补发，所以要双保险）
+    const off = socket.onStatus((connected) => {
+      if (connected) probe()
+    })
+    if (socket.connected) probe()
+    // busy（半开窗口 / 另一个标签页正开着）期间按固定间隔自动重试，
+    // 直到守卫放行（→ ok）或座位消失（→ gone）。ok / gone 会清掉这条定时器
+    probeTimer.current = window.setInterval(() => {
+      if (socket.connected) probe()
+    }, PROBE_RETRY_MS)
+    return () => {
+      off()
+      window.clearInterval(probeTimer.current)
+    }
   }, [])
+
+  // 探测应答：ok → 摆出「找回 / 放弃」；busy → 保持等待由上面的定时器重试；
+  // gone → 凭证已死，清掉并按首次访问处理（不弹提示）
+  useEffect(() => {
+    const off = socket.on((msg) => {
+      if (msg.t !== 'seatOffer') return
+      if (msg.reason === 'ok') {
+        window.clearInterval(probeTimer.current)
+        setOffer({ kind: 'ok', roomCode: msg.roomCode, opponent: msg.opponent, inMatch: msg.inMatch })
+      } else if (msg.reason === 'busy') {
+        setOffer({ kind: 'busy' }) // 定时器继续跑，到点重发探测
+      } else {
+        window.clearInterval(probeTimer.current)
+        socket.forgetSeat()
+        setOffer(null)
+      }
+    })
+    return off
+  }, [])
+
+  /** 「找回对局」：从探测切到认领 —— 走既有的 hello{claim:true} 路径 */
+  const claimSeat = useCallback(() => {
+    window.clearInterval(probeTimer.current)
+    setOffer(null)
+    setResuming(true)
+    socket.claimSeat()
+    // 到点还没恢复就放人回首页，别让人卡在「正在找回」
+    window.setTimeout(() => setResuming(false), RESUME_TIMEOUT_MS)
+  }, [])
+
+  /**
+   * 「放弃重连」：认领 → leaveRoom → 清凭证 → 落首页。
+   *
+   * 认领的判据是「凭证存在**任何地方**」而不是 `hasResumeToken`。
+   * `claimSeat()` 返回认领是否真的发出去了：发出去了才发 leaveRoom（R5）；
+   * 没发出去（座位真没了 / 连接不通）或处于 busy 窗口退化为纯本地放弃（R7），两者都不加协议。
+   */
+  const forfeitSeat = useCallback(() => {
+    window.clearInterval(probeTimer.current)
+    const isBusy = offer?.kind === 'busy'
+    setOffer(null)
+    if (!isBusy) {
+      const claimed = socket.claimSeat()
+      if (claimed) socket.send({ t: 'leaveRoom' })
+    }
+    socket.forgetSeat()
+    setOpened(true) // Splash 要让位给首页
+    setScreen({ name: 'start' })
+  }, [offer])
 
   // 对局一开始就切到牌场。
   // 注意必须把 matchStart 的内容一起带下去 —— Karuta 是收到消息之后才挂载的，
@@ -78,6 +179,9 @@ export default function App() {
           })
           break
         case 'welcome':
+          // 这条连接带着新凭证入座了（建房/进房，或放弃后重新进房）→
+          // 本标签页从此持有座位，刷新时走静默自动恢复而不是探测
+          if (msg.resumeToken) socket.markTabHeldSeat()
           if (msg.resumed) break
           // 没认出座位就别再等了
           setResuming(false)
@@ -159,6 +263,8 @@ export default function App() {
             // 而这一步用户想做的只是「换一间房」
             onLeave={() => {
               socket.send({ t: 'leaveRoom' })
+              // 主动退出后座位已经交还，凭证不能留着指向一个已消失的座位（prd.md F8）
+              socket.forgetSeat()
               setScreen({ name: 'lobby' })
             }}
           />
@@ -174,6 +280,7 @@ export default function App() {
             // 断线时 socket.send 会静默失败，落到大厅后 Lobby 屏自己会重连并重订阅列表。
             onExit={() => {
               socket.send({ t: 'leaveRoom' })
+              socket.forgetSeat()
               setScreen({ name: 'lobby' })
             }}
             // 对手主动退出：落回 Room 屏（房间还在、房间码不变），而不是大厅。
@@ -242,6 +349,24 @@ export default function App() {
     ambience.setEnabled(bgm && !resuming)
   }, [bgm, resuming])
 
+  /*
+    交给 Splash 的「这次打开是回到一个已经在跑的对局」。
+
+    **不能直接用 `resuming`** —— 那是个加载态，恢复一成功就必须转 false，
+    否则「正在找回对局…」会一直挂着。可对 Splash 来说，恢复成功恰恰是
+    resume 支线最成立的时候：遮罩要等用户那次点击（解锁 AudioContext）才散，
+    而恢复往往比人点得快，于是 `resuming` 在点击前就没了，Splash 掉回首次访问那条路，
+    完整播一遍问候语音再起 BGM —— 对局正在跑，那是最不该拿开场动画拖时间的时刻
+    （`screens/Splash.tsx` 开头的 resume 支线就是为此存在的）。
+
+    「恢复已经成功」这件事 `screen` 已经记着了：遮罩还在场时能走到 karuta / room
+    只有恢复这一条路（首次访问要先点掉遮罩才谈得上入座）。所以由它推导，
+    既不新增 state，也不必去跟 RESUME_TIMEOUT_MS 那个定时器抢先后。
+    恢复失败的两条路（超时、服务端不认这个座位）都会让 resuming 转 false 且
+    screen 留在 start，这里随之回落到普通开场，正是想要的。
+  */
+  const resumePath = resuming || screen.name === 'karuta' || screen.name === 'room'
+
   return (
     <>
       <Backdrop video={video} />
@@ -252,7 +377,15 @@ export default function App() {
         副作用正是想要的——首页的 anim-appear 留到那一刻才跑。
       */}
       {opened && body()}
-      {!opened && <Splash resume={resuming} onOpened={() => setOpened(true)} />}
+      {!opened && (
+        <Splash
+          resume={resumePath}
+          offer={offer}
+          onClaim={claimSeat}
+          onForfeit={forfeitSeat}
+          onOpened={() => setOpened(true)}
+        />
+      )}
     </>
   )
 }

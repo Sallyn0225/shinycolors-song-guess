@@ -100,3 +100,25 @@ describe('rooms 订阅消息', () => {
     expect(clientMsgSchema.safeParse({ t: 'rooms' }).success).toBe(false)
   })
 })
+
+describe('hello 握手消息', () => {
+  it('缺省 claim 时为 undefined，不自动赋 true（避免 z.input 与 z.infer 分叉）', () => {
+    const parsed = clientMsgSchema.parse({ t: 'hello' })
+    expect(parsed).toEqual({ t: 'hello' })
+    expect('claim' in parsed).toBe(false)
+  })
+
+  it('显式传 claim: false 时正常解析（探测模式）', () => {
+    const parsed = clientMsgSchema.parse({ t: 'hello', resumeToken: 'tok_abc', claim: false })
+    expect(parsed).toEqual({ t: 'hello', resumeToken: 'tok_abc', claim: false })
+  })
+
+  it('显式传 claim: true 时正常解析（认领模式）', () => {
+    const parsed = clientMsgSchema.parse({ t: 'hello', resumeToken: 'tok_abc', claim: true })
+    expect(parsed).toEqual({ t: 'hello', resumeToken: 'tok_abc', claim: true })
+  })
+
+  it('拒绝非布尔类型的 claim', () => {
+    expect(clientMsgSchema.safeParse({ t: 'hello', claim: 'yes' }).success).toBe(false)
+  })
+})

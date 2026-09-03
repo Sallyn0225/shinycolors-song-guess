@@ -353,6 +353,56 @@ export class Hub {
       }
 
       case 'hello': {
+        if (msg.claim === false) {
+          /*
+            探测支路：`claim:false` 表示「只问一句座位能不能认领，先别动」。
+            **零副作用是这条支路的硬要求** —— 不 reattach、不写 s.room / s.playerId、
+            不改 s.listening、不广播 peer、不 markListDirty。唯一输出就是下面这条 seatOffer。
+
+            它存在的理由（design.md）：新标签页**永不自动认领**，只在探测回报
+            「座位当前离线」时才把「找回对局」摆出来 —— 防抢座在认领之前拦住，
+            而不是在 `reattach()` 里加守卫（那会砸掉半开连接的正常重连路径）。
+          */
+          const probed = msg.resumeToken ? this.bySeatToken.get(msg.resumeToken) : undefined
+          if (!probed) {
+            // 索引里没有这个 token —— 宽限已过或房间已散。前端不提示，按首次访问处理
+            this.reply(socket, { t: 'seatOffer', available: false, reason: 'gone', inMatch: false })
+            return
+          }
+          let pid: PlayerId | null = null
+          for (const p of ['A', 'B'] as const) {
+            if (probed.seatOf(p)?.resumeToken === msg.resumeToken) {
+              pid = p
+              break
+            }
+          }
+          if (!pid) {
+            // 索引指向的房间里已没有这个 token 对应的座位 —— 同样视同已回收
+            this.reply(socket, { t: 'seatOffer', available: false, reason: 'gone', inMatch: false })
+            return
+          }
+          if (probed.seatHasConnection(pid)) {
+            // 半开窗口（旧连接还没被心跳判死），或另一个标签页正开着这个座位。
+            // 前端显示「座位仍在使用中」并自动重试，不摆「找回」按钮
+            this.reply(socket, {
+              t: 'seatOffer',
+              available: false,
+              reason: 'busy',
+              inMatch: probed.status === 'playing',
+            })
+            return
+          }
+          const opponent = pid === 'A' ? probed.seatOf('B') : probed.seatOf('A')
+          this.reply(socket, {
+            t: 'seatOffer',
+            available: true,
+            reason: 'ok',
+            roomCode: probed.code,
+            opponent: opponent?.nickname,
+            inMatch: probed.status === 'playing',
+          })
+          return
+        }
         if (msg.resumeToken) {
           const room = this.bySeatToken.get(msg.resumeToken)
           const pid = room?.reattach(msg.resumeToken, this.conn(socket)) ?? null

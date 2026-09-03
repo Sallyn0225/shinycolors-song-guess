@@ -217,7 +217,19 @@ const roomCode = z
   .regex(new RegExp(`^[${ROOM_CODE_ALPHABET}]+$`))
 
 export const clientMsgSchema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('hello'), resumeToken: z.string().max(200).optional() }),
+  z.object({
+    t: z.literal('hello'),
+    resumeToken: z.string().max(200).optional(),
+    /**
+     * `false` = 只探测座位能不能认领，不动任何状态（服务端回一条 `seatOffer`）；
+     * 缺省与显式 `true` 都是认领。**故意不写 `.default(true)`**：
+     * 默认值必须落在「不改变既有行为」的那一侧 —— 现有客户端与同标签页刷新
+     * 不带这个字段，缺省即认领，它们的字节流一个都不用变；写 `.default()`
+     * 还会让 `z.input`（发送方眼中的可选）与 `z.output`（服务端读到的必填）
+     * 在这个字段的可选性上分叉。
+     */
+    claim: z.boolean().optional(),
+  }),
   z.object({
     t: z.literal('ping'),
     seq: z.number().int().nonnegative(),
@@ -327,6 +339,21 @@ export type ServerMsg =
       privateTotal: number
       limits: LobbyLimits
     }
+  /**
+   * 对 `hello{claim:false}` 探测的应答：这个座位现在能不能被认领。
+   *
+   * 探测是零副作用的（不 reattach、不广播），这条消息是它唯一的输出。
+   * 三个 reason 各对应一种前端呈现：
+   * - `gone` —— 索引里没有这个 token（宽限已过或房间已散）。前端**不提示**，按首次访问处理。
+   * - `busy` —— 座位仍在但仍持有活连接（半开窗口，或另一个标签页正开着）。
+   *   前端显示「座位仍在使用中」并自动重试，不摆出「找回」按钮。
+   * - `ok` —— 可以认领。`roomCode` / `opponent` / `inMatch` 供提示文案用，
+   *   让人知道自己要回的是哪一局。
+   *
+   * `roomCode` 与 `opponent` 只在 `available` 时下发：持有 token 本来就等于持有座位，
+   * 不构成新的信息泄露面。
+   */
+  | { t: 'seatOffer'; available: boolean; reason: 'ok' | 'busy' | 'gone'; roomCode?: string; opponent?: string; inMatch: boolean }
   /**
    * 房间被服务端单方面关闭，客户端应当退回大厅。
    *

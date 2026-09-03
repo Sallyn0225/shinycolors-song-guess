@@ -313,6 +313,16 @@ export class Room {
     return this.seats[player]
   }
 
+  /**
+   * 某座位当前是否持有活连接。**只读**——探测（`hello{claim:false}`）要用它判断
+   * 「座位是不是还被人占着」，而探测不得产生任何副作用，所以只给一个布尔，
+   * 不把 `seats`（可变的 Seat 对象，含 timing 画像）暴露出去。
+   */
+  seatHasConnection(player: PlayerId): boolean {
+    const seat = this.seats[player]
+    return seat !== null && seat.conn !== null
+  }
+
   private touch(): void {
     this.lastActivity = Date.now()
   }

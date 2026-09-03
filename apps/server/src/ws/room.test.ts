@@ -769,3 +769,224 @@ describe('主动退出', () => {
     c.close()
   }, 20_000)
 })
+
+/**
+ * 断线重连找回（`hello{claim:false}` 探测）。
+ *
+ * 设计取舍见 design.md：防抢座的守卫放在**探测**里而不是 `reattach()` 里 ——
+ * 后者会砸掉半开连接的正常重连路径。探测必须零副作用，这条是全部测试的地基。
+ */
+describe('座位探测', () => {
+  /**
+   * 地基测试：探测是「只问不动」，座位的状态、对手的感知、探测方的会话一个都不变。
+   * 如果这条挂了，说明探测支路写出了副作用 —— 后面所有 reason 的测试都建立在它之上。
+   */
+  it('探测零副作用：座位仍是断线态，对手没有收到 peer 上线，探测方未被 seat 上', async () => {
+    const { a, b, welcomeA } = await startMatch()
+    b.clear()
+    a.close()
+    const peerOff = await b.wait('peer', 8000)
+    expect(peerOff.online).toBe(false)
+    // 清掉掉线时的那条 peer（online:false），后面的「没有第二条 peer」断言才干净
+    b.clear()
+
+    // 探测：新连接，claim:false
+    const probe = await TestClient.connect()
+    probe.send({ t: 'hello', resumeToken: welcomeA.resumeToken, claim: false })
+    const offer = await probe.wait('seatOffer')
+    expect(offer.available).toBe(true)
+    expect(offer.reason).toBe('ok')
+
+    // 对手的视角没有任何变化：没有第二条 peer（reattach 会广播 online:true）
+    await new Promise((r) => setTimeout(r, 800))
+    expect(b.received.some((m) => m.t === 'peer')).toBe(false)
+    expect(b.received.some((m) => m.t === 'peerLeft')).toBe(false)
+
+    // 探测方没有被 seat 上：后续要求入座的消息回 not_in_room，而不是被当成房间成员
+    probe.send({ t: 'ready', ready: true })
+    const err = await probe.wait('error')
+    expect(err.code).toBe('not_in_room')
+    expect(probe.received.some((m) => m.t === 'welcome')).toBe(false)
+    expect(probe.received.some((m) => m.t === 'stateSync')).toBe(false)
+
+    // 探测之后座位还能被正常认领 —— 探测没有把任何东西弄脏
+    const claimer = await TestClient.connect()
+    claimer.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await claimer.wait('welcome')
+    expect(w.resumed).toBe(true)
+
+    probe.close()
+    claimer.close()
+    b.close()
+  }, 30_000)
+
+  it('宽限内离线 → ok，roomCode / opponent / inMatch 正确', async () => {
+    const { a, b, welcomeA, match } = await startMatch()
+    b.clear()
+    a.close()
+    const peerOff = await b.wait('peer', 8000)
+    expect(peerOff.online).toBe(false)
+
+    const probe = await TestClient.connect()
+    probe.send({ t: 'hello', resumeToken: welcomeA.resumeToken, claim: false })
+    const offer = await probe.wait('seatOffer')
+    expect(offer.available).toBe(true)
+    expect(offer.reason).toBe('ok')
+    expect(offer.roomCode).toBeTruthy()
+    expect(offer.opponent).toBe('B')
+    expect(offer.inMatch).toBe(true)
+    // roomCode 是这个房间的真实 6 位码 —— 提示文案要靠它指回「哪一局」
+    expect(offer.roomCode).toMatch(/^[0-9A-HJKMNP-TV-Z]{6}$/)
+
+    probe.close()
+    b.close()
+  }, 30_000)
+
+  it('座位仍在线（另一个连接持有）→ busy，不摆出可认领', async () => {
+    // 半开场景：a1 不关（座位上仍是活连接），探测同一凭证必须报 busy
+    const a1 = await TestClient.connect()
+    const b = await TestClient.connect()
+    a1.send({ t: 'createRoom', nickname: 'A' })
+    const welcomeA = await a1.wait('welcome')
+    const roomA = await a1.wait('room')
+    b.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await b.wait('welcome')
+
+    const probe = await TestClient.connect()
+    probe.send({ t: 'hello', resumeToken: welcomeA.resumeToken, claim: false })
+    const offer = await probe.wait('seatOffer')
+    expect(offer.available).toBe(false)
+    expect(offer.reason).toBe('busy')
+    expect(offer.roomCode).toBeUndefined()
+    expect(offer.opponent).toBeUndefined()
+
+    // 持有者不掉线：这正是防抢座要保证的事
+    await new Promise((r) => setTimeout(r, 600))
+    expect(b.received.some((m) => m.t === 'peer')).toBe(false)
+
+    probe.close()
+    a1.close()
+    b.close()
+  }, 30_000)
+
+  it('凭证从未存在或座位已回收 → gone', async () => {
+    const c = await TestClient.connect()
+    c.send({ t: 'hello', resumeToken: 'deadbeef'.repeat(4), claim: false })
+    const offer = await c.wait('seatOffer')
+    expect(offer.available).toBe(false)
+    expect(offer.reason).toBe('gone')
+    expect(offer.roomCode).toBeUndefined()
+    c.close()
+
+    // 主动退出作废凭证后，同一条 token 也必须是 gone（而不是 ok/busy）
+    const a = await TestClient.connect()
+    const b = await TestClient.connect()
+    a.send({ t: 'createRoom', nickname: 'A' })
+    const welcomeA = await a.wait('welcome')
+    const roomA = await a.wait('room')
+    b.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await b.wait('welcome')
+    a.send({ t: 'leaveRoom' })
+    await b.wait('room', 8000)
+
+    const probe = await TestClient.connect()
+    probe.send({ t: 'hello', resumeToken: welcomeA.resumeToken, claim: false })
+    const gone = await probe.wait('seatOffer')
+    expect(gone.available).toBe(false)
+    expect(gone.reason).toBe('gone')
+
+    probe.close()
+    a.close()
+    b.close()
+  }, 30_000)
+
+  it('放弃重连：探测 → 认领 → leaveRoom → 留守方收到 peerLeft，房间回 waiting 重回列表', async () => {
+    const watcher = await TestClient.connect()
+    watcher.send({ t: 'rooms', subscribe: true })
+    await watcher.wait('roomList')
+
+    const a = await TestClient.connect()
+    const b = await TestClient.connect()
+    a.send({ t: 'createRoom', nickname: 'A', visibility: 'public' })
+    const welcomeA = await a.wait('welcome')
+    const roomA = await a.wait('room')
+    const code = roomA.room.code
+    b.send({ t: 'joinRoom', code, nickname: 'B' })
+    await b.wait('welcome')
+    a.send({ t: 'ready', ready: true })
+    b.send({ t: 'ready', ready: true })
+    await a.wait('matchStart')
+    await b.wait('matchStart')
+    a.send({ t: 'memorizeDone' })
+    b.send({ t: 'memorizeDone' })
+
+    // 掉线（关闭标签页的模拟）
+    a.close()
+    await b.wait('peer', 8000)
+
+    // 新标签页：先探测，再认领
+    const a2 = await TestClient.connect()
+    a2.send({ t: 'hello', resumeToken: welcomeA.resumeToken, claim: false })
+    const offer = await a2.wait('seatOffer')
+    expect(offer.reason).toBe('ok')
+
+    a2.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await a2.wait('welcome')
+    expect(w.resumed).toBe(true)
+
+    // 「放弃重连」= 认领后直接离开。留守方走 peerLeft 路径（不是 peer）
+    a2.send({ t: 'leaveRoom' })
+    const left = await b.wait('peerLeft', 8000)
+    expect(left.playerId).toBe('A')
+    expect(left.nickname).toBe('A')
+    expect(left.room.code).toBe(code)
+    expect(left.room.players.A).toBeNull()
+
+    // 房间以 waiting 重回大厅列表
+    const deadline = Date.now() + 8000
+    let entry = null
+    while (Date.now() < deadline) {
+      const lists = watcher.received.filter((m) => m.t === 'roomList')
+      const last = lists[lists.length - 1]
+      entry = last?.rooms.find((r) => r.code === code) ?? null
+      if (entry?.status === 'waiting') break
+      await new Promise((r) => setTimeout(r, 50))
+    }
+    expect(entry?.status).toBe('waiting')
+
+    a2.close()
+    b.close()
+    watcher.close()
+  }, 40_000)
+
+  it('回归护栏：不带 claim 的 hello{resumeToken} 行为与既有路径逐字一致', async () => {
+    const { a, b, welcomeA, match } = await startMatch()
+    b.clear()
+    a.close()
+    await b.wait('peer', 8000)
+
+    // 不带 claim 字段 —— 服务端必须把它当成显式 true：reattach + welcome + room + stateSync
+    const a2 = await TestClient.connect()
+    a2.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+
+    const w = await a2.wait('welcome')
+    expect(w.resumed).toBe(true)
+    expect(w.playerId).toBe('A')
+    expect(w.resumeToken).toBe(welcomeA.resumeToken)
+
+    const room = await a2.wait('room')
+    expect(room.room.you).toBe('A')
+    expect(room.room.players.A?.online).toBe(true)
+
+    const sync = await a2.wait('stateSync')
+    expect(sync.match.you).toBe('A')
+    expect(sync.match.matchId).toBe(match.matchId)
+
+    // 对手收到 peer 上线 —— 认领路径的广播一字未改
+    const back = await b.waitNth('peer', 1, 8000)
+    expect(back.online).toBe(true)
+
+    a2.close()
+    b.close()
+  }, 30_000)
+})

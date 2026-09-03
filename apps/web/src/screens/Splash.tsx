@@ -40,9 +40,29 @@ import { CornerMark } from '../ui/SectionTitle'
  * 文字全部落在票券的 `surface-lit` 上，比首页直接压在乳化白幕上还宽裕。
  */
 
+/**
+ * 座位探测结果（`hello{claim:false}` → `seatOffer`）交由本屏呈现的状态。
+ * 定义在 Splash 而不是 App，让「怎么呈现」跟「什么时候来」分家。
+ */
+export type SeatOfferState =
+  | { kind: 'ok'; roomCode?: string; opponent?: string; inMatch: boolean }
+  | { kind: 'busy' }
+  | { kind: 'gone' }
+
 interface Props {
-  /** 本机还留着座位凭证。走降级支线 */
+  /**
+   * 这次打开是回到一个已经在跑的对局（正在找回，**或已经找回成功**）。走降级支线。
+   *
+   * 后半句是要点：恢复常常比用户点掉遮罩更快，那时 App 的加载态早就转 false 了，
+   * 拿加载态当判据会让这一屏在最不该拖时间的时刻去播完整开场（见 App.tsx 的 `resumePath`）。
+   */
   resume: boolean
+  /** 新标签页探测的结果。非空时本屏切换成「找回 / 放弃」二选一（或 busy 等待） */
+  offer: SeatOfferState | null
+  /** 「找回对局」：认领座位，回到断线前的牌面 */
+  onClaim: () => void
+  /** 「放弃重连」：认领 → leaveRoom（对手收到退出横幅）→ 清凭证 → 落首页 */
+  onForfeit: () => void
   onOpened: () => void
 }
 
@@ -112,15 +132,19 @@ function IdolFace({ idol }: { idol: Idol }) {
   )
 }
 
-export function Splash({ resume, onOpened }: Props) {
+export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [idol, setIdol] = useState<Idol | null>(null)
   const titleId = useId()
   const hintRef = useRef<HTMLButtonElement>(null)
+  const forfeitRef = useRef<HTMLButtonElement>(null)
   /** 点过一次就不再受理。整屏与提示行都能点，冒泡会让同一次点击来两遍 */
   const busy = useRef(false)
   const alive = useRef(true)
   const calmed = useCalmed()
+
+  // 探测有结论（ok / busy）时本屏进入「选择模式」：整屏点击失效，去留只由那两个按钮决定
+  const offerMode = offer !== null
 
   useEffect(() => {
     alive.current = true
@@ -155,6 +179,32 @@ export function Splash({ resume, onOpened }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return
+
+      if (offerMode && offer) {
+        if (offer.kind === 'ok') {
+          const primary = hintRef.current
+          const secondary = forfeitRef.current
+          if (!primary || !secondary) return
+          const active = document.activeElement
+          e.preventDefault()
+          if (e.shiftKey) {
+            if (active === secondary) primary.focus()
+            else secondary.focus()
+          } else {
+            if (active === primary) secondary.focus()
+            else primary.focus()
+          }
+          return
+        }
+        if (offer.kind === 'busy') {
+          const secondary = forfeitRef.current
+          if (!secondary) return
+          e.preventDefault()
+          secondary.focus()
+          return
+        }
+      }
+
       const btn = hintRef.current
       /*
         进入 greeting / handoff 之后提示按钮换成了迎接你的偶像那一行，
@@ -169,10 +219,12 @@ export function Splash({ resume, onOpened }: Props) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [offerMode, offer])
 
   const enter = useCallback(() => {
     if (busy.current) return
+    // 选择模式下整屏点击不入场 —— 「找回 / 放弃」必须经那两个按钮，误触空白处不能替人做决定
+    if (offerMode) return
     busy.current = true
 
     void (async () => {
@@ -208,7 +260,33 @@ export function Splash({ resume, onOpened }: Props) {
       await sleep(calmed ? 0 : HANDOFF_MS)
       if (alive.current) onOpened()
     })()
-  }, [resume, calmed, onOpened])
+  }, [resume, calmed, onOpened, offerMode])
+
+  /**
+   * 「找回对局」。这次点击同样是解锁 AudioContext 的那次手势 —— 之后断线遮罩、
+   * 牌场音效全靠它。随后走既有认领路径（hello{claim:true}），跳过问候与 BGM，
+   * 与同标签页刷新的 resume 支线同一待遇。
+   */
+  const claim = useCallback(() => {
+    if (busy.current) return
+    busy.current = true
+    void (async () => {
+      try {
+        await audio.unlock()
+      } catch {
+        /* 没声音也照样回牌场 */
+      }
+      onClaim()
+      setPhase('handoff')
+      await sleep(calmed ? 0 : HANDOFF_MS)
+      if (alive.current) onOpened()
+    })()
+  }, [calmed, onClaim, onOpened])
+
+  /** 「放弃重连」。落点（首页）与遮罩关闭都由 App 处理 —— 它知道该渲染什么 */
+  const forfeit = useCallback(() => {
+    onForfeit()
+  }, [onForfeit])
 
   const hint = resume ? '点击继续对局' : '点击任意处进入游戏'
 
@@ -308,7 +386,70 @@ export function Splash({ resume, onOpened }: Props) {
           也正好是头像那三层同心六边形的外径，两个状态天然等高。
         */}
         <div className="mt-9 flex items-center justify-center sm:mt-8" style={{ minHeight: 44 }}>
-          {phase === 'intro' ? (
+          {/*
+            探测支线（新标签页持有凭证）：seatOffer 的三种呈现。
+            ok —— 上一局信息 + 「找回 / 放弃」二选一；两个按钮落在既有的 Tab 圈闭里
+            （hintRef 挂在主按钮上），键盘用户够得到，不重蹈「横幅在圈闭外」的遗留项。
+            busy —— 座位仍被占用（半开窗口或另一个标签页开着），不摆「找回」按钮避免抢座，
+            显示占用中并等 App 自动重试；同时提供「放弃重连」（退化为本地放弃，prd.md R7）。
+            gone —— App 直接清掉 offer（按首次访问处理），根本不会进到这个分支。
+          */}
+          {offerMode && offer.kind === 'ok' ? (
+            <div className="anim-appear flex w-full flex-col items-center gap-2">
+              <p className="jp-wrap text-sm text-ink-sub">
+                上一局{offer.inMatch ? '还在进行中' : '的房间还在'}
+                {offer.opponent ? <span className="text-ink">（对手：{offer.opponent}）</span> : null}
+                {offer.roomCode ? <span className="text-ink-faint"> · 房间码 {offer.roomCode}</span> : null}
+              </p>
+              <div className="mt-1 flex items-center justify-center gap-7">
+                {/*
+                  不走 ui/Button：焦点陷阱要把 Tab 一律送回主按钮（hintRef），
+                  Button（React 18，无 forwardRef）递不进 ref。两个按钮都是纯文本形状，
+                  沿用提示行同一套 tap-line 44px 热区；主次靠字重与颜色分，
+                  二者都画在玻璃面上，不新增裁切元素，不引入焦点环问题。
+                */}
+                <button
+                  ref={hintRef}
+                  type="button"
+                  onClick={claim}
+                  className="tap-line text-sm font-semibold text-ink"
+                  style={{ letterSpacing: 'var(--tracking-base)' }}
+                >
+                  找回对局
+                </button>
+                <button
+                  ref={forfeitRef}
+                  type="button"
+                  onClick={forfeit}
+                  className="tap-line text-sm text-ink-sub transition-colors hover:text-ink"
+                  style={{ letterSpacing: 'var(--tracking-base)' }}
+                >
+                  放弃重连
+                </button>
+              </div>
+            </div>
+          ) : offerMode && offer.kind === 'busy' ? (
+            <div className="anim-appear flex w-full flex-col items-center gap-2">
+              <p
+                role="status"
+                aria-live="polite"
+                className="jp-wrap text-sm text-ink-sub"
+              >
+                座位仍在使用中，正在确认能否找回…
+              </p>
+              <div className="mt-1 flex items-center justify-center">
+                <button
+                  ref={forfeitRef}
+                  type="button"
+                  onClick={forfeit}
+                  className="tap-line text-sm text-ink-sub transition-colors hover:text-ink"
+                  style={{ letterSpacing: 'var(--tracking-base)' }}
+                >
+                  放弃重连
+                </button>
+              </div>
+            </div>
+          ) : phase === 'intro' ? (
             <button
               ref={hintRef}
               type="button"
