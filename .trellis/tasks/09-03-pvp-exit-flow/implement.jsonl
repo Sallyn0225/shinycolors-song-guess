@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "新增 ServerMsg 变体必须遵守协议层的既有契约与命名约定"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "房间状态机、服务端权威计时器、重连与心跳——leave/detach 两条路径的规矩都在这里"}
+{"file": ".trellis/spec/server/backend/directory-structure.md", "reason": "room.ts / hub.ts 的职责边界，避免把广播逻辑写错层"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "服务端测试写法与验证命令（真实 ws 客户端打真实监听服务）"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四个禁区模块的边界，本任务必须绕开 net/ws.ts 与 audio.ts"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "屏内状态 vs 单例的划分，横幅与倒计时状态该放哪"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "倒计时 interval 的注册与清理、订阅与 ref 的写法"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "确认层与横幅要沿用现有的形状原语与 a11y 基线"}

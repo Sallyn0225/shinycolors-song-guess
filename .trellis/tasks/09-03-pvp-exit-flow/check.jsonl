@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "核对掉线路径行为未被改动，房间重置后仍满足状态机约束"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "退出后 clipToken 与 resumeToken 必须作废，核对是否留下可利用的凭证"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "验证命令与测试覆盖标准"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "层边界、rAF/计时 UI、对比度规则——横幅与确认层要过这几条"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "确认禁区模块 diff 为空"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "协议→服务端→前端三层的数据流一致性检查"}
