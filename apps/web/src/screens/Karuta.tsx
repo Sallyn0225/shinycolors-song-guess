@@ -340,24 +340,29 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           setRematchVotes(msg.votes)
           break
 
-        case 'peer':
+        /*
+          `peer` 是一条**房间事实**，不是「你的对手怎么了」的通知：服务端 reattach
+          走 broadcast 且不排除当事人，而 ws.ts 每次 onopen 都重发带 resumeToken 的
+          hello —— 所以我自己的连接抖一下重连，我也会收到一条关于我自己的
+          peer{online:true}。这一屏里三样东西全是以对手为主语的，所以整条消息
+          先按座位过滤，而不是逐个补判断。
+
+          漏掉这道过滤时最贵的不是那句假横幅，是 setPeerGraceEnds(null)：
+          对手真断着的时候它会把常驻横幅连同倒计时一起抹掉，而服务端不会再补发
+          peer，玩家就再也看不到「到点判其负」还剩多久。
+        */
+        case 'peer': {
+          if (msg.playerId === seatRef.current) break
           setPeerGraceEnds(msg.online ? null : (msg.graceEndsAtServer ?? null))
           if (msg.online) {
             setToast('对手已重连')
             window.setTimeout(() => setToast(null), 3000)
           }
-          /*
-            上行 = 回来了、下行 = 走了。这条横幅可能出现在任何一刻，
-            而玩家这时正盯着牌面数決まり字，一声比一条横幅更快到达。
-
-            但只对**关于对手**的那条出声：服务端 reattach 是 broadcast 的，
-            不排除当事人，所以我自己的连接抖一下重连，我也会收到一条
-            关于我自己的 peer{online:true}。那一声「对手回来了」是假的
-            —— 对手此刻可能还断着。上面的横幅与宽限倒计时同样没有分辨
-            这一点，那是既有行为，不在这个任务里改。
-          */
-          if (msg.playerId !== seatRef.current) sfx.play(msg.online ? 'peerOn' : 'peerOff')
+          // 上行 = 回来了、下行 = 走了。这条横幅可能出现在任何一刻，
+          // 而玩家这时正盯着牌面数決まり字，一声比一条横幅更快到达
+          sfx.play(msg.online ? 'peerOn' : 'peerOff')
           break
+        }
 
         // 对手**主动退出**了 —— 与 peer{online:false} 互斥的那条路：
         // 人不会回来了，座位已经释放，没有重连倒计时，只有回房间的倒计时

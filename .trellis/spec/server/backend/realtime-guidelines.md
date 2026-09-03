@@ -117,13 +117,32 @@ still be disconnected.
 That is correct on the wire — `peer` is a room fact, not a "your opponent" notification, and
 the name says `playerId`, not `foe`. The contract it imposes is on the client: **every
 `case 'peer'` handler must compare `msg.playerId` against its own seat before rendering
-anything phrased as being about the opponent.** Karuta's audio cue does this; the "对手已重连"
-toast and the `setPeerGraceEnds(null)` reset next to it still do not, and will misfire on a
-self-reconnect.
+anything phrased as being about the opponent.** `Karuta.tsx` satisfies this by gating the
+whole case (`if (msg.playerId === seatRef.current) break`) rather than per-effect, because
+all three things it does — the grace countdown, the toast, the audio cue — take the opponent
+as their subject.
+
+The expensive half of that bug was never the false toast. It was `setPeerGraceEnds(null)`:
+with the opponent genuinely offline, a self-reconnect wiped the standing banner *and* its
+countdown, and **nothing re-sends it** — the next `peer` for that player only arrives if they
+come back, and `sweep()`'s `forfeitIfAbandoned` speaks in `matchEnd`, not `peer`. The player
+lost sight of a deadline that decides the match.
 
 If a future message genuinely means "about the other player", send it with `send(peer, …)`
 rather than teaching each client to filter — but do not retrofit that onto `peer`, whose
 `playerId` field several handlers now read.
+
+### Known gap: grace state does not survive a reload
+
+`syncMessage()` carries `MatchView`, whose `players[foe].online` says *whether* the opponent
+is offline, but no deadline — `graceEndsAtServer` rides only on the `peer` event. A socket
+blip is harmless (the React tree is not remounted, so `peerGraceEnds` survives), but a full
+page reload during the opponent's grace window leaves `Karuta` with `peerGraceEnds === null`
+and therefore no banner and no countdown, even though the forfeit timer is still running.
+
+Closing it means adding the deadline to `stateSync` (or sending a `peer` to the reattaching
+player alone). Not done: it changes `protocol.ts`, `room.ts` and `Karuta.tsx` together, which
+is wider than the client-side filter above.
 
 ---
 
