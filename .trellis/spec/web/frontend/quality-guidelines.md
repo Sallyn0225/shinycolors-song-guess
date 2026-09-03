@@ -289,6 +289,13 @@ truncating, or that six cards sit 40px below the fold on a phone. `tools/ui-audi
 drives a real 1v1 with two pages and reports the numbers. In the 2026-08-30 review it found
 four of the six real defects; none of them were visible in a screenshot.
 
+> **Warning**: as of 2026-09-03 `probe.mjs` no longer runs against the current UI. It does not
+> dismiss the `Splash` overlay (the lesson recorded below was only ever applied to
+> `measure.mjs`), its `input[aria-label="昵称"]` / `input[aria-label="房间码"]` selectors are
+> stale, and room creation now goes through a dialog whose confirm button reads 「创建」 — it
+> throws "找不到按钮「1v1 空札領地戦」" before measuring anything. Repair it before trusting a
+> green run, or drive the measurement with a throwaway script and say so in the report.
+
 Three layout traps it caught, all of which generalise:
 
 ### An absolutely positioned grid child does not occupy a cell
@@ -392,6 +399,16 @@ title group, and a home screen that scrolls a little costs nothing. **"Must fit 
 the karuta board's rule** (The Both-Territories Rule — grabbing cards lasts seconds, so
 scrolling to find your own card means you cannot play), not this screen's. `.sc-vfit`'s
 `safe center` already handles content taller than the viewport.
+
+**The karuta board has even less: 6px.** Measured at 390×844 during `live`, a new control on
+its own row (`Button size="sm"` + `mb-2` — 44px plus an 8px gap) took the document from 897 to
+949 and pushed **three** of the player's own cards past the fold. There is no compression left
+to find on that screen, so the rule is structural rather than budgetary: **hang new controls
+off the sticky nameplate row instead of giving them a row.** `.tap-line` with `-my-2` buys the
+44px hit area out of the row's existing padding and costs the layout 1px of height —
+`Play.tsx`'s 「退出本局」 is the reference placement. Re-measure `doc` / `overflowY` / cards
+below the fold and require them to match the pre-change baseline *exactly*; "it still fits"
+is not the bar when the slack is single-digit pixels.
 
 For touch targets on plain text buttons, grow the box without moving the text, and do not
 reach for `::after` — these buttons usually sit inside a `clip-path` container that would

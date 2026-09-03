@@ -131,6 +131,46 @@ broadcasts `peer{online:false, graceEndsAtServer}`. `Hub.sweep()` calls
 `forfeitIfAbandoned()` every 15s, which ends the match after
 `KARUTA_DEFAULTS.disconnectGraceSeconds`.
 
+---
+
+## Leaving is not disconnecting
+
+`detach()` and `leave()` are siblings with opposite meanings, and the whole design depends on
+never letting the client confuse them. One says "they may come back, the seat is held"; the
+other says "they are not coming back, the seat is already gone".
+
+| | disconnect | deliberate leave |
+|---|---|---|
+| trigger | socket closes → `Room.detach()` | `{t:'leaveRoom'}` → `Room.leave()` |
+| opponent receives | `peer{online:false, graceEndsAtServer}` | `peerLeft{playerId, nickname, room}` |
+| seat | held, reclaimable with `resumeToken` | released immediately, token voided |
+| outcome | grace expires → `matchEnd('disconnect')` | room resets to waiting, **no `matchEnd`** |
+
+Reusing `peer{online:false}` for a leave leaves the survivor watching a reconnect countdown
+for someone who will never return. Reusing `error` or `roomClosed` is equally wrong: the first
+means "that operation failed, you are still here", the second means "the room is gone" —
+neither can express "your opponent left but the room is still yours".
+
+### `leave()` mid-match must reset every field `startMatch()` sets
+
+The failure this prevents is silent and total: `Room.status` is derived from match state, so a
+single field left populated pins the room at `'playing'` forever. It then vanishes from the
+lobby list *and* refuses to start again — the room is alive, listed nowhere, and unusable.
+
+`resetToLobby()` exists to be diffed against `startMatch()` field by field. It mirrors
+`state` / `pool` / `poolById` / `clipTokens` / `rematchVotes` / `memorizeEndsAt` / `ready`, and
+additionally clears the per-round state `startMatch()` never had to touch: `reading`,
+`roundPhase`, `roundStartAt`, `armedBy`, `taps`, `okuriWait`, `taken`, `otetsuki`. `timing` is
+deliberately **kept** — the anti-cheat calibration belongs to the connection, not the match.
+When you add a field to `startMatch()`, add it here in the same commit.
+
+Own the timer teardown in exactly one place. `leave()` calls `clearTimers()` unconditionally
+before branching, so `resetToLobby()` must not "helpfully" clear them too — two owners means
+the next reader cannot tell which one is load-bearing.
+
+`hub.ts` ordering is also load-bearing: `dropIfDeserted` runs **after** `room.leave()`, so the
+survivor's `peerLeft` is sent before a room with nobody left in it is reclaimed.
+
 ### Seat ownership transfers with `reattach`; stale session pointers must be voided
 
 **A successful `reattach` moves ownership of the seat to the new connection. Every other

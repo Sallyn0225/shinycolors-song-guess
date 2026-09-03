@@ -20,7 +20,7 @@ src/ws/quota.ts     IpQuota — per-IP sliding windows for room creation and joi
 src/ws/timing.ts    PlayerTiming — the anti-cheat reaction-time adjudicator
 ```
 
-102 tests: `app.test.ts` drives routes through `app.inject()`, `ws/room.test.ts` and
+108 tests: `app.test.ts` drives routes through `app.inject()`, `ws/room.test.ts` and
 `ws/lobby.test.ts` drive real `ws` clients against a real listening server, `ws/quota.test.ts`
 is a plain unit test with fake timers.
 

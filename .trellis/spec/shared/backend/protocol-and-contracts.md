@@ -106,6 +106,15 @@ does not know it. Keep the doc comments when you touch them:
 - `roundReveal` is sent **only** when someone has a 送り札 to choose. Rounds without a
   choice go straight to `roundResult`. Adding an unconditional reveal would cost a
   round-trip on every round.
+- `peerLeft.room` — a whole `RoomView` on a message whose other two fields already say what
+  happened, which reads like duplication until you try to remove it. `App.tsx` routes plain
+  `room` messages with a guard that refuses to switch **away from the karuta screen**, so a
+  reconnect's `room` cannot yank a player off a live board. The survivor of a deliberate
+  leave has to make exactly that forbidden transition. Carrying the landing data on this
+  message is the narrow fix; relaxing the guard would re-open the board-yanking bug for every
+  `room` message. Note the payload is a *snapshot*: the room re-enters the lobby list the
+  instant it resets, so a client that holds the banner open for several seconds must refresh
+  from later `room` messages before it lands.
 
 ---
 

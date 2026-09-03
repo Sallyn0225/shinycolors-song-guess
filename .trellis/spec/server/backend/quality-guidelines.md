@@ -1,6 +1,6 @@
 # Quality Guidelines
 
-> 102 tests, at two very different levels — routes through `inject()`, and real sockets
+> 108 tests, at two very different levels — routes through `inject()`, and real sockets
 > against a real listener. Both build a real app; neither mocks the catalog.
 
 ---
@@ -8,7 +8,7 @@
 ## Verification
 
 ```bash
-pnpm --filter @scg/server test        # vitest run — 102 tests
+pnpm --filter @scg/server test        # vitest run — 108 tests
 pnpm --filter @scg/server typecheck   # tsc --noEmit
 pnpm -r test && pnpm -r typecheck     # before reporting done
 ```
