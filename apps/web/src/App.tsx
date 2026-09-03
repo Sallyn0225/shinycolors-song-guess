@@ -169,11 +169,17 @@ export default function App() {
             initialMatch={screen.match}
             memorizeEndsAtServer={screen.memorizeEndsAtServer}
             resumed={screen.resumed}
+            // 主动退出不断 socket，落到联机大厅 —— 关掉就要重连、列表要重订阅，
+            // 而用户此刻想做的只是「换一局」（与 Room 屏的 onLeave 同一条理由）。
+            // 断线时 socket.send 会静默失败，落到大厅后 Lobby 屏自己会重连并重订阅列表。
             onExit={() => {
               socket.send({ t: 'leaveRoom' })
-              socket.close()
-              setScreen({ name: 'start' })
+              setScreen({ name: 'lobby' })
             }}
+            // 对手主动退出：落回 Room 屏（房间还在、房间码不变），而不是大厅。
+            // 不走 `case 'room'` 那条守卫 —— 它刻意不接受从 karuta 屏切走
+            // （「重连时别把牌场顶掉」），落点数据由 peerLeft 消息直接带下来。
+            onPeerLeft={(room) => setScreen({ name: 'room', room })}
           />
         )
       case 'play':

@@ -603,3 +603,169 @@ describe('重连', () => {
     a2.close()
   }, 30_000)
 })
+
+describe('主动退出', () => {
+  it('对局中退出：留守方收到 peerLeft，房间回到等待态，且没有结算', async () => {
+    const { a, b, code } = await startMatch()
+
+    b.clear()
+    // 对局已经在跑（startMatch 里两人都点过「我记好了」），此刻退出即「对局中退出」
+    a.send({ t: 'leaveRoom' })
+
+    const left = await b.wait('peerLeft', 8000)
+    expect(left.playerId).toBe('A')
+    expect(left.nickname).toBe('A')
+    expect(left.room.code).toBe(code)
+    expect(left.room.phase).toBe('lobby')
+    expect(left.room.players.A).toBeNull()
+    expect(left.room.players.B).not.toBeNull()
+
+    // 对手跑了的一局没有值得展示的数据：不发 matchEnd
+    await new Promise((r) => setTimeout(r, 600))
+    expect(b.received.some((m) => m.t === 'matchEnd')).toBe(false)
+    expect(b.received.some((m) => m.t === 'peer')).toBe(false)
+
+    a.close()
+    b.close()
+  }, 30_000)
+
+  it('退出后房间可复用：重回大厅列表，第三人加入并与留守方再开一局', async () => {
+    const watcher = await TestClient.connect()
+    watcher.send({ t: 'rooms', subscribe: true })
+    await watcher.wait('roomList')
+
+    const a = await TestClient.connect()
+    const b = await TestClient.connect()
+    a.send({ t: 'createRoom', nickname: 'A', visibility: 'public' })
+    const roomA = await a.wait('room')
+    const code = roomA.room.code
+    b.send({ t: 'joinRoom', code, nickname: 'B' })
+    await b.wait('welcome')
+    a.send({ t: 'ready', ready: true })
+    b.send({ t: 'ready', ready: true })
+    await a.wait('matchStart')
+    await b.wait('matchStart')
+    a.send({ t: 'memorizeDone' })
+    b.send({ t: 'memorizeDone' })
+    await a.wait('roundArm', 12_000)
+
+    a.send({ t: 'leaveRoom' })
+    const left = await b.wait('peerLeft', 8000)
+    expect(left.room.phase).toBe('lobby')
+
+    // 公开房以 waiting 重新出现在大厅列表里
+    const deadline = Date.now() + 8000
+    let entry = null
+    while (Date.now() < deadline) {
+      const lists = watcher.received.filter((m) => m.t === 'roomList')
+      const last = lists[lists.length - 1]
+      entry = last?.rooms.find((r) => r.code === code) ?? null
+      if (entry?.status === 'waiting') break
+      await new Promise((r) => setTimeout(r, 50))
+    }
+    expect(entry?.status).toBe('waiting')
+
+    // 第三人用房间码加入，坐的是空出来的 A 座，并能与留守方再开一局
+    const c = await TestClient.connect()
+    c.send({ t: 'joinRoom', code, nickname: 'C' })
+    const welcomeC = await c.wait('welcome')
+    expect(welcomeC.playerId).toBe('A')
+
+    b.send({ t: 'ready', ready: true })
+    c.send({ t: 'ready', ready: true })
+    const restart = await b.waitNth('matchStart', 1, 10_000)
+    expect(restart.match.phase).toBe('memorize')
+    await c.wait('matchStart')
+
+    a.close()
+    b.close()
+    c.close()
+    watcher.close()
+  }, 40_000)
+
+  it('旧凭证与切片 token 作废：原 resumeToken 接不回座位，旧 clipToken 换不到切片', async () => {
+    const { a, b, code, welcomeA } = await startMatch()
+    const arm = await a.wait('roundArm', 12_000)
+    const oldClipToken = arm.clipToken
+
+    a.send({ t: 'leaveRoom' })
+    await b.wait('peerLeft', 8000)
+
+    // 原座位凭证已从索引移除 —— 明确告知这是一次新连接
+    const a2 = await TestClient.connect()
+    a2.send({ t: 'hello', resumeToken: welcomeA.resumeToken })
+    const w = await a2.wait('welcome')
+    expect(w.resumed).toBe(false)
+
+    // 旧 clipToken 换不到切片
+    const res = await app.inject({ method: 'GET', url: `/api/room/${code}/clip/${oldClipToken}` })
+    expect(res.statusCode).toBe(404)
+
+    a.close()
+    b.close()
+    a2.close()
+  }, 30_000)
+
+  it('等待阶段退出：留守方收到 room，对手位清空，不走横幅', async () => {
+    const a = await TestClient.connect()
+    const b = await TestClient.connect()
+    a.send({ t: 'createRoom', nickname: 'A' })
+    const roomA = await a.wait('room')
+    b.send({ t: 'joinRoom', code: roomA.room.code, nickname: 'B' })
+    await b.wait('welcome')
+
+    b.clear()
+    a.send({ t: 'leaveRoom' })
+
+    const view = await b.wait('room', 8000)
+    expect(view.room.players.A).toBeNull()
+    expect(view.room.players.B).not.toBeNull()
+
+    await new Promise((r) => setTimeout(r, 600))
+    expect(b.received.some((m) => m.t === 'peerLeft')).toBe(false)
+
+    a.close()
+    b.close()
+  }, 20_000)
+
+  it('退出 ≠ 掉线：直接断开只发 peer，不发 peerLeft，也不定案', async () => {
+    const { a, b } = await startMatch()
+
+    b.clear()
+    // 不发 leaveRoom，直接断开 —— 走的是 detach 路径
+    a.close()
+
+    const peer = await b.wait('peer', 8000)
+    expect(peer.playerId).toBe('A')
+    expect(peer.online).toBe(false)
+    expect(peer.graceEndsAtServer).toBeGreaterThan(Date.now())
+
+    await new Promise((r) => setTimeout(r, 1500))
+    expect(b.received.some((m) => m.t === 'peerLeft')).toBe(false)
+    // 宽限（60s）没到，不能提前定案
+    expect(b.received.some((m) => m.t === 'matchEnd')).toBe(false)
+
+    b.close()
+  }, 20_000)
+
+  // 等待阶段的「一退一断」由 lobby.test.ts 的 T1/T2 覆盖；这里走对局中那条，
+  // 因为它多经过一次 resetToLobby —— 重置之后 dropIfDeserted 仍要照常回收
+  it('对局中一退一断后房间被立即回收：房间码不再能加入', async () => {
+    const { a, b, code } = await startMatch()
+
+    a.send({ t: 'leaveRoom' })
+    await b.wait('peerLeft', 8000)
+    // 留守方也走：房里一条活连接都不剩
+    b.close()
+
+    await new Promise((r) => setTimeout(r, 800))
+
+    const c = await TestClient.connect()
+    c.send({ t: 'joinRoom', code, nickname: 'C' })
+    const err = await c.wait('error', 8000)
+    expect(err.code).toBe('room_not_found')
+
+    a.close()
+    c.close()
+  }, 20_000)
+})

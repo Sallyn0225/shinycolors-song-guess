@@ -243,10 +243,70 @@ export class Room {
     })
   }
 
+  /**
+   * 主动退出（`{t:'leaveRoom'}`），与掉线的 `detach()` 是两条互斥的路。
+   *
+   * 掉线说「人还可能回来，座位给他留着」；这里说「人不会回来了，座位立即释放」。
+   * 对局中退出时房间会被重置回等待态并通知留守方（`peerLeft`），
+   * 等待阶段退出时只同步一次房间视图（`room`），不走横幅 —— 留守方本来就在房间屏里。
+   */
   leave(player: PlayerId): void {
+    const seat = this.seats[player]
+    if (!seat) return
+    // 昵称必须在清座位前取 —— 留守方的横幅要写出是谁走了
+    const nickname = seat.nickname
+    // 与 `status` 同一个口径：`state !== null` 即对局中，结算阶段（phase === 'over'）也算，
+    // 留守方此刻在结算浮层上，同样需要横幅而不是悄无声息
+    const wasInMatch = this.state !== null
     this.seats[player] = null
+    // 定时器只在这一处清：无条件，所以两个分支都覆盖到了。
+    // `resetToLobby()` 里不再清一遍 —— 两处都写会让人以为那是两件不同的事
     this.clearTimers()
+    if (wasInMatch) this.resetToLobby()
     this.touch()
+    const peer = OPPONENT[player]
+    if (!this.seats[peer]) return
+    if (wasInMatch) {
+      this.send(peer, { t: 'peerLeft', playerId: player, nickname, room: this.roomView(peer) })
+    } else {
+      this.send(peer, { t: 'room', room: this.roomView(peer) })
+    }
+  }
+
+  /**
+   * 把房间从「对局中」恢复到「可以重新准备」。
+   *
+   * 字段清单按 `startMatch()` 的镜像来写：`state = null` 是 `status` 与
+   * `roomView().phase` 回到等待态的唯一开关，漏掉任何一个，房间都会卡在
+   * `'playing'` —— 既不出现在大厅列表里，也无法再准备。
+   *
+   * `timing`（`PlayerTiming`）**保留**：它攒的是这条连接的 RTT 画像，与对局无关，
+   * 清掉等于让留守方的延迟显示归零重来。
+   *
+   * 定时器不在这里清：唯一的调用方 `leave()` 已经无条件清过一次（见那一处的注释）。
+   */
+  private resetToLobby(): void {
+    this.state = null
+    this.pool = []
+    this.poolById.clear()
+    this.reading = null
+    this.roundPhase = 'idle'
+    this.roundStartAt = 0
+    this.armedBy.clear()
+    this.taps.clear()
+    this.okuriWait = null
+    // 旧 token 必须作废，否则退出者手里的 token 还能换切片
+    this.clipTokens.clear()
+    this.rematchVotes.clear()
+    this.memorizeEndsAt = 0
+    for (const p of ['A', 'B'] as const) {
+      const seat = this.seats[p]
+      if (seat) {
+        seat.ready = false
+        seat.taken = 0
+        seat.otetsuki = 0
+      }
+    }
   }
 
   seatOf(player: PlayerId): Seat | null {

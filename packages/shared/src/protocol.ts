@@ -366,6 +366,18 @@ export type ServerMsg =
       memorizeEndsAtServer?: number
     }
   | { t: 'peer'; playerId: PlayerId; online: boolean; graceEndsAtServer?: number }
+  /**
+   * 对手**主动退出**了房间（不是掉线）。
+   *
+   * 与 `peer{online:false}` 是两条互斥的路：那条说「人还可能回来，座位给他留着」，
+   * 这条说「人不会回来了，座位已经释放」。混用会让留守方对着一个不存在的
+   * 重连倒计时干等。
+   *
+   * 带上 `room` 是因为留守方要落回房间屏，而 `App` 的 `room` 消息路由
+   * 刻意不接受从 karuta 屏切走（那条守卫是为了「重连时别把牌场顶掉」）。
+   * 与其放宽那条守卫，不如把落点数据直接挂在这条消息上。
+   */
+  | { t: 'peerLeft'; playerId: PlayerId; nickname: string; room: RoomView }
   /** 再战投票状态。要双方都同意才会重开，所以必须让人看到对方同意了没有 */
   | { t: 'rematchState'; votes: PlayerId[] }
   | {

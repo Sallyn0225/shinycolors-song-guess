@@ -6,6 +6,7 @@ import {
   type MatchStats,
   type MatchView,
   type PlayerId,
+  type RoomView,
   type RoundResultView,
   type ServerMsg,
 } from '@scg/shared'
@@ -34,6 +35,8 @@ interface Props {
   /** 这一局是断线/刷新后接回来的，不是从大厅正常开始的 */
   resumed: boolean
   onExit: () => void
+  /** 对手主动退出后的落点：回到 Room 屏（房间还在），而不是大厅 */
+  onPeerLeft: (room: RoomView) => void
 }
 
 type Stage = 'memorize' | 'waiting' | 'live' | 'choosing' | 'reveal' | 'over'
@@ -42,13 +45,18 @@ type RevealMsg = Extract<ServerMsg, { t: 'roundReveal' }>
 
 const OTHER: Record<PlayerId, PlayerId> = { A: 'B', B: 'A' }
 /**
+ * 对手退出后自动返回房间的等待时长。与服务端的断线宽限是两回事：
+ * 那条是「人还可能回来」，这条是「人不会回来了」，只是给留守方几秒钟读完横幅。
+ */
+const PEER_LEFT_RETURN_MS = 10_000
+/**
  * 联机每回合的音频长度 = 抢牌窗口，与服务端判定窗口读同一个常量。
  * 不要改回 DIFFICULTY_PRESETS[...].clipSeconds —— 那是单机答题的旋钮，
  * 借用它会让「调单机片段长度」意外改掉联机节奏，且与服务端的 windowMs 脱钩
  */
 const ROUND_SECONDS = KARUTA_DEFAULTS.roundWindowSeconds
 
-export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: Props) {
+export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, onPeerLeft }: Props) {
   const [match, setMatch] = useState<MatchView | null>(initialMatch)
   // 接回来的对局多半已经在打了，别一进来就摆出记忆阶段的界面
   const [stage, setStage] = useState<Stage>(() =>
@@ -75,6 +83,24 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
   /** 对手掉线时服务端给的宽限终点 */
   const [peerGraceEnds, setPeerGraceEnds] = useState<number | null>(null)
   const [peerGraceLeft, setPeerGraceLeft] = useState(0)
+  /**
+   * 退出确认层。只保护「误触让一局正在进行的对局作废」这一种情况 ——
+   * 断线遮罩里的「放弃这局」和结算页的「退出房间」不走这里。
+   */
+  const [confirmExit, setConfirmExit] = useState(false)
+  /**
+   * 对手**主动退出**了（不是掉线）。牌面立即冻结、音频停止，横幅读完即回房间。
+   * 屏内局部状态，不进任何单例：这条消息只与这一局有关。
+   */
+  const [peerLeft, setPeerLeft] = useState<{
+    nickname: string
+    room: RoomView
+    endsAt: number
+  } | null>(null)
+  const [peerLeftCount, setPeerLeftCount] = useState(0)
+  const peerLeftDone = useRef(false)
+  const onPeerLeftRef = useRef(onPeerLeft)
+  onPeerLeftRef.current = onPeerLeft
   /**
    * 刷新后 AudioContext 是锁着的，而解锁只能发生在真实用户手势的调用栈里。
    * 不补这一下，接回来的人整局都是静音的——而且本地热重载永远复现不了。
@@ -253,6 +279,28 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           }
           break
 
+        // 对手**主动退出**了 —— 与 peer{online:false} 互斥的那条路：
+        // 人不会回来了，座位已经释放，没有重连倒计时，只有回房间的倒计时
+        case 'peerLeft':
+          peerLeftDone.current = false
+          setPeerLeft({
+            nickname: msg.nickname,
+            room: msg.room,
+            endsAt: Date.now() + PEER_LEFT_RETURN_MS,
+          })
+          // 这一局已经没了：牌面冻结、正在播的音频停止，与断线遮罩同一条原则
+          setLocked(true)
+          audio.stop()
+          break
+
+        // 横幅那 10 秒里房间仍然活着 —— 房间又回到了大厅列表上，第三个人随时可能进来。
+        // 落点必须用最新的房间视图，否则回到 Room 屏时对手位会先显示成一个
+        // 已经不成立的「等待对手加入…」，要等下一条房间消息才自愈。
+        // peerLeft 为空时返回同一个引用，React 会跳过这次更新（正常对局中此路无副作用）
+        case 'room':
+          setPeerLeft((prev) => (prev ? { ...prev, room: msg.room } : prev))
+          break
+
         default:
           break
       }
@@ -287,7 +335,15 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
    * 不这么做的话，88% 不透明的遮罩背后那 24 张牌的按钮仍留在 tab 序列里，
    * 键盘用户要先穿过两打看不见的按钮才能够到遮罩里仅剩的那两个操作。
    */
-  const blocked = !online || needGesture || stage === 'over'
+  /*
+    peerLeft 也算：牌面已经冻结，让 24 颗牌留在 tab 序列里，键盘用户要穿过两打
+    禁用按钮才够得到横幅上的「立即返回」。
+
+    退出确认层**不**列进来，尽管它也是遮罩：退出入口现在长在牌场里（自陣名牌那一行），
+    整块 inert 掉之后 `Overlay` 卸载时的「把焦点还给打开它的那颗按钮」会落在 inert
+    子树上，静默失败 —— 焦点掉回 body。那一层的 Tab 圈闭已经把牌挡在外面了。
+  */
+  const blocked = !online || needGesture || stage === 'over' || peerLeft !== null
   useEffect(() => {
     const el = boardRef.current
     if (!el) return
@@ -312,6 +368,33 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
     const t = window.setInterval(tick, 500)
     return () => window.clearInterval(t)
   }, [peerGraceEnds])
+
+  // 对手主动退出的返回倒计时。写法与上面的宽限倒计时同一套（interval + 清理），
+  // 只是终点是本地定的 —— 服务端不发宽限，这 10 秒纯粹是给留守方读横幅的
+  useEffect(() => {
+    if (!peerLeft) return
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((peerLeft.endsAt - Date.now()) / 1000))
+      setPeerLeftCount(left)
+      if (left <= 0 && !peerLeftDone.current) {
+        peerLeftDone.current = true
+        onPeerLeftRef.current(peerLeft.room)
+      }
+    }
+    tick()
+    const t = window.setInterval(tick, 500)
+    return () => window.clearInterval(t)
+  }, [peerLeft])
+
+  // 确认层的 Esc 等同于「继续对局」—— 失败方向只能是留在对局里
+  useEffect(() => {
+    if (!confirmExit) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmExit(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirmExit])
 
   // 挑送り札的截止时刻。到点服务端会替我送「自陣待得最久的那张」，所以必须让人看到还剩多久。
   // 秒数由 Countdown 在 rAF 里直接写 DOM —— 这一段两片牌阵都在屏上，
@@ -355,6 +438,8 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
 
   /** 记忆阶段：点 A 再点 B 交换位置。比拖拽简单得多，也天然支持键盘 */
   const onOwnCardClick = (slot: number, e: React.MouseEvent) => {
+    // 对手已退出：牌面冻结，记忆交换与送札选择一律不再接受
+    if (peerLeft) return
     if (stage === 'choosing') {
       const id = slotsRef.current?.view[slot]
       if (id) chooseOkuri(id)
@@ -517,7 +602,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
 
   /** 只有「这一刻真的能点」的牌才可点：其余一律禁用，避免误触和空点 */
   const cardDisabled = (id: CardId | null, enemy: boolean): boolean => {
-    if (!id) return true
+    if (!id || peerLeft) return true
     if (stage === 'choosing') {
       return enemy || !myOkuri || okuriDone || !myOkuri.candidates.includes(id)
     }
@@ -874,6 +959,8 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         ref={boardRef}
         className="sc-board flex flex-1 flex-col justify-between"
         data-crowd={crowdTier}
+        // 对手退出后牌面冻结：「不能点」这件事要在视觉上先说出来
+        style={peerLeft ? { filter: 'grayscale(60%)', opacity: 0.65 } : undefined}
       >
       {/* ── 敵陣 ───────────────────────────────────────── */}
       <section
@@ -944,14 +1031,111 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
           方向是 bottom-0 不是 top-0：它是自陣的最后一个元素，
           往上贴会盖住自己的牌。底衬与敵陣同款 92%，不然滚动时牌会从字底下透出来。
         */}
-        <div className="sticky bottom-0 z-10" style={{ background: 'rgb(240 239 246 / .92)' }}>
-          {nameplate(me, true)}
+        <div
+          className="sticky bottom-0 z-10 flex items-center gap-3"
+          style={{ background: 'rgb(240 239 246 / .92)' }}
+        >
+          <div className="min-w-0 flex-1">{nameplate(me, true)}</div>
+          {/*
+            对局中的退出入口。只在「正在进行的对局 + 自己在线」时出现：
+            结算页有自己的「退出房间」，断线时整屏被遮罩盖住，都不需要它。
+            点了不直接退 —— 先弹确认层，误触的失败方向只能是留在对局里。
+
+            为什么挤在自陣名牌这一行、而不是自成一行：390×844 实测这一屏只剩 6px 余量
+            （doc 897 / vp 844，自陣越过折线的牌 = 0）。加一行 44px 的按钮量出来是
+            doc 949、**自己的三张牌掉到折线以下** —— 抢牌只有几秒，要滚动才找得到自己的牌
+            就等于没得玩。所以热区靠 `.tap-line` + 负的 block 外边距撑出来：
+            盒子仍是 44px（过 2.5.5），行高只涨 1px，多出来的部分落在上方 8px 的
+            牌阵间距与下方 8px 的 pb-2 里，不盖任何一张牌。
+            颜色用 primary 不用 ink-faint：ink-faint 压在这条 92% 的浅底上只有 4.46:1。
+          */}
+          {stage !== 'over' && online && (
+            <button
+              type="button"
+              onClick={() => setConfirmExit(true)}
+              // 外面那层 section 是 lang="ja"（牌面全是日文曲名），
+              // 不写回来读屏会用日语读音念这四个中文字
+              lang="zh-CN"
+              className="tap-line -my-2 shrink-0 text-xs font-semibold text-primary transition-colors hover:text-ink"
+              style={{ letterSpacing: 'var(--tracking-base)' }}
+            >
+              退出对局
+            </button>
+          )}
         </div>
       </section>
       </div>
 
       {/* sc-fixed-bottom 取代 bottom-6：fixed 层不受 body 的安全区内边距管，
           贴底的东西要自己让开 home indicator（见 index.css） */}
+      {/* 对手主动退出：中性 primary 面，不是警报红 —— 已经成定局，没有「还有救」的意思。
+          色差就是与掉线横幅的「一眼可区分」。出现时掉线横幅与断线遮罩不再渲染，
+          对手都走了，那两条信息没有意义 */}
+      {peerLeft && (
+        <div
+          role="status"
+          className="sc-fixed-top fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 px-4 pb-2 text-xs font-semibold text-primary"
+          style={{ background: 'rgb(97 95 144 / .12)', backdropFilter: 'var(--blur-veil)' }}
+        >
+          <Icon name="info" size="calc(13 * var(--u))" />
+          <span>
+            {peerLeft.nickname} 已退出房间，<span className="latin">{peerLeftCount}s</span> 后返回房间
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (!peerLeftDone.current) {
+                peerLeftDone.current = true
+                onPeerLeftRef.current(peerLeft.room)
+              }
+            }}
+            /* accent-ink 压在这块 12% 紫面上只有 3.96:1（白底上是 4.99:1）——
+               又一次「token 从白底搬到有色面就要重算」。primary 在同一块面上是 4.69:1，
+               动作感由下划线给，不靠再亮一档的颜色 */
+            className="tap-line text-xs font-bold text-primary underline underline-offset-4 transition-colors hover:text-ink"
+          >
+            立即返回
+          </button>
+        </div>
+      )}
+
+      {/* 退出确认：主次刻意反着放 —— 「继续对局」是 primary 且排在前面
+          （Overlay 进场自动聚焦第一个可聚焦元素），因为这个弹层存在的唯一理由就是防误触 */}
+      {confirmExit && (
+        <Overlay label="退出对局确认" onClick={() => setConfirmExit(false)}>
+          {/* 点遮罩关闭，点卡片不关闭：冒泡到根 veil 才算「点了遮罩」 */}
+          <span
+            className="cut-shadow-lg anim-appear w-full"
+            style={{ maxWidth: 'var(--page-card)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="glass-lit cut-card px-8 pt-12 pb-8 text-center">
+              <OverlayMark />
+              <p className="mt-5 text-xl font-bold text-primary">退出对局？</p>
+              <p className="jp-wrap mt-2 text-sm text-ink-sub">
+                退出后这一局立即作废，判你负，且无法再回到这一局。
+              </p>
+              <div className="mt-6 flex flex-col gap-3">
+                <Button variant="primary" size="lg" full onClick={() => setConfirmExit(false)}>
+                  继续对局
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  full
+                  onClick={() => {
+                    setConfirmExit(false)
+                    onExit()
+                  }}
+                >
+                  确认退出
+                </Button>
+              </div>
+            </div>
+          </span>
+        </Overlay>
+      )}
+
       {toast && (
         <div
           role="status"
@@ -967,7 +1151,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
       {/* 对手掉线：不是弹窗而是常驻横幅——它会一直影响接下来的每一回合。
           原来的 py-2 拆成 sc-fixed-top + pb-2：贴顶的横幅要自己让开状态栏/刘海，
           而上下内边距分开写才不会两条规则抢同一个属性 */}
-      {peerGraceEnds !== null && stage !== 'over' && (
+      {peerGraceEnds !== null && stage !== 'over' && !peerLeft && (
         <div
           role="status"
           className="sc-fixed-top fixed inset-x-0 top-0 z-30 flex items-center justify-center gap-2 px-4 pb-2 text-xs font-semibold text-wrong"
@@ -981,8 +1165,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit }: 
         </div>
       )}
 
-      {/* 自己断线：整屏挡住。这时点任何牌都到不了服务器，让人接着点只会更困惑 */}
-      {!online && stage !== 'over' && (
+      {/* 自己断线：整屏挡住。这时点任何牌都到不了服务器，让人接着点只会更困惑。
+          对手已退出的那 10 秒里不渲染 —— 横幅的返回倒计时才是此刻唯一的信息 */}
+      {!online && stage !== 'over' && !peerLeft && (
         <Overlay label="连接断开">
           <OverlayMark />
           <p className="text-xl font-bold text-primary">连接断开</p>
