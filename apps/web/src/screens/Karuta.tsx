@@ -9,10 +9,12 @@ import {
   type RoomView,
   type RoundResultView,
   type ServerMsg,
+  type TapView,
 } from '@scg/shared'
 
 import { audio } from '../audio'
 import { socket } from '../net/ws'
+import { sfx } from '../sfx'
 import { KarutaTile, type CardPick, type CardState } from '../components/KarutaTile'
 import { SlotMap } from '../features/karutaBoard'
 import { versusTier } from '../features/grade'
@@ -55,6 +57,39 @@ const PEER_LEFT_RETURN_MS = 10_000
  * 借用它会让「调单机片段长度」意外改掉联机节奏，且与服务端的 windowMs 脱钩
  */
 const ROUND_SECONDS = KARUTA_DEFAULTS.roundWindowSeconds
+/**
+ * 同一拍里第二声的错峰。判定音先出、牌面移动音后出，顺序与视觉变化一致——
+ * 两声齐发只会糊成一团。它交给 `sfx.play` 的音频时钟，不是 setTimeout。
+ */
+const SFX_STAGGER_MS = 180
+
+/**
+ * 判定音：我抢到了 / 我手误了 / 牌被对手拿走了。
+ *
+ * 抽成函数是因为它有两个调用点：要挑送り札的回合先来一条 `roundReveal`，
+ * 不用挑的直接来 `roundResult`。判定在这两条消息里是同一份 —— 服务端两次都拿
+ * 同一批 taps 走 `adjudicate`，送り札的选择只改 transfers，不改 verdict。
+ *
+ * too_late / tie / clamped / none 一律不出声：那几种要么是「你没赶上」，
+ * 要么是判定被服务端校正 —— 给一个明确的音等于在陈述一件
+ * 玩家无法据此改变下一手的事。
+ */
+function playVerdict(taps: TapView[], winner: PlayerId | null, seat: PlayerId): void {
+  const mine = taps.find((t) => t.player === seat)
+  if (mine?.verdict === 'correct') {
+    sfx.play('take')
+    return
+  }
+  if (
+    mine?.verdict === 'wrong' ||
+    mine?.verdict === 'otetsuki_karafuda' ||
+    mine?.verdict === 'too_early'
+  ) {
+    sfx.play('otetsuki')
+    return
+  }
+  if (winner && winner !== seat) sfx.play('foeTake')
+}
 
 export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, onPeerLeft }: Props) {
   const [match, setMatch] = useState<MatchView | null>(initialMatch)
@@ -126,6 +161,17 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
 
   const me = match?.you ?? 'A'
   const foe = OTHER[me]
+  /**
+   * 座位的一份 ref。消息处理那个 effect 只依赖 syncSlots，闭包里的 `me` 停在首帧，
+   * 而 `roundReveal` 不像 roundResult 那样自带 match —— 判定音要知道哪一条 tap 是我的。
+   */
+  const seatRef = useRef(me)
+  seatRef.current = me
+  /**
+   * 判定音已经出过的那一回合。带送り札的回合会先后收到 roundReveal 与 roundResult，
+   * 两条带的是同一份判定，出两次就成了回声。
+   */
+  const judgedRound = useRef(-1)
 
   const cardById = useMemo(() => {
     const m = new Map<CardId, CardView>()
@@ -248,6 +294,16 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           okuriSent.current = false
           setStage('choosing')
           audio.stop()
+          /*
+            判定音落在这一拍，而不是等 10 秒后的 roundResult。这条消息已经带了
+            taps 与 winner，界面也正是在这里标出お手つき（下面的 `faults` 读的
+            就是 reveal.taps）—— 惩罚的音要在挨罚的当下响，晚 10 秒到的音
+            说的是一件牌都已经换过手的事。
+          */
+          judgedRound.current = msg.roundNo
+          playVerdict(msg.taps, msg.winner, seatRef.current)
+          // 与牌面移动同一个音色：这一刻的意思正是「牌要动了，该你动手」
+          sfx.play('okuri', SFX_STAGGER_MS)
           break
 
         case 'roundResult':
@@ -257,6 +313,18 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           syncSlots(msg.match)
           setStage('reveal')
           audio.stop()
+          /*
+            判定音。座位读 msg.match.you 而不是闭包里的 me —— 这个 effect 的依赖
+            只有 syncSlots，闭包里的 me 是首帧的值。座位整局不变所以两者恒等，
+            但读消息自带的那份就不必依赖这个前提。
+
+            要挑送り札的回合已经在 roundReveal 那一拍出过判定音了，这里不再重复。
+          */
+          if (judgedRound.current !== msg.result.roundNo) {
+            playVerdict(msg.result.taps, msg.result.winner, msg.match.you)
+          }
+          // 牌面真的动了就再补一声，错开一拍让顺序与视觉一致（先判定、后移动）
+          if (msg.result.transfers.length > 0) sfx.play('okuri', SFX_STAGGER_MS)
           break
 
         case 'matchEnd':
@@ -265,6 +333,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           setStage('over')
           setRematchVotes([])
           audio.stop()
+          sfx.play(msg.winner === msg.match.you ? 'win' : msg.winner ? 'lose' : 'draw')
           break
 
         case 'rematchState':
@@ -277,6 +346,17 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
             setToast('对手已重连')
             window.setTimeout(() => setToast(null), 3000)
           }
+          /*
+            上行 = 回来了、下行 = 走了。这条横幅可能出现在任何一刻，
+            而玩家这时正盯着牌面数決まり字，一声比一条横幅更快到达。
+
+            但只对**关于对手**的那条出声：服务端 reattach 是 broadcast 的，
+            不排除当事人，所以我自己的连接抖一下重连，我也会收到一条
+            关于我自己的 peer{online:true}。那一声「对手回来了」是假的
+            —— 对手此刻可能还断着。上面的横幅与宽限倒计时同样没有分辨
+            这一点，那是既有行为，不在这个任务里改。
+          */
+          if (msg.playerId !== seatRef.current) sfx.play(msg.online ? 'peerOn' : 'peerOff')
           break
 
         // 对手**主动退出**了 —— 与 peer{online:false} 互斥的那条路：
@@ -291,6 +371,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           // 这一局已经没了：牌面冻结、正在播的音频停止，与断线遮罩同一条原则
           setLocked(true)
           audio.stop()
+          // 与掉线同一个音色：对玩家来说这两条消息的意思都是「对手不在了」，
+          // 差别（还会不会回来）由横幅说，不值得再造一个音
+          sfx.play('peerOff')
           break
 
         // 横幅那 10 秒里房间仍然活着 —— 房间又回到了大厅列表上，第三个人随时可能进来。
@@ -312,6 +395,18 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
   useEffect(() => {
     syncSlots(initialMatch)
     forceRender((n) => n + 1)
+    /*
+      开局音挂在这里而不是消息处理里的 case 'matchStart'：那条消息是 App 收的
+      （Karuta 是收到它之后才挂载的），再战重开时 App 会换掉 initialMatch，
+      于是这个 effect 正好在两种入场路径上各响一次、且只响一次。
+
+      接回一局（resumed）时不需要在这里再判一次，两条恢复路径各自都已经对了：
+      同标签页刷新是静默自动认领，那一刻 AudioContext 还锁着（解锁只发生在
+      真实手势的调用栈里），sfx 自己静默放弃；新标签页走 Splash 的「找回」，
+      那次点击先 `audio.unlock()` 再认领，于是这一声照常响 —— 而它响得没错：
+      「进牌场」是玩家刚刚点出来的动作，不是一条迟到的补播。
+    */
+    sfx.play('matchStart')
   }, [initialMatch, syncSlots])
 
   // 记忆阶段倒计时。按服务器给的结束时刻算，双方看到的秒数一致
