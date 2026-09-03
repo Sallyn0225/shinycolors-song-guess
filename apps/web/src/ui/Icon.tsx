@@ -20,6 +20,7 @@ export type StrokeIconName =
   | 'music'
   | 'music-off'
   | 'info'
+  | 'trophy'
 
 export type BrandIconName = 'github'
 
@@ -52,6 +53,9 @@ const STROKE_PATHS: Record<StrokeIconName, string> = {
   // music 的符头都是先例，「零圆角」管的是版面上的面。点沿用 warn 的写法：
   // 极短竖线靠方头笔帽撑成方点
   info: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18 M12 7.5v.4 M12 10.5v5.7',
+  // 奖杯：24 网格、1.8 描边、方头方角、fill="none"。杯身 + 双耳对称手柄 + 梯形立柱与方底座
+  trophy:
+    'M6 4h12v5c0 3.5-2.5 5.5-6 5.5S6 12.5 6 9V4Z M6 6H3.5a1.5 1.5 0 0 0-1.5 1.5v1a1.5 1.5 0 0 0 1.5 1.5H6 M18 6h2.5a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5H18 M12 14.5V18 M8 18h8v3H8Z M6 21h12',
 }
 
 /**

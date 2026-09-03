@@ -18,6 +18,7 @@ import { VolumeControl } from '../ui/VolumeControl'
 interface Props {
   onStart: (d: Difficulty) => void
   onVersus: () => void
+  onRecords: () => void
   busy: boolean
   error: string | null
 }
@@ -91,7 +92,7 @@ function EntryBar({
   )
 }
 
-export function Start({ onStart, onVersus, busy, error }: Props) {
+export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
   // 初值取自引擎而不是 localStorage：main.tsx 在任何界面挂载之前就把偏好灌进去了，
   // 这里只负责往回写。与音量滑杆同一条规矩
   const [bgmOn, setBgmOn] = useState(() => ambience.bgmEnabled)
@@ -208,6 +209,11 @@ export function Start({ onStart, onVersus, busy, error }: Props) {
             页码是弹窗自己的事，随它一起卸载 —— 每次打开都从第一页开始。
           */}
           <IconButton icon="info" label="游戏信息" onClick={() => setInfoOpen(true)} />
+          {/*
+            战绩统计：进入独立奖杯屏查看单机历史走势与组合正确率。
+            必须在 GitHub 之前 —— 外链永远收尾。
+          */}
+          <IconButton icon="trophy" label="战绩统计" onClick={onRecords} />
           {/*
             GitHub 入口。走 href 让它渲染成 <a>：读屏播报「GitHub 仓库，链接」
             而不是「按钮」，新标签打开由 IconButton 内部钉死。

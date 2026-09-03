@@ -132,7 +132,7 @@ export function IconButton({ icon, label, href, onClick, pressed }: Props) {
 }
 
 /**
- * 光带上方那一排。BGM、音效两个开关和信息、GitHub 两个入口都在这里，
+ * 光带上方那一排。BGM、音效两个开关和信息、战绩、GitHub 三个入口都在这里，
  * 留成一行是因为**这里还会长**。
  * 加按钮直接往 children 里塞 `IconButton`，间距和居中都已经在这一层管好了。
  */

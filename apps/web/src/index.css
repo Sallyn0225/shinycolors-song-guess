@@ -232,6 +232,11 @@
   /* 错误提示条的底。首页 / 大厅 / 房间三处同值同意图 */
   --surface-alert: rgb(179 18 58 / 0.1);
 
+  /* --surface-alert 的正向对位：战绩屏「最高正确率」那枚标记的底。
+     18% 而不是 alert 的 10%，取的是 quality-guidelines 那张表里量过的那一档 ——
+     --color-correct 压在这个合成底上是 4.74:1，白底上的 6.50:1 在这里不作数。 */
+  --surface-correct: rgb(10 107 80 / 0.18);
+
   /* 阴影是紫的，不是黑的。这让斜切形状的阴影跟着 clip-path 走，色调也统一在紫里 */
   --shadow-sm: drop-shadow(0 calc(1 * var(--u)) calc(2 * var(--u)) rgb(71 68 150 / 0.2));
   --shadow-md: drop-shadow(0 calc(4 * var(--u)) calc(8 * var(--u)) rgb(71 68 150 / 0.2));

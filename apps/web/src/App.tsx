@@ -8,6 +8,7 @@ import { socket } from './net/ws'
 import { Karuta } from './screens/Karuta'
 import { Lobby } from './screens/Lobby'
 import { Play } from './screens/Play'
+import { Records } from './screens/Records'
 import { Result } from './screens/Result'
 import { Room } from './screens/Room'
 import { Splash } from './screens/Splash'
@@ -22,6 +23,7 @@ type Screen =
   | { name: 'lobby' }
   | { name: 'room'; room: RoomView }
   | { name: 'karuta'; match: MatchView; memorizeEndsAtServer: number; resumed: boolean }
+  | { name: 'records' }
 
 /** 找回座位的等待上限。到点还没恢复就当新会话，别让人一直卡在恢复界面 */
 const RESUME_TIMEOUT_MS = 6000
@@ -197,9 +199,17 @@ export default function App() {
             onHome={() => setScreen({ name: 'start' })}
           />
         )
+      case 'records':
+        return <Records onBack={() => setScreen({ name: 'start' })} />
       default:
         return (
-          <Start onStart={(d) => void start(d)} onVersus={() => setScreen({ name: 'lobby' })} busy={busy} error={error} />
+          <Start
+            onStart={(d) => void start(d)}
+            onVersus={() => setScreen({ name: 'lobby' })}
+            onRecords={() => setScreen({ name: 'records' })}
+            busy={busy}
+            error={error}
+          />
         )
     }
   }
@@ -220,7 +230,7 @@ export default function App() {
     不该让开场的音乐压在牌场的第一声上。找回失败退回首页时 resuming 转 false，
     这里会再跑一次，那时候起 BGM 才是对的。
   */
-  const bgm = video || screen.name === 'result'
+  const bgm = video || screen.name === 'result' || screen.name === 'records'
 
   useEffect(() => {
     ambience.setEnabled(bgm && !resuming)

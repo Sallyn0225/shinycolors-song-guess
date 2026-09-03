@@ -3,6 +3,7 @@ import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
 import { soloTier } from '../features/grade'
+import { recordSolo } from '../records'
 import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
 import { GradeBadge } from '../ui/GradeBadge'
@@ -47,7 +48,10 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   useEffect(() => {
     api
       .result(sessionId)
-      .then(setData)
+      .then((d) => {
+        setData(d)
+        recordSolo(sessionId, d)
+      })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : '读取结算失败'))
   }, [sessionId])
 
