@@ -32,12 +32,12 @@ holder of "THE iDOLM@STER SHINY COLORS".
 上述素材以非商业的粉丝创作目的使用。
 
 
-CC0 素材
+界面音效
 --------
 
-`apps/web/public/sfx/` 下的 6 个界面音效为 CC0（公有领域奉献），
-可自由使用。**原作者署名见该目录下的 `CREDITS.md`**，此处不复制，
-以免两份署名各自漂移。
+界面音效由代码在**运行时程序化合成**（音色表 `apps/web/src/sfxVoices.ts`，
+渲染器 `apps/web/src/sfx.ts`），不含任何第三方素材，
+因此没有需要单独署名的资源。
 
 
 不随本仓库分发的内容

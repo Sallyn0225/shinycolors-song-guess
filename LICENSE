@@ -7,11 +7,9 @@ documentation at the repository root.
 
 It does NOT apply to:
 
-  * The audio, image, and video assets under `apps/web/public/` (excluding
-    `apps/web/public/sfx/`), which are the property of their respective rights
-    holders and are used here without any claim of ownership.
-  * `apps/web/public/sfx/`, which is released under CC0 by its original
-    authors — see `apps/web/public/sfx/CREDITS.md`.
+  * The audio, image, and video assets under `apps/web/public/`, which are the
+    property of their respective rights holders and are used here without any
+    claim of ownership.
   * `design-extract-output/SHINYCOLORS-DESIGN-LANGUAGE.md`, which is derived
     from third-party material.
 

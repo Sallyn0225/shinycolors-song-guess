@@ -14,7 +14,8 @@ src/audio.ts      AudioEngine singleton — Web Audio, decode cache, output-late
 src/ambience.ts   Ambience singleton — opening greeting + looping BGM on a bypass chain that
                   shares audio.ts's context but skips its master gain and analyser
 src/sfx.ts        Sfx singleton — the other bypass consumer; fire-and-forget UI sound cues,
-                  decoded-buffer cache, mute/sfxOn gate, public/sfx/*.wav (CC0, see CREDITS.md)
+                  mute/sfxOn gate, synthesised at runtime (no assets, no first-play latency)
+src/sfxVoices.ts  the voice table sfx.ts renders — pure data, no AudioNode, unit-tested
 src/net/ws.ts     GameSocket singleton — WebSocket, clock sync, reconnect, seat token
 src/records.ts    localStorage facade for solo match statistics (safe try/catch, version fallback)
 src/features/     pure logic: kimariji, karutaBoard (SlotMap), narrate, grade, opening,
