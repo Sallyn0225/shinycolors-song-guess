@@ -309,3 +309,27 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: PVP 主动退出流程与 peerLeft 契约
+<!-- trellis-session: v=2 fp=5263769d086b2e71 -->
+
+**Date**: 2026-09-03
+**Task**: PVP 主动退出流程与 peerLeft 契约
+**Branch**: `main`
+
+### Summary
+
+为联机对局补上主动退出：新增 peerLeft 服务端消息（携带退出者座位、昵称与重置后的 RoomView），服务端 resetToLobby() 镜像 startMatch() 让房间退空一半后仍可复用，前端加退出入口、二次确认层与 10s 横幅倒计时。掉线路径零改动，由「退出 ≠ 掉线」回归护栏钉住。310 测试全绿，用户实机走查 7 条通过。走查中发现既有缺陷：座位凭证存 sessionStorage，关标签页即失效，掉线方重开链接无法重连——已另立任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `489970c` | feat(pvp): let a player leave a match without it reading as a disconnect |
+| `ff0b97e` | docs: record the leave-vs-disconnect contract and the board's 6px budget |
+| `173eae8` | chore(task): record acceptance results for the pvp exit task |
+
+### Status
+
+[OK] **Completed**

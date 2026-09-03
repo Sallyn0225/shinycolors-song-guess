@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "sfx.ts 在音频三条链路（master / bypass / analyser）里的位置，以及四个禁区模块的边界"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "音频单例绝不进 React state 的理由与写法"}
+{"file": ".trellis/spec/web/frontend/directory-structure.md", "reason": "新增 sfxVoices.ts 该落在哪一层（顶层单例侧，而非 features/）"}
+{"file": ".trellis/spec/web/frontend/type-safety.md", "reason": "Part 判别联合与 Record<SfxName, Voice> 的穷尽性约束"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "层边界与验证命令"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "Karuta 接入点在消息订阅 effect 内触发，不得引入额外订阅"}

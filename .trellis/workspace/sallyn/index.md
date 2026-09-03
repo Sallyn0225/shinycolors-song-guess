@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-09-03
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~311 | Active |
+| `journal-1.md` | ~335 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-09-03 | PVP 主动退出流程与 peerLeft 契约 | `489970c`, `ff0b97e`, `173eae8` | `main` |
 | 12 | 2026-09-03 | 本地战绩统计与奖杯面板 | `5b6e9ff`, `935b55f`, `ab39e30`, `c2d422f` | `main` |
 | 11 | 2026-09-03 | 全员离线房间即时回收 + 半开重连竞态修复 | `6f503fe`, `701b79e`, `c1223aa` | `main` |
 | 10 | 2026-09-03 | 建房弹窗内展示拒绝错误与占用提示 | `09d9837` | `main` |
