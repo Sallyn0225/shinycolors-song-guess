@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "核对认领路径与掉线路径逐字未变，尤其两条半开连接用例仍绿——守卫一旦被塞回 reattach() 就会在这里暴露"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "探测必须零副作用且不成为枚举 token 的探针；seatOffer 下发的字段要过保密清单"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "验证命令与测试覆盖标准，含改动后重新推导测试计数"}
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "核对 claim 缺省语义与既有客户端完全兼容，且新变体在三处 switch 都不会打穿"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "确认 audio.ts / api.ts / features/* 的 diff 为空，且 ws.ts 的 diff 只含凭证读写"}
+{"file": ".trellis/spec/web/frontend/quality-guidelines.md", "reason": "层边界、计时 UI、对比度与一屏装下——Splash 上新增两个按钮要过这几条"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "协议→服务端→前端三层的数据流一致性，探测/认领两条路不得在任一层混淆"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "放弃重连应复用 pvp-exit-flow 已有的 leaveRoom→peerLeft 路径，不另造协议"}

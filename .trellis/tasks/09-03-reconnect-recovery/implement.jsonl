@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/shared/backend/protocol-and-contracts.md", "reason": "hello 加可选字段与新增 seatOffer 变体；「默认值必须落在不改变既有行为那一侧」与 z.input/z.infer 的取舍都写在这里"}
+{"file": ".trellis/spec/server/backend/realtime-guidelines.md", "reason": "重连三件套、detach/reattach 的座位所有权转移、半开连接——本任务把守卫放在探测而非 reattach 的依据就在这一节"}
+{"file": ".trellis/spec/server/backend/directory-structure.md", "reason": "hub.ts 与 room.ts 的职责边界；只读访问器该加在哪一层"}
+{"file": ".trellis/spec/server/backend/error-handling.md", "reason": "hello 新支路要遵守 zod 边界校验与「何时应答、何时静默丢弃」的既有规矩"}
+{"file": ".trellis/spec/server/backend/quality-guidelines.md", "reason": "服务端测试写法与验证命令（真实 ws 客户端打真实监听服务）"}
+{"file": ".trellis/spec/server/backend/secrecy-and-anticheat.md", "reason": "seatOffer 要下发 roomCode/opponent，需核对不触碰三类永不外泄的信息"}
+{"file": ".trellis/spec/web/frontend/index.md", "reason": "四个禁区模块的边界。本任务获准改 net/ws.ts 的凭证读写部分，其余仍是禁区，边界要读准"}
+{"file": ".trellis/spec/web/frontend/state-management.md", "reason": "凭证与启动态属单例还是屏内状态，seatOffer 的结果该存哪"}
+{"file": ".trellis/spec/web/frontend/hook-guidelines.md", "reason": "busy 自动重试的定时器注册与清理、启动期订阅的写法"}
+{"file": ".trellis/spec/web/frontend/component-guidelines.md", "reason": "Splash 上新增的两个按钮要沿用既有形状原语与 44px 热区基线"}
