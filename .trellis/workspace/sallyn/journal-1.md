@@ -280,3 +280,32 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 12: 本地战绩统计与奖杯面板
+<!-- trellis-session: v=2 fp=3fb5254aa368a16d -->
+
+**Date**: 2026-09-03
+**Task**: 本地战绩统计与奖杯面板
+**Branch**: `main`
+
+### Summary
+
+单机结算按 sessionId 幂等落进 localStorage，简单/困难分两档存，首页 ToolRail 加第五枚奖杯按钮进独立的 Records 屏。两个口径有意不同并在调用点各写了注释：模式总正确率沿用结算页的 correct/total（含未作答），组合与单曲榜的分母不含 correct === null。组合榜只收 8 个常设组合 + 全体曲，shuffle unit 与无归属曲目仍计入分数和易错榜。阈值 UNIT_MIN=5 / SONG_MIN=3，未达标显示「样本不足」而不是 0%/100% —— 243 首曲库配一局 10 题，长期以样本不足为主是正常状态。存储照 prefs.ts 写，版本不认识直接回落到空、不迁移。
+
+质检抓到三处会静默失效的样式缺陷，都是「无类型错误、无警告、声明根本没落地」这一类：--cut-card 这个变量名不存在（.cut-card 实际读 --cut-lg），切角一直停在 40u 默认值并吃掉 p-4 内容；--surface-correct token 不存在，「最高」标记底色渲染为透明；传给 ui/Button 的 style 排在 {...rest} 之后被组件整块覆盖。另外修了 5 处 Button 调用点重复 sfx.play 导致的双响，以及组合榜 role="table"+role="row" 无 cell、行级 aria-label 把行内百分比/样本数/最高最低标记全盖掉的问题，改成 ul/li。这五条已写进 component-guidelines.md。
+
+阶段 6 的 /impeccable 与 dataviz 复核未跑，视觉走人工验收：sallyn 逐条走完六档视口、无痕模式、坏数据注入、幂等与清除的清单，全部通过。遗留已知项：.cut-slant 上用 inset 0 0 0 1px 画描边落在 quality-guidelines「坑三」范围内，但 Start.tsx:327 已有同样写法，未单方面改，值得单开一条统一处理。web 87 -> 113 测试，全仓 304 全绿。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5b6e9ff` | feat(web): add local solo match statistics with a trophy screen |
+| `935b55f` | docs: record the Records screen and three silent-failure pitfalls in the web spec |
+| `ab39e30` | chore(task): add planning artifacts for the stats task tree |
+| `c2d422f` | chore(task): record acceptance results for the stats task |
+
+### Status
+
+[OK] **Completed**
