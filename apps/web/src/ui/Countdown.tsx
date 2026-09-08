@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * 剩余秒数。
@@ -38,6 +39,7 @@ export function Countdown({
   label,
   className = '',
 }: Props) {
+  const { t } = useTranslation()
   const rootRef = useRef<HTMLSpanElement>(null)
   const numRef = useRef<HTMLSpanElement>(null)
   const unitRef = useRef<HTMLSpanElement>(null)
@@ -69,7 +71,7 @@ export function Countdown({
       last = s
 
       num.textContent = String(s)
-      root.setAttribute('aria-label', `${label}，还剩 ${s} 秒`)
+      root.setAttribute('aria-label', t('countdown.remaining', { label, seconds: s }))
 
       const urgent = s <= warnAt
       num.style.color = urgent ? 'var(--color-wrong)' : 'var(--color-ink)'

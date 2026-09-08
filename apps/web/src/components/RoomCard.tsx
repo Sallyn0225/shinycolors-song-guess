@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RoomStatus, RoomSummary } from '@scg/shared'
 
 import { Cut } from '../ui/Cut'
@@ -22,18 +23,18 @@ interface Props {
  * 每档都有**文字**，不是只有颜色和灰度 —— 「已满」和「对局中」都不可点，
  * 但它们的含义不同：前者可能几秒后就开局，后者要等一整局。
  */
-const STATUS: Record<RoomStatus, { label: string; joinable: boolean }> = {
-  waiting: { label: '等人', joinable: true },
-  full: { label: '已满', joinable: false },
-  playing: { label: '对局中', joinable: false },
+const STATUS: Record<RoomStatus, { joinable: boolean }> = {
+  waiting: { joinable: true },
+  full: { joinable: false },
+  playing: { joinable: false },
 }
 
 /** 相对时间。房间的生命周期以分钟计，秒级精度没有意义，也会让列表一直在跳 */
-function ago(ms: number): string {
-  if (ms < 60_000) return '刚刚'
+function ago(ms: number, t: ReturnType<typeof useTranslation>['t']): string {
+  if (ms < 60_000) return t('roomCard.justNow')
   const min = Math.floor(ms / 60_000)
-  if (min < 60) return `${min} 分钟前`
-  return `${Math.floor(min / 60)} 小时前`
+  if (min < 60) return t('roomCard.minutesAgo', { count: min })
+  return t('roomCard.hoursAgo', { count: Math.floor(min / 60) })
 }
 
 /**
@@ -43,7 +44,9 @@ function ago(ms: number): string {
  * 不可加入的房间**保留显示**——看得到「有人在玩」比一个干净的空列表更有用。
  */
 export function RoomCard({ room, createdAtLocal, offline, onJoin }: Props) {
-  const { label, joinable: statusAllows } = STATUS[room.status]
+  const { t } = useTranslation()
+  const { joinable: statusAllows } = STATUS[room.status]
+  const label = t(`roomCard.${room.status}`)
   const joinable = statusAllows && !offline
 
   return (
@@ -60,9 +63,13 @@ export function RoomCard({ room, createdAtLocal, offline, onJoin }: Props) {
         disabled={!joinable}
         onClick={() => onJoin(room.code)}
         // 无障碍名要把整条信息说全 —— 屏幕阅读器用户听到的是这一句，不是视觉排版
-        aria-label={`${room.name}，房主 ${room.host}，${room.players} / 2 人，${label}${
-          joinable ? '，点击加入' : offline ? '，连接已断开' : ''
-        }`}
+        aria-label={t('roomCard.ariaLabel', {
+          name: room.name,
+          host: room.host,
+          players: room.players,
+          status: label,
+          action: joinable ? t('roomCard.join') : offline ? t('roomCard.disconnected') : '',
+        })}
         className={[
           'flex w-full items-center gap-4 px-8 py-3.5 text-left',
           'transition-transform duration-300 ease-[var(--ease-prism)]',
@@ -89,7 +96,7 @@ export function RoomCard({ room, createdAtLocal, offline, onJoin }: Props) {
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-ink">{room.name}</span>
           <span className="mt-0.5 block truncate text-2xs text-ink-faint">
-            {room.host} · {ago(Math.max(0, Date.now() - createdAtLocal))}
+            {room.host} · {ago(Math.max(0, Date.now() - createdAtLocal), t)}
           </span>
         </span>
 

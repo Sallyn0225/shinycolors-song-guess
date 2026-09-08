@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { audio } from '../audio'
 
@@ -120,6 +121,7 @@ export function PrismRail({
   label,
   className = '',
 }: Props) {
+  const { t } = useTranslation()
   const rootRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -322,7 +324,7 @@ export function PrismRail({
             role: 'progressbar' as const,
             'aria-valuemin': 0,
             'aria-valuemax': 100,
-            'aria-label': label ?? '剩余时间',
+            'aria-label': label ?? t('countdown.remainingLabel'),
           }
         : { role: 'presentation' as const })}
     >

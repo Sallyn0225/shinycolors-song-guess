@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { sfx } from '../sfx'
 
@@ -32,6 +33,7 @@ const IMPULSE = [
 const IMPULSE_TIMING = { duration: 380, easing: 'cubic-bezier(0.075, 0.82, 0.165, 1)' }
 
 export function ReadyCountdown({ seconds = 3, onDone, label, size = 96 }: Props) {
+  const { t } = useTranslation()
   const [num, setNum] = useState(seconds)
   const numRef = useRef<HTMLSpanElement>(null)
   // onDone 的身份随 Play 每次渲染而变；effect 只依赖 seconds，靠 ref 取最新
@@ -73,7 +75,7 @@ export function ReadyCountdown({ seconds = 3, onDone, label, size = 96 }: Props)
   return (
     <div
       role="timer"
-      aria-label={`${label}，还剩 ${num} 秒`}
+      aria-label={t('countdown.remaining', { label, seconds: num })}
       // fixed：数字要在屏幕中央，而不是选项区的中央 —— 大号数字直接压在选项
       // 文字上读不清，垫一层半透明白底把底下的内容洗淡，数字才立得住。
       // 白底不套任何入场动画：选项在挂载前就已在位，淡入哪怕一帧都是漏底。

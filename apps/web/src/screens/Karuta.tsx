@@ -93,6 +93,7 @@ function playVerdict(taps: TapView[], winner: PlayerId | null, seat: PlayerId): 
 }
 
 export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, onPeerLeft }: Props) {
+  const { t } = useTranslation()
   const [match, setMatch] = useState<MatchView | null>(initialMatch)
   // 接回来的对局多半已经在打了，别一进来就摆出记忆阶段的界面
   const [stage, setStage] = useState<Stage>(() =>
@@ -356,7 +357,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           if (msg.playerId === seatRef.current) break
           setPeerGraceEnds(msg.online ? null : (msg.graceEndsAtServer ?? null))
           if (msg.online) {
-            setToast('对手已重连')
+            setToast(t('karuta.opponentReconnected'))
             window.setTimeout(() => setToast(null), 3000)
           }
           // 上行 = 回来了、下行 = 走了。这条横幅可能出现在任何一刻，
@@ -628,7 +629,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
   if (!match) {
     return (
       <main className="flex min-h-safe items-center justify-center">
-        <p className="text-sm text-ink-faint">等待对局开始…</p>
+        <p className="text-sm text-ink-faint">{t('karuta.waitingNext')}</p>
       </main>
     )
   }
@@ -663,11 +664,11 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
    * 照写「先清空自陣」就是在结算页上说一句假话（实测：赢家剩 16 张）。
    */
   const winReason = (winner: PlayerId | null): string => {
-    if (!winner) return '对局结束'
-    if (left[winner] === 0) return `${names[winner]} 先清空自陣`
-    return `${names[OTHER[winner]]} 未能在断线宽限内重连，判其负`
+    if (!winner) return t('karuta.matchEnded')
+    if (left[winner] === 0) return t('karuta.reasonMineClearedName', { name: names[winner] })
+    return t('karuta.reasonDisconnectName', { name: names[OTHER[winner]] })
   }
-  const narration = result ? narrateRound(result, names, me) : null
+  const narration = result ? narrateRound(result, names, me, t) : null
 
   /**
    * 结算用的两侧数据。段位、网页展示、导出战报都读它，
@@ -756,7 +757,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
       />
       <span className="truncate text-sm font-semibold text-ink">
         {match.players[who].nickname}
-        {mine && <span className="ml-1 text-xs font-normal text-ink-faint">（你）</span>}
+        {mine && <span className="ml-1 text-xs font-normal text-ink-faint">（{t('common.you')}）</span>}
       </span>
       {match.players[who].rttMs != null && (
         <span className="latin text-2xs text-ink-faint">{match.players[who].rttMs}ms</span>
@@ -805,13 +806,13 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           {stage === 'memorize' &&
             (match.players[me].ready ? (
               <>
-                <p className="latin text-lg font-bold text-accent-ink">已就绪</p>
+                <p className="latin text-lg font-bold text-accent-ink">{t('karuta.readyStatus')}</p>
                 <p className="mt-1 text-xs text-ink-sub">
                   {match.players[foe].ready
-                    ? '双方准备完毕，即将开始…'
-                    : `等待 ${match.players[foe].nickname} 记牌…`}
+                    ? t('karuta.bothReady')
+                    : t('karuta.waitingMemorize', { name: match.players[foe].nickname })}
                 </p>
-                <p className="latin mt-1 text-xs text-ink-sub">{memorizeLeft}s 后将自动开始</p>
+                <p className="latin mt-1 text-xs text-ink-sub">{t('karuta.autoStartAfter', { seconds: memorizeLeft })}</p>
               </>
             ) : (
               <>
@@ -845,24 +846,24 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                     <Icon name="swap" size="calc(13 * var(--u))" />
                   </span>
                   <span className="jp-wrap">
-                    点击两张<span lang="ja">自陣</span>的牌可互换位置 —— 牌阵整局固定，可按习惯排列
+                    {t('karuta.swapHint')}
                   </span>
                 </p>
                 <p className="jp-wrap mt-1 text-xs text-ink-sub">
-                  <b className="font-bold text-ink">加粗</b>文字为决胜字：听到这几个字就足以在场上锁定该曲目
+                  {t('karuta.boldHint')}
                 </p>
                 {selected !== null && (
-                  <p className="text-xs text-accent-ink">已选中一张，再点一张交换</p>
+                  <p className="text-xs text-accent-ink">{t('karuta.selectedSwap')}</p>
                 )}
                 <div className="mt-2">
                   <Button variant="ghost" size="sm" onClick={() => socket.send({ t: 'memorizeDone' })}>
-                    我记好了
+                    {t('karuta.memorizeDone')}
                   </Button>
                 </div>
               </>
             ))}
 
-          {stage === 'waiting' && <p className="text-xs text-ink-sub">准备下一札…</p>}
+          {stage === 'waiting' && <p className="text-xs text-ink-sub">{t('karuta.waitingNext')}</p>}
 
           {stage === 'live' && (
             <>
@@ -889,10 +890,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                   totalSeconds={ROUND_SECONDS}
                   warnAt={2}
                   size={40}
-                  label="本札剩余时间"
+                  label={t('karuta.currentCardRemaining')}
                 />
               </div>
-              {locked && <p className="text-2xs text-accent-ink">已出手</p>}
+              {locked && <p className="text-2xs text-accent-ink">{t('karuta.played')}</p>}
             </>
           )}
 
@@ -937,10 +938,10 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                     お手つき
                     <span className="ml-2 text-xs font-normal text-ink-sub">
                       {myFault.verdict === 'too_early'
-                        ? '抢跑了'
+                        ? t('karuta.tooEarly')
                         : myFault.verdict === 'otetsuki_karafuda'
-                          ? '这首是空札，场上没有对应的牌'
-                          : '点错了牌'}
+                          ? t('karuta.karafudaNoMatch')
+                          : t('karuta.wrongCard')}
                     </span>
                   </p>
                 )}
@@ -954,17 +955,17 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                       </p>
                       <p className="text-xs text-ink-sub">
                         {/* 为什么轮到我挑：是「对手挨罚」还是「我取了敵陣」—— 性质不同 */}
-                        {foeFault ? <>{names[foe]} <span lang="ja">お手つき</span>，</> : ''}
-                        从<span lang="ja">自陣</span>挑选 {myOkuri.count} 张牌送给对手
-                        {myOkuri.count > 1 && `（已选 ${okuriPicks.length}/${myOkuri.count}）`}
+                        {foeFault ? t('karuta.faultOkuriPrompt', { name: names[foe] }) : ''}
+                        {t('karuta.okuriPromptCount', { count: myOkuri.count })}
+                        {myOkuri.count > 1 && t('karuta.okuriSelected', { selected: okuriPicks.length, count: myOkuri.count })}
                       </p>
                     </>
                   ) : myOkuri ? (
-                    <p className="mt-1 text-xs text-ink-sub">已送出，等待对手…</p>
+                    <p className="mt-1 text-xs text-ink-sub">{t('karuta.sentWaiting')}</p>
                   ) : (
                     <p className="mt-1 text-xs text-ink-sub">
-                      {names[reveal.pending[0]?.player ?? foe]} 正在挑
-                      {myFault ? '要罚给你的那张牌' : <span lang="ja">送り札</span>}…
+                      {t('karuta.waitingOpponentChoose', { name: names[reveal.pending[0]?.player ?? foe] })}
+                      {myFault ? t('karuta.penaltyCard') : t('karuta.okuriFuda')}…
                     </p>
                   ))}
               </div>
@@ -1008,7 +1009,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                   </p>
                   <p className="text-xs text-ink-sub">{narration.detail}</p>
                   {result.taps.length === 0 && result.kind === 'field' && (
-                    <p className="text-2xs text-ink-sub">正确的那张已用虚线绿框标出</p>
+                    <p className="text-2xs text-ink-sub">{t('karuta.correctMarked')}</p>
                   )}
                 </div>
               )}
@@ -1021,7 +1022,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
               <p lang="ja" className="text-lg font-bold text-primary">
                 対局終了
               </p>
-              <p className="mt-1 text-xs text-ink-sub">这一局已经结束了</p>
+              <p className="mt-1 text-xs text-ink-sub">{t('karuta.endedDescription')}</p>
               <div className="mt-2">
                 <Button variant="ghost" size="sm" onClick={onExit}>
                   返回
@@ -1052,7 +1053,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
         所以给一个 sr-only 的 h1，与别处的层级对齐而不占一个像素。
       */}
       <h1 className="sr-only">
-        1v1 <span lang="ja">空札領地戦</span> 牌场
+        {t('karuta.battlefieldTitle')}
       </h1>
 
       {/* 遮罩打开时整块牌场 inert，所以它必须自成一层、且遮罩在它之外 */}
@@ -1068,7 +1069,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
         className="shrink-0 px-3 pt-2 pb-3 transition-opacity duration-300 sm:px-4"
         style={{ background: 'rgb(97 95 144 / .05)', opacity: foeReceded ? 0.45 : 1 }}
         lang="ja"
-        aria-label="敵陣"
+        aria-label={t('karuta.enemyFieldAria')}
       >
         {/* 牌多到要滚动时（お手つき 会把一方堆到 22 张），对手还剩几张必须一直看得见 */}
         <div className="sticky top-0 z-10" style={{ background: 'rgb(240 239 246 / .92)' }}>
@@ -1120,7 +1121,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
         className="shrink-0 px-3 pt-3 pb-2 sm:px-4"
         style={{ background: 'rgb(94 226 255 / .07)' }}
         lang="ja"
-        aria-label="自陣"
+        aria-label={t('karuta.ownFieldAria')}
       >
         <div className="mb-2">{grid(mySlots, false, onOwnCardClick)}</div>
         {/*
@@ -1212,7 +1213,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           >
             <div className="glass-lit cut-card px-8 pt-12 pb-8 text-center">
               <OverlayMark />
-              <p className="mt-5 text-xl font-bold text-primary">退出对局？</p>
+              <p className="mt-5 text-xl font-bold text-primary">{t('karuta.exitTitle')}</p>
               <p className="jp-wrap mt-2 text-sm text-ink-sub">
                 退出后这一局立即作废，判你负，且无法再回到这一局。
               </p>
@@ -1262,16 +1263,16 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
           <span>{match.players[foe].nickname} 掉线了，等待重连</span>
           <span className="latin">{peerGraceLeft}s</span>
           {/* ink-faint 压在 12% 玫瑰面上只有 3.86:1，这条横幅上的字必须用 ink-sub */}
-          <span className="font-normal text-ink-sub">到点判其负</span>
+          <span className="font-normal text-ink-sub">{t('karuta.disconnectLoss')}</span>
         </div>
       )}
 
       {/* 自己断线：整屏挡住。这时点任何牌都到不了服务器，让人接着点只会更困惑。
           对手已退出的那 10 秒里不渲染 —— 横幅的返回倒计时才是此刻唯一的信息 */}
       {!online && stage !== 'over' && !peerLeft && (
-        <Overlay label="连接断开">
+        <Overlay label={t('karuta.connectionDisconnected')}>
           <OverlayMark />
-          <p className="text-xl font-bold text-primary">连接断开</p>
+          <p className="text-xl font-bold text-primary">{t('karuta.connectionDisconnected')}</p>
           <p className="text-xs leading-relaxed text-ink-sub">
             正在自动重连，座位会保留 {KARUTA_DEFAULTS.disconnectGraceSeconds} 秒。
             <br />
@@ -1356,12 +1357,12 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
               {endTier && <GradeBadge tier={endTier} size="sm" className="mt-4" />}
 
               <table className="mt-7 w-full text-sm">
-                <caption className="sr-only">赛后统计，逐项对比你与对手</caption>
+                <caption className="sr-only">{t('karuta.resultStatsCaption')}</caption>
                 <thead>
                   <tr className="text-2xs text-primary" style={{ letterSpacing: 'var(--tracking-wide)' }}>
                     {/* 空的表头会被读屏念成一个空白列，得给它一个名字 */}
                     <th scope="col" className="pb-2 text-left font-semibold">
-                      <span className="sr-only">项目</span>
+                      <span className="sr-only">{t('karuta.tableItem')}</span>
                     </th>
                     <th scope="col" className="pb-2 text-right font-semibold">
                       你
@@ -1394,7 +1395,7 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
                           <span lang="ja">{k}</span>
                         ) : k === '剩余自陣' ? (
                           <>
-                            剩余<span lang="ja">自陣</span>
+                            {t('karuta.remainingField')}
                           </>
                         ) : (
                           k
@@ -1452,9 +1453,9 @@ export function Karuta({ initialMatch, memorizeEndsAtServer, resumed, onExit, on
         // 分块在途时也要有话说 —— 空白一拍会读作「点了没反应」
         <Suspense
           fallback={
-            <Overlay label="正在准备战报" z={60}>
+            <Overlay label={t('karuta.preparingShare')} z={60}>
               <OverlayMark />
-              <p className="text-sm text-ink-sub">正在准备战报…</p>
+              <p className="text-sm text-ink-sub">{t('karuta.preparingShareDesc')}</p>
             </Overlay>
           }
         >

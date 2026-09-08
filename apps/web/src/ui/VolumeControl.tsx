@@ -106,7 +106,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
           className={`text-2xs ${muted ? 'text-ink-faint' : 'latin tnum text-ink-sub'}`}
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {muted ? <span lang="ja">ミュート</span> : `${pct}%`}
+          {muted ? t('volume.muted') : `${pct}%`}
         </span>
       </div>
 

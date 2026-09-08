@@ -331,7 +331,7 @@ export function Lobby({ onBack }: Props) {
 
       {/* 组一「这是什么」。与首页同构：标题居中，说明贴着它，光带作为与操作区的界线 */}
       <header className="anim-appear text-center">
-        <HeroTitle brand="Versus" title={<>1v1 <span lang="ja">空札領地戦</span></>} />
+        <HeroTitle brand="Versus" title={t('start.versusTitle')} />
         <p className="jp-wrap mx-auto mt-5 text-sm leading-relaxed text-ink-sub">
           {t('lobby.desc')}
         </p>
@@ -407,7 +407,7 @@ export function Lobby({ onBack }: Props) {
               code
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
-              placeholder="ABC123"
+              placeholder={t('lobby.roomCodeExample')}
               aria-labelledby="code-label"
               aria-describedby="code-hint"
             />
@@ -453,24 +453,20 @@ export function Lobby({ onBack }: Props) {
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          <span lang="ja">ルーム</span> / ROOMS
+          {t('lobby.roomsHeading')}
         </h2>
         <p className="text-2xs text-ink-faint" style={{ letterSpacing: 'var(--tracking-base)' }}>
           {limits !== null && (
             <>
               {/* 占用与上限是一行，等人/进行中是另一行：可见性和能不能加入是两个维度 */}
-              公开 {waitingTotal + busyTotal}/{limits.publicMax} ·{' '}
-              {limits.allowPrivate ? (
-                <>
-                  私人 {privateTotal}/{limits.privateMax}
-                </>
-              ) : (
-                <>私人 已关闭</>
-              )}
+              {t('lobby.publicCount', { count: waitingTotal + busyTotal, max: limits.publicMax })} ·{' '}
+              {limits.allowPrivate
+                ? t('lobby.privateCount', { count: privateTotal, max: limits.privateMax })
+                : t('lobby.privateClosedLabel')}
               <br />
             </>
           )}
-          等人 {waitingTotal} · 进行中 {busyTotal}
+          {t('lobby.waitingBusy', { waiting: waitingTotal, busy: busyTotal })}
         </p>
       </div>
 
@@ -482,26 +478,26 @@ export function Lobby({ onBack }: Props) {
       */}
       <p className="sr-only" role="status" aria-live="polite">
         {!connected
-          ? '连接已断开，列表可能不是最新的'
+          ? t('lobby.listDisconnected')
           : rooms === null
-            ? '正在获取房间列表'
+            ? t('lobby.loadingRooms')
             : limits === null
-              ? `公开房间 ${rooms.length} 间，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`
+              ? t('lobby.publicRoomsSummary', { rooms: rooms.length, waiting: waitingTotal, busy: busyTotal })
               : limits.allowPrivate
-                ? `公开房间 ${waitingTotal + busyTotal} 间（上限 ${limits.publicMax}），私人房间 ${privateTotal} 间（上限 ${limits.privateMax}），等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`
-                : `公开房间 ${waitingTotal + busyTotal} 间（上限 ${limits.publicMax}），私人房间已关闭，等人 ${waitingTotal} 间，进行中 ${busyTotal} 间`}
+                ? t('lobby.roomLimitsSummary', { publicRooms: waitingTotal + busyTotal, publicMax: limits.publicMax, privateRooms: privateTotal, privateMax: limits.privateMax, waiting: waitingTotal, busy: busyTotal })
+                : t('lobby.roomLimitsPrivateClosedSummary', { publicRooms: waitingTotal + busyTotal, publicMax: limits.publicMax, waiting: waitingTotal, busy: busyTotal })}
       </p>
 
       <div className="mt-5 flex flex-col" style={{ gap: 'calc(8 * var(--u))' }}>
         {rooms === null ? (
-          <p className="text-sm text-ink-faint">{connected ? '正在获取房间列表…' : '连接中…'}</p>
+          <p className="text-sm text-ink-faint">{connected ? t('lobby.loadingRoomsShort') : t('lobby.connectingShort')}</p>
         ) : rooms.length === 0 ? (
           <p className="text-sm text-ink-faint">{t('lobby.noRooms')}</p>
         ) : (
           <>
             {/* 断线时列表还挂在屏幕上，但它已经是旧的了 —— 要说出来，不能让人对着它乱点 */}
             {!connected && (
-              <p className="text-2xs text-ink-sub">连接已断开，下面是断线前的列表，正在重连…</p>
+              <p className="text-2xs text-ink-sub">{t('lobby.disconnectedList')}</p>
             )}
             {rooms.map((r) => (
               <RoomCard
@@ -516,7 +512,7 @@ export function Lobby({ onBack }: Props) {
         )}
         {hidden > 0 && (
           <p className="mt-1 text-2xs text-ink-faint">
-            另有 {hidden} 个房间未显示（一次最多列出 {ROOM_LIST_MAX} 个）。
+            {t('lobby.hiddenRooms', { hidden, max: ROOM_LIST_MAX })}
           </p>
         )}
       </div>
@@ -526,7 +522,7 @@ export function Lobby({ onBack }: Props) {
         className="mt-12 text-2xs font-semibold text-primary"
         style={{ letterSpacing: 'var(--tracking-title)' }}
       >
-        <span lang="ja">アソビカタ</span> / HOW TO PLAY
+        {t('lobby.howToPlayHeading')}
       </h2>
       {/*
         这一段是 InfoModal 指过来的那份「完整规则」，所以它得真的完整。
@@ -535,16 +531,7 @@ export function Lobby({ onBack }: Props) {
         照着 app 自己的指示走过来的人，不该在这里发现规则不在。
       */}
       <p className="jp-wrap mt-4 text-sm leading-relaxed text-ink-sub">
-        从曲库中随机抽取 {KARUTA_DEFAULTS.poolSize} 首歌：其中 {KARUTA_DEFAULTS.fieldCards}{' '}
-        首摆在场上（双方各分到<span lang="ja">自陣</span>{' '}
-        {KARUTA_DEFAULTS.ownCards} 张），另 {KARUTA_DEFAULTS.karafuda} 首为
-        <b lang="ja" className="font-bold text-ink">
-          空札
-        </b>
-        {/* 这个 {' '} 不能省：JSX 会把元素后换行缩进的前导空白吃掉，
-            渲染出来是「空札—— 只会」，破折号贴着术语 */}
-        {' '}
-        —— 仅播放伴奏、场上无对应牌的陷阱曲。先清空<span lang="ja">自陣</span>者获胜。
+        {t('lobby.ruleIntro', { poolSize: KARUTA_DEFAULTS.poolSize, fieldCards: KARUTA_DEFAULTS.fieldCards, ownCards: KARUTA_DEFAULTS.ownCards, karafuda: KARUTA_DEFAULTS.karafuda })}
       </p>
       <dl className="jp-wrap mt-4 flex flex-col gap-2 text-sm leading-relaxed text-ink-sub">
         <div>
@@ -553,10 +540,7 @@ export function Lobby({ onBack }: Props) {
           </dt>
           {/* 作用域是「当前牌场」不是整个曲库，见 features/kimariji.ts。
               写成「这首歌的开头」就是错的：同样的曲名换一副牌场，长度会变 */}
-          <dd className="inline">
-            {' '}
-            —— 牌面加粗的文字是当前场上的“最短唯一开头”。听到对应字即可直接出手，不用等整句放完。
-          </dd>
+          <dd className="inline">{' '}—— {t('lobby.ruleKimariji')}</dd>
         </div>
         <div>
           <dt className="inline font-bold text-ink" lang="ja">
@@ -565,19 +549,13 @@ export function Lobby({ onBack }: Props) {
           {/* 账面照 packages/game-core/src/karuta.ts 的注释写：
               敵陣 -1（被取走）+1（收到送札）= 0，自陣 -1。
               「取敵陣值两枚」说的是节奏和挑牌权，不是牌数 —— 别在这里许一个假的收益 */}
-          <dd className="inline">
-            {' '}
-            —— 抢下<span lang="ja">敵陣</span>的牌后，可以挑选一张自己的牌送给对手。己方剩余牌数减少，离胜利更近一步。
-          </dd>
+          <dd className="inline">{' '}—— {t('lobby.ruleOkuri')}</dd>
         </div>
         <div>
           <dt className="inline font-bold text-ink" lang="ja">
             お手つき
           </dt>
-          <dd className="inline">
-            {' '}
-            —— 点错牌、误抢<span lang="ja">空札</span>或抢跑均属犯规。犯规后将由对手选一张牌送给你。
-          </dd>
+          <dd className="inline">{' '}—— {t('lobby.ruleOtetsuki')}</dd>
         </div>
       </dl>
 
@@ -596,7 +574,7 @@ export function Lobby({ onBack }: Props) {
 
       <p role="status" aria-live="polite" className="mt-6 flex items-center gap-2 text-xs text-ink-sub">
         <Presence online={connected} />
-        {connected ? `已连接${rtt != null ? ` · ${rtt}ms` : ''}` : '连接中…'}
+        {connected ? (rtt != null ? t('lobby.connectedRtt', { rtt }) : t('lobby.connected')) : t('lobby.connectingShort')}
       </p>
 
       <button
@@ -675,7 +653,7 @@ function CreateDialog({
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          <span lang="ja">シンキ</span> / NEW ROOM
+          {t('lobby.newRoomHeading')}
         </h2>
 
         {/* 与大厅那两个框同一条规矩：标签常驻，占位文字说真实行为 */}

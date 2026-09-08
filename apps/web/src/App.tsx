@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Difficulty, MatchView, RoomView } from '@scg/shared'
 
 import { ambience } from './ambience'
@@ -34,6 +35,7 @@ const PROBE_RETRY_MS = 3000
 export type { SeatOfferState }
 
 export default function App() {
+  const { t } = useTranslation()
   const [screen, setScreen] = useState<Screen>({ name: 'start' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -190,7 +192,7 @@ export default function App() {
           // 再留在旧牌面上只会让人对着一个点什么都没反应的棋盘发呆
           setScreen((prev) => {
             if (prev.name !== 'karuta') return prev
-            setError('对局已结束 —— 座位在断线宽限内没能恢复')
+            setError(t('app.matchEnded'))
             return { name: 'start' }
           })
           break
@@ -231,14 +233,14 @@ export default function App() {
       return (
         <main className="flex min-h-safe flex-col items-center justify-center gap-4">
           <OverlayMark />
-          <p className="text-sm text-ink-sub">正在找回对局…</p>
+          <p className="text-sm text-ink-sub">{t('app.resuming')}</p>
           <button
             type="button"
             onClick={() => setResuming(false)}
             className="tap-line mt-1 text-xs text-ink-faint transition-colors hover:text-primary"
             style={{ letterSpacing: 'var(--tracking-base)' }}
           >
-            跳过，回到首页
+            {t('app.skipToHome')}
           </button>
         </main>
       )

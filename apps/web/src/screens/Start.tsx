@@ -292,7 +292,7 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
               className="sc-title jp-wrap block font-bold"
               style={{ letterSpacing: 'var(--tracking-tight)' }}
             >
-              1v1 <span lang="ja">空札領地戦</span>
+              {t('start.versusTitle')}
             </span>
             {/*
               日文术语逐个标 lang —— 整句标是错的，这句的主体是中文。

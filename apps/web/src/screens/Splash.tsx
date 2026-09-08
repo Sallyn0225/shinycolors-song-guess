@@ -476,9 +476,11 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
               <p className="anim-appear jp-wrap flex items-center gap-3 text-base text-ink-sub">
                 <IdolFace idol={idol} />
                 <span>
-                  <Trans i18nKey="splash.greetedBy" values={{ name: idol.name }}>
-                    今天是 <b className="font-bold text-ink">{idol.name}</b> 来迎接你
-                  </Trans>
+                  <Trans
+                    i18nKey="splash.greetedBy"
+                    values={{ name: idol.name }}
+                    components={{ 1: <b className="font-bold text-ink" /> }}
+                  />
                 </span>
               </p>
             )

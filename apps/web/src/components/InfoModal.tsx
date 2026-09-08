@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { sfx } from '../sfx'
 import { Button } from '../ui/Button'
@@ -8,34 +9,23 @@ interface Props {
   onClose: () => void
 }
 
-/** 三页的抬头。正文每页结构差太多，各自一个小节组件在文件下方 */
-const PAGES: { kana: string; latin: string; title: string }[] = [
-  { kana: 'アソビカタ', latin: 'HOW TO PLAY', title: '玩法' },
-  { kana: '免責事項', latin: 'DISCLAIMER', title: '免责声明' },
-  { kana: 'カンシャ', latin: 'CREDITS', title: '致谢' },
-]
-
 /** 致谢清单。链接是自绘 <a>，click 音得手动补 —— 与 ui/Button 内部那条规矩对齐 */
-const CREDITS: { name: string; url: string; purpose: string }[] = [
+const CREDITS: { name: string; url: string }[] = [
   {
     name: 'MSST-WebUI',
     url: 'https://github.com/SUC-DriverOld/MSST-WebUI',
-    purpose: '用于部分伴奏的分离',
   },
   {
     name: 'Irodori-TTS',
     url: 'https://github.com/Aratako/Irodori-TTS',
-    purpose: '用于角色语音的合成',
   },
   {
     name: '闪耀色彩表情包',
     url: 'https://aldiba.github.io/shinycolors-stickers/',
-    purpose: '表情包的制作',
   },
   {
     name: 'ヨルシカ猜歌小游戏',
     url: 'https://www.bilibili.com/toy/yorushika_song_guess/index.html',
-    purpose: '本项目的灵感来源',
   },
 ]
 
@@ -73,39 +63,22 @@ function Term({ name, jp, children }: { name: string; jp?: boolean; children: Re
 
 /** 第一页：两种玩法 */
 function PlayBody() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col" style={{ gap: 'calc(18 * var(--u))' }}>
       <section className="flex flex-col" style={{ gap: 'calc(7 * var(--u))' }}>
-        <Subhead>单机 · 听伴奏猜歌</Subhead>
-        <Para>
-          每题会播放一段去除人声的伴奏片段，在倒计时结束前从 4 个选项中选出正确歌名。
-        </Para>
-        <Para>
-          简单模式（<span lang="ja">イージー</span>）片段较长、选项差异明显，适合轻松游玩；困难模式（<span lang="ja">ハード</span>）片段更短、时限更紧，且选项全为同组合或相似曲目，极具挑战。
-        </Para>
+        <Subhead>{t('info.playHeading')}</Subhead>
+        <Para>{t('info.playP1')}</Para>
+        <Para>{t('info.playP2')}</Para>
       </section>
       <section className="flex flex-col" style={{ gap: 'calc(7 * var(--u))' }}>
-        <Subhead>
-          联机 · 1v1 <span lang="ja">空札領地戦</span>
-        </Subhead>
-        <Para>
-          源自竞技歌牌（<span lang="ja">かるた</span>）规则的双人抢牌对决：听伴奏抢先拍下场上对应的牌，先清空己方阵地（<span lang="ja">自陣</span>）者获胜。
-        </Para>
-        <Term name="空札" jp>
-          场上没有对应牌的“陷阱曲目”。误触会被判犯规，保持冷静不出手也是致胜关键。
-        </Term>
-        <Term name="決まり字" jp>
-          牌面上加粗的文字是当前牌局中的“最短唯一开头”。听到对应旋律即可直接出手，不用等整句播完。
-        </Term>
-        <Term name="送り札" jp>
-          成功抢下对方阵地（<span lang="ja">敵陣</span>）的牌时，可以选一张自己的牌送给对手。己方剩余牌数减少，离胜利更近一步。
-        </Term>
-        <Term name="お手つき" jp>
-          点错牌、误抢空牌或抢跑均属犯规。犯规后将由对手选一张牌送给你作为惩罚。
-        </Term>
-        <Para>
-          每局具体抽牌数和回合时长等规则，可在联机大厅中查看。
-        </Para>
+        <Subhead>{t('info.versusHeading')}</Subhead>
+        <Para>{t('info.versusP1')}</Para>
+        <Term name={t('info.karafudaName')} jp>{t('info.karafudaDescription')}</Term>
+        <Term name={t('info.kimarijiName')} jp>{t('info.kimarijiDescription')}</Term>
+        <Term name={t('info.okuriName')} jp>{t('info.okuriDescription')}</Term>
+        <Term name={t('info.otetsukiName')} jp>{t('info.otetsukiDescription')}</Term>
+        <Para>{t('info.rulesHint')}</Para>
       </section>
     </div>
   )
@@ -113,29 +86,29 @@ function PlayBody() {
 
 /** 第二页：免责声明。口径照抄仓库根 NOTICE 的「非官方声明」，不另造说法 */
 function DisclaimerBody() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
-      <Para>
-        本项目是非官方、非商业的粉丝作品，与株式会社万代南梦宫娱乐（BANDAI NAMCO
-        Entertainment）、「<span lang="ja">アイドルマスター シャイニーカラーズ</span>
-        」的开发运营方及 283Production 均无任何关联，亦未获其认可或授权。
-      </Para>
-      <Para>
-        游戏内使用的角色语音、图像等素材，版权归 BANDAI NAMCO Entertainment Inc.
-        所有，仅以非商业粉丝创作的目的使用。
-      </Para>
-      <Para>本项目已开源，源码见 GitHub 仓库。</Para>
+      <Para>{t('info.disclaimerP1Modal')}</Para>
+      <Para>{t('info.disclaimerP2Modal')}</Para>
+      <Para>{t('info.openSource')}</Para>
     </div>
   )
 }
 
 /** 第三页：致谢 */
 function CreditsBody() {
+  const { t } = useTranslation()
+  const purposeKeys = ['info.creditMsst', 'info.creditIrodori', 'info.creditStickers', 'info.creditYorushika'] as const
+  const credits = CREDITS.map((credit, index) => ({
+    ...credit,
+    purpose: t(purposeKeys[index] ?? purposeKeys[0]),
+  }))
   return (
     <div>
-      <Para>本站建立在以下项目之上：</Para>
+      <Para>{t('info.creditsIntro')}</Para>
       <ul className="mt-4 flex flex-col" style={{ gap: 'calc(14 * var(--u))' }}>
-        {CREDITS.map((c) => (
+        {credits.map((c) => (
           <li key={c.name}>
             {/*
               站内第一批文字链接 —— 下划线常驻，别处没有任何东西长得像链接，
@@ -150,7 +123,7 @@ function CreditsBody() {
               className="jp-wrap text-sm font-semibold text-primary underline decoration-primary-lt underline-offset-4 transition-colors hover:text-accent-ink hover:decoration-accent-ink"
             >
               {c.name}
-              <span className="sr-only">（在新标签页打开）</span>
+              <span className="sr-only">{t('common.externalLink')}</span>
             </a>
             <p className="jp-wrap mt-1 text-xs text-ink-faint">{c.purpose}</p>
           </li>
@@ -169,6 +142,7 @@ const BODIES: ReactNode[] = [<PlayBody />, <DisclaimerBody />, <CreditsBody />]
  * 弹层本体复用 ui/Overlay：模态语义、进场聚焦、Tab 圈闭、明底遮罩都在那一层。
  */
 export function InfoModal({ onClose }: Props) {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -195,10 +169,15 @@ export function InfoModal({ onClose }: Props) {
 
   // 页头。noUncheckedIndexedAccess 给数组取值挂 undefined —— page 被按钮
   // disabled 挡在界内，真越界也只是这几行字渲染为空，不会崩
-  const current = PAGES[page]
+  const pages = [
+    { kana: 'アソビカタ', latin: 'HOW TO PLAY', title: t('info.tabs.rules') },
+    { kana: '免責事項', latin: 'DISCLAIMER', title: t('info.tabs.disclaimer') },
+    { kana: 'カンシャ', latin: 'CREDITS', title: t('info.tabs.credits') },
+  ]
+  const current = pages[page]
 
   return (
-    <Overlay label="游戏信息">
+    <Overlay label={t('info.modalTitle')}>
       {/*
         卡片自己封顶可滚：Overlay 是 justify-center 的，内容高出视口会平分到
         上下两端，而滚动条只能往下走 —— 顶部会滚不回来（ShareDialog 记过这个坑）。
@@ -232,14 +211,14 @@ export function InfoModal({ onClose }: Props) {
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
             >
-              上一页
+              {t('common.pagePrevious')}
             </Button>
             {/*
               页码指示：眼睛看分段方块，读屏听下面那行 sr-only 状态 ——
               换页属于「看文字变化才知道」的事，按无障碍基线得挂 live region。
             */}
             <span aria-hidden className="flex items-center" style={{ gap: 'calc(6 * var(--u))' }}>
-              {PAGES.map((_, i) => (
+              {pages.map((_, i) => (
                 <span
                   key={i}
                   className="block"
@@ -255,19 +234,19 @@ export function InfoModal({ onClose }: Props) {
             <Button
               variant="glass"
               size="sm"
-              disabled={page === PAGES.length - 1}
+              disabled={page === pages.length - 1}
               onClick={() => setPage((p) => p + 1)}
             >
-              下一页
+              {t('common.pageNext')}
             </Button>
           </div>
           <p className="sr-only" role="status" aria-live="polite">
-            第 {page + 1} / {PAGES.length} 页：{current?.title}
+            {t('common.pageStatus', { current: page + 1, total: pages.length, title: current?.title })}
           </p>
 
           <div className="mt-3">
             <Button variant="ghost" size="md" full onClick={onClose}>
-              关闭
+              {t('info.close')}
             </Button>
           </div>
         </div>

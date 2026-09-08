@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Option } from '../api'
 import { Icon } from '../ui/Icon'
 
@@ -26,6 +27,7 @@ const BAR_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${NOTCH}), calc(1
 const CAP_CLIP = `polygon(${SLANT} 0, 100% 0, calc(100% - ${SLANT}) 100%, 0 100%)`
 
 export function OptionBar({ option, index, state, disabled, showThumb, onPick }: Props) {
+  const { t } = useTranslation()
   // 没有归属组合的曲目（角色单曲、shuffle unit）也得有一枚看得见的色帽 ——
   // 用浅紫 primary-lt 在白底上几乎消失，形状语言当场断掉。
   // 换成棱镜纹理而不是任何单色：它得读作「没有归属」，不能像是第 9 个组合色。
@@ -137,7 +139,7 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
           <span className="min-w-0 flex-1">
             {/* 视觉上序号是左边那个大数字（aria-hidden），揭晓后换成缩略图 ——
                 两种情况下读屏都拿不到序号，而键盘映射 1–4 全靠它，所以补一条 sr-only */}
-            <span className="sr-only">选项 {index + 1}</span>
+            <span className="sr-only">{t('option.label', { index: index + 1 })}</span>
             <span
               lang="ja"
               // line-clamp-2 靠 display:-webkit-box 生效，和 block 是同一条属性；
@@ -167,12 +169,12 @@ export function OptionBar({ option, index, state, disabled, showThumb, onPick }:
           </span>
 
           {state === 'correct' && (
-            <span className="shrink-0 text-correct" role="img" aria-label="正确答案">
+            <span className="shrink-0 text-correct" role="img" aria-label={t('option.correctAnswer')}>
               <Icon name="check" size="calc(26 * var(--u))" />
             </span>
           )}
           {state === 'wrong' && (
-            <span className="shrink-0 text-wrong" role="img" aria-label="你选的，答错了">
+            <span className="shrink-0 text-wrong" role="img" aria-label={t('option.wrongAnswer')}>
               <Icon name="cross" size="calc(26 * var(--u))" />
             </span>
           )}
