@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 
 import { ambience } from '../ambience'
 import { audio } from '../audio'
@@ -133,6 +134,7 @@ function IdolFace({ idol }: { idol: Idol }) {
 }
 
 export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
+  const { t } = useTranslation()
   const [phase, setPhase] = useState<Phase>('intro')
   const [idol, setIdol] = useState<Idol | null>(null)
   const titleId = useId()
@@ -288,7 +290,7 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
     onForfeit()
   }, [onForfeit])
 
-  const hint = resume ? '点击继续对局' : '点击任意处进入游戏'
+  const hint = resume ? t('splash.tapToResume') : t('splash.tapToEnterAnywhere')
 
   return (
     <div
@@ -370,14 +372,14 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
           className="sc-title-lg anim-appear jp-wrap mt-7 font-bold text-ink sm:mt-6"
           style={{ animationDelay: `${ENTER.title}ms`, letterSpacing: 'var(--tracking-tight)' }}
         >
-          闪彩猜歌
+          {t('splash.title')}
         </p>
 
         <p
           className="anim-appear jp-wrap mx-auto mt-4 text-base text-ink-sub sm:mt-3"
           style={{ animationDelay: `${ENTER.desc}ms`, maxWidth: '46ch' }}
         >
-          听一段伴奏，猜出是哪首闪耀色彩歌曲
+          {t('splash.subtitle')}
         </p>
 
         {/*
@@ -397,9 +399,9 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
           {offerMode && offer.kind === 'ok' ? (
             <div className="anim-appear flex w-full flex-col items-center gap-2">
               <p className="jp-wrap text-sm text-ink-sub">
-                上一局{offer.inMatch ? '还在进行中' : '的房间还在'}
-                {offer.opponent ? <span className="text-ink">（对手：{offer.opponent}）</span> : null}
-                {offer.roomCode ? <span className="text-ink-faint"> · 房间码 {offer.roomCode}</span> : null}
+                {offer.inMatch ? t('splash.matchOngoing') : t('splash.roomRemains')}
+                {offer.opponent ? <span className="text-ink">{t('splash.opponentLabel', { opponent: offer.opponent })}</span> : null}
+                {offer.roomCode ? <span className="text-ink-faint">{t('splash.roomCodeLabel', { code: offer.roomCode })}</span> : null}
               </p>
               <div className="mt-1 flex items-center justify-center gap-7">
                 {/*
@@ -415,7 +417,7 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
                   className="tap-line text-sm font-semibold text-ink"
                   style={{ letterSpacing: 'var(--tracking-base)' }}
                 >
-                  找回对局
+                  {t('splash.resumeClaim')}
                 </button>
                 <button
                   ref={forfeitRef}
@@ -424,7 +426,7 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
                   className="tap-line text-sm text-ink-sub transition-colors hover:text-ink"
                   style={{ letterSpacing: 'var(--tracking-base)' }}
                 >
-                  放弃重连
+                  {t('splash.resumeForfeit')}
                 </button>
               </div>
             </div>
@@ -435,7 +437,7 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
                 aria-live="polite"
                 className="jp-wrap text-sm text-ink-sub"
               >
-                座位仍在使用中，正在确认能否找回…
+                {t('splash.seatChecking')}
               </p>
               <div className="mt-1 flex items-center justify-center">
                 <button
@@ -445,7 +447,7 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
                   className="tap-line text-sm text-ink-sub transition-colors hover:text-ink"
                   style={{ letterSpacing: 'var(--tracking-base)' }}
                 >
-                  放弃重连
+                  {t('splash.resumeForfeit')}
                 </button>
               </div>
             </div>
@@ -474,7 +476,9 @@ export function Splash({ resume, offer, onClaim, onForfeit, onOpened }: Props) {
               <p className="anim-appear jp-wrap flex items-center gap-3 text-base text-ink-sub">
                 <IdolFace idol={idol} />
                 <span>
-                  今天是 <b className="font-bold text-ink">{idol.name}</b> 来迎接你
+                  <Trans i18nKey="splash.greetedBy" values={{ name: idol.name }}>
+                    今天是 <b className="font-bold text-ink">{idol.name}</b> 来迎接你
+                  </Trans>
                 </span>
               </p>
             )

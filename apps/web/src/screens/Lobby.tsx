@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   DIFFICULTY_PRESETS,
   KARUTA_DEFAULTS,
@@ -12,6 +13,7 @@ import {
 
 import { LIBRARY } from '../features/library'
 import { RoomCard } from '../components/RoomCard'
+import { LanguageSwitch } from '../components/LanguageSwitch'
 import { audio } from '../audio'
 import { socket } from '../net/ws'
 import { Button } from '../ui/Button'
@@ -67,12 +69,13 @@ function VisibilityChoice({
   publicCount: number
   privateTotal: number
 }) {
+  const { t } = useTranslation()
   const publicFull = limits !== null && publicCount >= limits.publicMax
   const privateFull = limits !== null && allowPrivate && privateTotal >= limits.privateMax
 
   const publicHint =
     limits === null
-      ? '出现在大厅列表里，谁都能进'
+      ? t('lobby.publicDesc')
       : publicFull
         ? allowPrivate
           ? `公开房间已满（${publicCount}/${limits.publicMax}），可以创建私人房间`
@@ -82,7 +85,7 @@ function VisibilityChoice({
   const privateHint = !allowPrivate
     ? '本站已关闭私人房间'
     : limits === null
-      ? '不进列表，只有拿到房间码的人能进'
+      ? t('lobby.privateDesc')
       : privateFull
         ? `私人房间已满（${privateTotal}/${limits.privateMax}），稍后再试`
         : `不进列表，只有拿到房间码的人能进（${privateTotal}/${limits.privateMax}）`
@@ -90,14 +93,14 @@ function VisibilityChoice({
   const OPTIONS: { v: RoomVisibility; label: string; hint: string; disabled: boolean; full: boolean }[] = [
     {
       v: 'public',
-      label: '公开',
+      label: t('lobby.public'),
       hint: publicHint,
       disabled: false,
       full: publicFull,
     },
     {
       v: 'private',
-      label: '私人',
+      label: t('lobby.private'),
       hint: privateHint,
       disabled: !allowPrivate,
       full: privateFull,
@@ -177,6 +180,7 @@ function VisibilityChoice({
 }
 
 export function Lobby({ onBack }: Props) {
+  const { t } = useTranslation()
   const [nickname, setNickname] = useState(readNickname)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -260,7 +264,7 @@ export function Lobby({ onBack }: Props) {
   }
 
   const nick = () => {
-    const v = nickname.trim() || '玩家'
+    const v = nickname.trim() || t('common.defaultPlayer')
     writeNickname(nickname.trim())
     return v
   }
@@ -313,11 +317,23 @@ export function Lobby({ onBack }: Props) {
       className="mx-auto flex min-h-safe w-full flex-col px-6 py-14 sm:px-10"
       style={{ maxWidth: 'var(--page-narrow)' }}
     >
+      <div className="flex items-center justify-between pb-6">
+        <button
+          type="button"
+          onClick={onBack}
+          className="tap-line text-xs text-ink-faint transition-colors hover:text-primary"
+          style={{ letterSpacing: 'var(--tracking-base)' }}
+        >
+          {t('common.back')}
+        </button>
+        <LanguageSwitch />
+      </div>
+
       {/* 组一「这是什么」。与首页同构：标题居中，说明贴着它，光带作为与操作区的界线 */}
       <header className="anim-appear text-center">
         <HeroTitle brand="Versus" title={<>1v1 <span lang="ja">空札領地戦</span></>} />
         <p className="jp-wrap mx-auto mt-5 text-sm leading-relaxed text-ink-sub">
-          双人实时连线，听同一段伴奏抢同一张歌牌。可以创建房间邀请好友，或直接加入公开房间。
+          {t('lobby.desc')}
         </p>
       </header>
 
@@ -342,7 +358,7 @@ export function Lobby({ onBack }: Props) {
             className="text-2xs font-semibold text-primary"
             style={{ letterSpacing: 'var(--tracking-title)' }}
           >
-            昵称
+            {t('common.nickname')}
           </span>
           <span className="mt-2 block">
             <Field
@@ -352,7 +368,7 @@ export function Lobby({ onBack }: Props) {
               onBlur={() => writeNickname(nickname.trim())}
               // 这是真实行为（nick() 里 `nickname.trim() || '玩家'`），
               // 原来只写在代码里，玩家要留空提交一次才知道
-              placeholder="留空则显示「玩家」"
+              placeholder={t('lobby.nicknamePlaceholder')}
             />
           </span>
         </label>
@@ -367,7 +383,7 @@ export function Lobby({ onBack }: Props) {
           }}
           disabled={!connected}
         >
-          创建房间
+          {t('lobby.createRoom')}
         </Button>
       </div>
 
@@ -382,7 +398,7 @@ export function Lobby({ onBack }: Props) {
           className="text-2xs font-semibold text-primary"
           style={{ letterSpacing: 'var(--tracking-title)' }}
         >
-          房间码
+          {t('room.roomCode')}
         </span>
         <div className="mt-2 flex items-stretch gap-3">
           <div className="min-w-0 flex-1">
@@ -403,13 +419,13 @@ export function Lobby({ onBack }: Props) {
             disabled={!connected || code.length !== 6}
             className="shrink-0"
           >
-            加入
+            {t('lobby.enter')}
           </Button>
         </div>
         {/* 「加入」在填满 6 位之前是灰的，不说一句就只能靠试。
             格式要求要在提交之前给出，不是提交之后 */}
         <p id="code-hint" className="mt-2 text-2xs text-ink-faint">
-          输入好友分享的 6 位房间码即可加入。
+          {t('lobby.roomCodePlaceholder')}
         </p>
       </div>
 
@@ -480,7 +496,7 @@ export function Lobby({ onBack }: Props) {
         {rooms === null ? (
           <p className="text-sm text-ink-faint">{connected ? '正在获取房间列表…' : '连接中…'}</p>
         ) : rooms.length === 0 ? (
-          <p className="text-sm text-ink-faint">暂时没有公开房间。</p>
+          <p className="text-sm text-ink-faint">{t('lobby.noRooms')}</p>
         ) : (
           <>
             {/* 断线时列表还挂在屏幕上，但它已经是旧的了 —— 要说出来，不能让人对着它乱点 */}
@@ -573,9 +589,9 @@ export function Lobby({ onBack }: Props) {
         }}
       >
         {/* 联机的每回合读 roundWindowSeconds，不是单机的 preset.clipSeconds */}
-        <Stat label="每回合" value={`${KARUTA_DEFAULTS.roundWindowSeconds}s`} />
-        <Stat label="记忆时间" value={`${KARUTA_DEFAULTS.memorizeSeconds}s`} />
-        <Stat label="难度" value={preset.label} />
+        <Stat label={t('lobby.perRound')} value={`${KARUTA_DEFAULTS.roundWindowSeconds}s`} />
+        <Stat label={t('lobby.memorize')} value={`${KARUTA_DEFAULTS.memorizeSeconds}s`} />
+        <Stat label={t('lobby.difficulty')} value={t(`start.${KARUTA_DEFAULTS.difficulty}Label`)} />
       </dl>
 
       <p role="status" aria-live="polite" className="mt-6 flex items-center gap-2 text-xs text-ink-sub">
@@ -589,7 +605,7 @@ export function Lobby({ onBack }: Props) {
         className="tap-line mt-7 self-start text-xs text-ink-faint transition-colors hover:text-primary"
         style={{ letterSpacing: 'var(--tracking-base)' }}
       >
-        返回
+        {t('common.back')}
       </button>
 
       {creating && (
@@ -639,6 +655,7 @@ function CreateDialog({
   onCancel: () => void
   onConfirm: () => void
 }) {
+  const { t } = useTranslation()
   const allowPrivate = limits === null || limits.allowPrivate
 
   // Overlay 自己只关住 Tab，Esc 要在这里补——模态没有 Esc 会让键盘用户走不掉
@@ -651,7 +668,7 @@ function CreateDialog({
   }, [onCancel])
 
   return (
-    <Overlay label="新建房间">
+    <Overlay label={t('lobby.createRoom')}>
       <OverlayMark />
       <div className="w-full text-left" style={{ maxWidth: 'calc(420 * var(--u))' }}>
         <h2
@@ -667,14 +684,14 @@ function CreateDialog({
             className="text-2xs font-semibold text-primary"
             style={{ letterSpacing: 'var(--tracking-title)' }}
           >
-            房间名
+            {t('lobby.roomName')}
           </span>
           <span className="mt-2 block">
             <Field
               type="text"
               value={name}
               onChange={(e) => onName(e.target.value.slice(0, ROOM_NAME_MAX * 2))}
-              placeholder="留空则用你的昵称"
+              placeholder={t('lobby.roomNamePlaceholder')}
               maxLength={ROOM_NAME_MAX * 2}
             />
           </span>
@@ -698,7 +715,7 @@ function CreateDialog({
             disabled={!connected || submitting}
             aria-busy={submitting}
           >
-            {submitting ? '创建中…' : '创建'}
+            {submitting ? t('lobby.creating') : t('lobby.create')}
           </Button>
 
           {error && (
@@ -724,7 +741,7 @@ function CreateDialog({
             className="tap-line self-start text-xs text-ink-faint transition-colors hover:text-primary"
             style={{ letterSpacing: 'var(--tracking-base)' }}
           >
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       </div>

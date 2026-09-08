@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DIFFICULTIES, DIFFICULTY_PRESETS, type Difficulty } from '@scg/shared'
 
 import {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function Records({ onBack }: Props) {
+  const { t } = useTranslation()
   const [records, setRecords] = useState<RecordsData>(() => loadRecords())
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
   const [confirmClear, setConfirmClear] = useState(false)
@@ -70,7 +72,7 @@ export function Records({ onBack }: Props) {
           <span aria-hidden className="inline-block rotate-180">
             <Icon name="next" size="1.1em" />
           </span>
-          <span>返回首页</span>
+          <span>{t('records.backHome')}</span>
         </button>
 
         {!allEmpty && (
@@ -82,7 +84,7 @@ export function Records({ onBack }: Props) {
             }}
             className="tap-line -mr-2.5 text-xs text-ink-faint transition-colors hover:text-wrong"
           >
-            清除本地战绩
+            {t('records.clearLocal')}
           </button>
         )}
       </div>
@@ -94,7 +96,7 @@ export function Records({ onBack }: Props) {
       {/* 一级空态：两档都从未打过 */}
       {allEmpty ? (
         <section
-          aria-label="战绩空态"
+          aria-label={t('records.allEmptyTitle')}
           className="anim-appear glass-lit cut-card mt-8 px-6 py-14 text-center sm:px-10 sm:py-16"
           style={{ ['--cut-lg' as string]: 'calc(16 * var(--u))' }}
         >
@@ -102,13 +104,13 @@ export function Records({ onBack }: Props) {
             <Icon name="trophy" size="calc(48 * var(--u))" />
           </div>
           <h2 className="sc-title mt-5 text-base font-bold text-ink sm:text-lg">
-            暂无本地战绩
+            {t('records.allEmptyTitle')}
           </h2>
           <p
             className="jp-wrap mx-auto mt-3 text-xs leading-relaxed text-ink-sub sm:text-sm"
             style={{ maxWidth: '44ch' }}
           >
-            单机完成一局结算后，会自动在此记录最高分、走势、组合正确率与易错曲目。数据全部保存在当前设备中。
+            {t('records.allEmptyDesc')}
           </p>
           <div className="mt-8">
             <Button
@@ -116,7 +118,7 @@ export function Records({ onBack }: Props) {
               size="md"
               onClick={onBack}
             >
-              返回首页开局
+              {t('records.allEmptyAction')}
             </Button>
           </div>
         </section>
@@ -125,13 +127,12 @@ export function Records({ onBack }: Props) {
           {/* 简单 / 困难分档切换 */}
           <div
             role="tablist"
-            aria-label="难度分档"
+            aria-label={t('records.diffTabAria')}
             onKeyDown={handleTabKeyDown}
             className="anim-appear mt-6 flex items-center gap-3 sm:gap-4"
           >
             {DIFFICULTIES.map((d) => {
               const active = difficulty === d
-              const p = DIFFICULTY_PRESETS[d]
               return (
                 <button
                   key={d}
@@ -164,7 +165,7 @@ export function Records({ onBack }: Props) {
                       {d === 'easy' ? 'イージー' : 'ハード'}
                     </span>
                     <span className="sc-title text-sm sm:text-base">
-                      {p.label}模式
+                      {d === 'easy' ? t('records.tabEasy') : t('records.tabHard')}
                     </span>
                   </span>
                 </button>
@@ -176,15 +177,15 @@ export function Records({ onBack }: Props) {
             {/* 二级空态：当前档没有打过，但另一档打过 */}
             {view.empty ? (
               <section
-                aria-label={`${DIFFICULTY_PRESETS[difficulty].label}模式空态`}
+                aria-label={t('records.empty', { difficulty: difficulty === 'easy' ? t('records.tabEasy') : t('records.tabHard') })}
                 className="anim-appear glass-lit cut-card mt-6 px-6 py-12 text-center sm:px-8 sm:py-14"
                 style={{ ['--cut-lg' as string]: 'calc(16 * var(--u))' }}
               >
                 <h2 className="sc-title text-base font-bold text-ink">
-                  暂无{DIFFICULTY_PRESETS[difficulty].label}模式记录
+                  {t('records.empty', { difficulty: difficulty === 'easy' ? t('records.tabEasy') : t('records.tabHard') })}
                 </h2>
                 <p className="jp-wrap mx-auto mt-2 text-xs text-ink-sub sm:text-sm">
-                  去打一局{DIFFICULTY_PRESETS[difficulty].label}模式，或者切换上方标签查看另一难度。
+                  {t('records.emptyHint', { difficulty: difficulty === 'easy' ? t('records.tabEasy') : t('records.tabHard') })}
                 </p>
                 <div className="mt-6">
                   <Button
@@ -192,7 +193,7 @@ export function Records({ onBack }: Props) {
                     size="sm"
                     onClick={onBack}
                   >
-                    开始{DIFFICULTY_PRESETS[difficulty].label}模式
+                    {t('records.startMode', { difficulty: difficulty === 'easy' ? t('records.tabEasy') : t('records.tabHard') })}
                   </Button>
                 </div>
               </section>
@@ -201,7 +202,7 @@ export function Records({ onBack }: Props) {
                 {/* 1. 数字块 */}
                 <section aria-labelledby="heading-stats" className="anim-appear mt-6">
                   <h2 id="heading-stats" className="sr-only">
-                    总体数据
+                    {t('records.title')}
                   </h2>
                   <div
                     className="glass-lit cut-card p-5 sm:p-6"
@@ -209,25 +210,25 @@ export function Records({ onBack }: Props) {
                   >
                     <dl className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-4 sm:gap-6">
                       <Stat
-                        label="最高分"
+                        label={t('records.bestScore')}
                         value={view.bestScore !== null ? view.bestScore : '—'}
                         align="center"
                         size="md"
                       />
                       <Stat
-                        label="最低分"
+                        label={t('records.worstScore')}
                         value={view.worstScore !== null ? view.worstScore : '—'}
                         align="center"
                         size="md"
                       />
                       <Stat
-                        label="场次"
-                        value={`${view.games} 局`}
+                        label={t('records.gamesPlayed')}
+                        value={t('records.gamesCount', { count: view.games })}
                         align="center"
                         size="md"
                       />
                       <Stat
-                        label="总正确率"
+                        label={t('records.avgAccuracy')}
                         value={
                           view.accuracy !== null
                             ? `${Math.round(view.accuracy * 100)}%`
@@ -248,7 +249,7 @@ export function Records({ onBack }: Props) {
                       className="text-xs font-semibold text-primary"
                       style={{ letterSpacing: 'var(--tracking-title)' }}
                     >
-                      RECENT · 近 {RECENT_MAX} 局得分率走势
+                      {t('records.trendTitle', { max: RECENT_MAX })}
                     </h2>
                     <span className="latin text-2xs text-ink-faint">
                       {mode.recent.length} / {RECENT_MAX}
@@ -267,9 +268,7 @@ export function Records({ onBack }: Props) {
                         gap: 'calc(4 * var(--u))',
                       }}
                       role="img"
-                      aria-label={`最近 ${mode.recent.length} 局得分率走势：${mode.recent
-                        .map((r, i) => `第 ${i + 1} 局 ${Math.round(r * 100)}%`)
-                        .join('，')}`}
+                      aria-label={t('records.trendAria', { count: mode.recent.length })}
                     >
                       {mode.recent.map((rate, i) => {
                         const pct = Math.round(rate * 100)
@@ -277,7 +276,7 @@ export function Records({ onBack }: Props) {
                         return (
                           <span
                             key={i}
-                            title={`第 ${i + 1} 局：得分率 ${pct}%`}
+                            title={t('records.trendItemTitle', { index: i + 1, rate: pct })}
                             className="cut-slant block min-w-0 flex-1 transition-all"
                             style={{
                               height: `${h}%`,
@@ -301,10 +300,10 @@ export function Records({ onBack }: Props) {
                       className="text-xs font-semibold text-primary"
                       style={{ letterSpacing: 'var(--tracking-title)' }}
                     >
-                      UNITS · 组合正确率
+                      {t('records.unitsTitle')}
                     </h2>
                     <span className="text-2xs text-ink-faint">
-                      样本阈值 ≥ {UNIT_MIN} 题
+                      {t('records.unitSampleMin', { min: UNIT_MIN })}
                     </span>
                   </div>
 
@@ -319,7 +318,7 @@ export function Records({ onBack }: Props) {
                       列表语义已经够用，不必再给行挂 aria-label 把它们盖掉。
                     */}
                     <ul
-                      aria-label="组合正确率排行"
+                      aria-label={t('records.unitRankingAria')}
                       className="flex flex-col gap-3 sm:gap-3.5"
                     >
                       {ranking.map((row) => {
@@ -359,7 +358,7 @@ export function Records({ onBack }: Props) {
                                       ['--cut-sm' as string]: 'calc(2 * var(--u))',
                                     }}
                                   >
-                                    最高
+                                    {t('records.highestBadge')}
                                   </span>
                                 )}
                                 {row.isLowest && (
@@ -371,7 +370,7 @@ export function Records({ onBack }: Props) {
                                       ['--cut-sm' as string]: 'calc(2 * var(--u))',
                                     }}
                                   >
-                                    最低
+                                    {t('records.lowestBadge')}
                                   </span>
                                 )}
                               </div>
@@ -387,7 +386,7 @@ export function Records({ onBack }: Props) {
                                   </span>
                                 ) : (
                                   <span className="latin text-2xs text-ink-faint">
-                                    样本不足 ({row.seen}/{UNIT_MIN})
+                                    {t('records.insufficientSample', { seen: row.seen, min: UNIT_MIN })}
                                   </span>
                                 )}
                               </div>
@@ -418,7 +417,7 @@ export function Records({ onBack }: Props) {
                                     className="hidden sm:flex h-full items-center px-2 text-2xs text-ink-faint"
                                     style={{ letterSpacing: 'var(--tracking-tight)' }}
                                   >
-                                    样本不足 ({row.seen}/{UNIT_MIN})
+                                    {t('records.insufficientSample', { seen: row.seen, min: UNIT_MIN })}
                                   </span>
                                 )}
                               </div>
@@ -437,7 +436,7 @@ export function Records({ onBack }: Props) {
                                 </>
                               ) : (
                                 <span className="latin text-2xs text-ink-faint">
-                                  {row.seen} 题
+                                  {t('records.questionCount', { count: row.seen })}
                                 </span>
                               )}
                             </div>
@@ -456,10 +455,10 @@ export function Records({ onBack }: Props) {
                       className="text-xs font-semibold text-primary"
                       style={{ letterSpacing: 'var(--tracking-title)' }}
                     >
-                      WEAKEST · 易错曲目榜
+                      {t('records.weakTitle')}
                     </h2>
                     <span className="text-2xs text-ink-faint">
-                      上榜阈值 ≥ {SONG_MIN} 次
+                      {t('records.weakThreshold', { min: SONG_MIN })}
                     </span>
                   </div>
 
@@ -469,10 +468,10 @@ export function Records({ onBack }: Props) {
                       style={{ ['--cut-lg' as string]: 'calc(16 * var(--u))' }}
                     >
                       <p className="font-semibold text-ink-sub">
-                        暂无达到上榜阈值的易错曲目
+                        {t('records.weakEmptyTitle')}
                       </p>
                       <p className="jp-wrap mx-auto mt-1.5 text-ink-faint" style={{ maxWidth: '44ch' }}>
-                        曲库规模共 243 首，每首曲目需至少作答 {SONG_MIN} 次后才会计入易错榜。多打几局后便会在此显示。
+                        {t('records.weakEmptyDesc', { min: SONG_MIN })}
                       </p>
                     </div>
                   ) : (
@@ -521,16 +520,16 @@ export function Records({ onBack }: Props) {
                                 {song.unit ? (
                                   <span lang="ja">{unitName(song.unit)}</span>
                                 ) : (
-                                  '全体 / 独立曲'
+                                  t('records.allUnitSolo')
                                 )}
                               </span>
                             </div>
                             <div className="shrink-0 text-right">
                               <div className="latin text-xs font-bold text-wrong">
-                                正确率 {pct}%
+                                {t('records.accuracy', { pct })}
                               </div>
                               <div className="latin text-2xs text-ink-faint">
-                                出题 {song.seen} · 错 {song.seen - song.correct}
+                                {t('records.statsLine', { seen: song.seen, wrong: song.seen - song.correct })}
                               </div>
                             </div>
                           </li>
@@ -547,7 +546,7 @@ export function Records({ onBack }: Props) {
                     size="md"
                     onClick={onBack}
                   >
-                    返回首页
+                    {t('records.backHome')}
                   </Button>
                 </div>
               </>
@@ -558,7 +557,7 @@ export function Records({ onBack }: Props) {
 
       {/* 清除本地战绩二次确认弹窗 */}
       {confirmClear && (
-        <Overlay label="确认清除本地战绩">
+        <Overlay label={t('records.clearDialogAria')}>
           <div
             className="cut-shadow-lg mx-auto w-full max-w-sm"
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}
@@ -569,14 +568,14 @@ export function Records({ onBack }: Props) {
             >
               <div className="flex items-center gap-2 text-wrong">
                 <Icon name="warn" size="1.3em" />
-                <h3 className="text-base font-bold text-ink">确认清除本地战绩？</h3>
+                <h3 className="text-base font-bold text-ink">{t('records.clearConfirmTitle')}</h3>
               </div>
               <p className="jp-wrap mt-3 text-xs leading-relaxed text-ink-sub">
-                保存在当前设备上的简单与困难模式单机战绩（最高分、走势、组合正确率与易错曲目）将被彻底清空，无法恢复。
+                {t('records.clearConfirmDesc')}
               </p>
               <div className="mt-6 flex items-center justify-end gap-3">
                 <Button variant="quiet" size="sm" onClick={() => setConfirmClear(false)}>
-                  取消
+                  {t('common.cancel')}
                 </Button>
                 {/*
                   破坏性动作的红色由标题的 warn 图标与 text-wrong 承担，不给按钮加内联底色：
@@ -584,7 +583,7 @@ export function Records({ onBack }: Props) {
                   minHeight + variant 底色整块覆盖 —— 写了也不生效，只会留下一处骗人的代码。
                 */}
                 <Button variant="primary" size="sm" onClick={handleClearConfirm}>
-                  确认清空
+                  {t('records.confirmClearAction')}
                 </Button>
               </div>
             </div>

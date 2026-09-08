@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DIFFICULTY_PRESETS } from '@scg/shared'
 
 import { api, type Summary } from '../api'
@@ -28,6 +29,7 @@ const SLANT = 'calc(28 * var(--u))'
 const ROW_CLIP = `polygon(${SLANT} 0, 100% 0, 100% calc(100% - ${SLANT}), calc(100% - ${SLANT}) 100%, 0 100%, 0 ${SLANT})`
 
 export function Result({ sessionId, onReplay, onHome }: Props) {
+  const { t } = useTranslation()
   const [data, setData] = useState<Summary | null>(null)
   const [error, setError] = useState<string | null>(null)
   // 开导出框的时刻。战报上的日期与条码种子都取这一刻，
@@ -52,8 +54,8 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         setData(d)
         recordSolo(sessionId, d)
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : '读取结算失败'))
-  }, [sessionId])
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : t('result.loadFailed')))
+  }, [sessionId, t])
 
   if (error) {
     return (
@@ -67,7 +69,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
   if (!data) {
     return (
       <main className="flex min-h-safe items-center justify-center px-6">
-        <p className="text-sm text-ink-faint">结算中…</p>
+        <p className="text-sm text-ink-faint">{t('result.calculating')}</p>
       </main>
     )
   }
@@ -96,12 +98,12 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
           className="mt-7 flex w-full flex-nowrap items-end"
           style={{ gap: 'calc(4 * var(--u))', height: 'calc(16 * var(--u))' }}
           role="img"
-          aria-label={`逐题结果：共 ${data.total} 题，答对 ${data.correct} 题`}
+          aria-label={t('result.itemAriaLabel', { total: data.total, correct: data.correct })}
         >
           {data.items.map((item) => (
             <span
               key={item.index}
-              title={`第 ${item.index + 1} 题`}
+              title={t('result.questionTitle', { index: item.index + 1 })}
               className="cut-slant block min-w-0 flex-1"
               style={{
                 height: item.correct === null ? 'calc(7 * var(--u))' : '100%',
@@ -145,14 +147,14 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
             borderBottom: '1px solid var(--color-divider)',
           }}
         >
-          <Stat label="答对" value={`${data.correct} / ${data.total}`} />
-          <Stat label="正确率" value={`${Math.round(rate * 100)}%`} />
-          <Stat label="平均用时" value={`${(data.avgMs / 1000).toFixed(1)}s`} />
-          <Stat label="片段长度" value={`${preset.clipSeconds}s`} />
+          <Stat label={t('result.streakLabel')} value={`${data.correct} / ${data.total}`} />
+          <Stat label={t('result.accuracy')} value={`${Math.round(rate * 100)}%`} />
+          <Stat label={t('result.avgTime')} value={`${(data.avgMs / 1000).toFixed(1)}s`} />
+          <Stat label={t('result.clipSeconds')} value={`${preset.clipSeconds}s`} />
         </dl>
 
         <p className="mt-3 text-xs text-ink-faint">
-          计分规则：基础得分（答对 100 分）+ 速度加分（答题越快加分越多，最高 100 分），每次重听扣 10 分。
+          {t('result.scoringRule')}
         </p>
       </header>
 
@@ -173,7 +175,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
           className="sc-resultlist"
           tabIndex={0}
           role="group"
-          aria-label={`逐题结果，共 ${data.total} 题，可滚动查看`}
+          aria-label={t('result.scrollableListAria', { total: data.total })}
         >
           <ol className="flex flex-col" style={{ gap: 'calc(10 * var(--u))' }}>
             {data.items.map((item, i) => {
@@ -219,7 +221,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                       <span className="jp-wrap block truncate text-xs text-ink-faint">
                         {item.chosen && !ok ? (
                           <>
-                            你选了：<span lang="ja">{item.chosen.title}</span>
+                            {t('result.yourChoice')}<span lang="ja">{item.chosen.title}</span>
                           </>
                         ) : (
                           <span lang="ja">{item.song.artist}</span>
@@ -231,7 +233,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                         <span className="latin flex items-center justify-end gap-2 text-xs text-ink-faint">
                           <span>{(item.elapsedMs / 1000).toFixed(1)}s</span>
                           {item.replaysUsed > 0 && (
-                            <span className="inline-flex items-center gap-0.5" title="重听次数">
+                            <span className="inline-flex items-center gap-0.5" title={t('result.replaysUsedTitle')}>
                               <Icon name="replay" size="calc(11 * var(--u))" />
                               {item.replaysUsed}
                             </span>
@@ -245,7 +247,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
                     <span
                       className="shrink-0"
                       role="img"
-                      aria-label={ok ? '答对' : '答错'}
+                      aria-label={ok ? t('result.correct') : t('result.wrong')}
                       style={{ color: ok ? 'var(--color-correct)' : 'var(--color-wrong)' }}
                     >
                       <Icon name={ok ? 'check' : 'cross'} size="calc(18 * var(--u))" />
@@ -275,7 +277,7 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
       <div className="mt-10 flex flex-wrap items-stretch gap-4 pb-12">
         <div className="min-w-0 flex-1 sm:flex-none">
           <Button variant="primary" size="lg" full className="max-sm:px-4" onClick={onReplay}>
-            再来一局
+            {t('result.replay')}
             <Icon name="replay" size="calc(17 * var(--u))" />
           </Button>
         </div>
@@ -283,12 +285,12 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
           {/* 「返回首页」而不是「换个难度」：这个按钮做的事是回首页，
               换难度是回到首页**之后**才发生的事，标签该说按钮做什么 */}
           <Button variant="ghost" size="lg" full className="max-sm:px-4" onClick={onHome}>
-            返回首页
+            {t('result.home')}
           </Button>
         </div>
         <div className="min-w-0 basis-full sm:basis-auto">
           <Button variant="glass" size="lg" full className="max-sm:px-4" onClick={() => setShareAt(new Date())}>
-            导出战报
+            {t('result.exportShare')}
           </Button>
         </div>
       </div>
@@ -298,15 +300,15 @@ export function Result({ sessionId, onReplay, onHome }: Props) {
         // 用同一个 Overlay，真对话框到位时只是内容换掉，场景不跳
         <Suspense
           fallback={
-            <Overlay label="正在准备战报">
+            <Overlay label={t('result.preparingShare')}>
               <OverlayMark />
-              <p className="text-sm text-ink-sub">正在准备战报…</p>
+              <p className="text-sm text-ink-sub">{t('result.preparingShareDesc')}</p>
             </Overlay>
           }
         >
           <ShareTicket
             kind="solo"
-            label="导出战报图片"
+            label={t('result.shareTicketLabel')}
             defaultId=""
             input={{ ...data, date: shareAt }}
             onClose={() => setShareAt(null)}

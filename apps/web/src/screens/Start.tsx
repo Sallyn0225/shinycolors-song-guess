@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { DIFFICULTY_PRESETS, DIFFICULTIES, type Difficulty } from '@scg/shared'
 
@@ -7,6 +8,7 @@ import { sfx } from '../sfx'
 import { HeroTitle } from '../ui/SectionTitle'
 import { Icon } from '../ui/Icon'
 import { IconButton, ToolRail } from '../ui/IconButton'
+import { LanguageSwitch } from '../components/LanguageSwitch'
 import { LIBRARY } from '../features/library'
 import { Footer } from '../components/Footer'
 import { InfoModal } from '../components/InfoModal'
@@ -93,6 +95,7 @@ function EntryBar({
 }
 
 export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
+  const { t } = useTranslation()
   // 初值取自引擎而不是 localStorage：main.tsx 在任何界面挂载之前就把偏好灌进去了，
   // 这里只负责往回写。与音量滑杆同一条规矩
   const [bgmOn, setBgmOn] = useState(() => ambience.bgmEnabled)
@@ -159,20 +162,20 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
         所以不加框线也不加分隔线。
       */}
       <header className="anim-appear text-center">
-        <HeroTitle brand="Shiny Song Guess" title="闪彩猜歌" />
+        <HeroTitle brand="Shiny Song Guess" title={t('start.title')} />
         <p
           className="jp-wrap mx-auto mt-4 text-base leading-relaxed text-ink-sub sm:mt-4"
           style={{ maxWidth: '46ch' }}
         >
-          听纯伴奏片段，猜出对应的闪耀色彩歌曲。
+          {t('start.soloDesc')}
         </p>
         {/* 三个聚合量。「人声 0」是这一组里唯一的卖点 ——
             它把「难度来源从记歌词变成记编曲」压成了一个数字。
             都是总量，不含单曲时长或切片编号，建立不了对照表。 */}
         <dl className="mt-5 flex justify-center gap-10 sm:mt-5 sm:gap-16">
-          <Stat label="曲数" value={LIBRARY.songs} align="center" />
-          <Stat label="片段" value={LIBRARY.clips} align="center" />
-          <Stat label="人声" value={0} align="center" />
+          <Stat label={t('start.trackCount')} value={LIBRARY.songs} align="center" />
+          <Stat label={t('start.clipCount')} value={LIBRARY.clips} align="center" />
+          <Stat label={t('start.vocalCount')} value={0} align="center" />
         </dl>
       </header>
 
@@ -185,9 +188,10 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
       */}
       <div className="anim-appear mt-5 sm:mt-3" style={{ animationDelay: '60ms' }}>
         <ToolRail>
+          <LanguageSwitch />
           <IconButton
             icon={bgmOn ? 'music' : 'music-off'}
-            label={bgmOn ? '关闭背景音乐' : '打开背景音乐'}
+            label={bgmOn ? t('start.musicOff') : t('start.musicOn')}
             pressed={bgmOn}
             onClick={toggleBgm}
           />
@@ -200,7 +204,7 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
           */}
           <IconButton
             icon={sfxOn ? 'volume' : 'mute'}
-            label={sfxOn ? '关闭音效' : '打开音效'}
+            label={sfxOn ? t('start.sfxOff') : t('start.sfxOn')}
             pressed={sfxOn}
             onClick={toggleSfx}
           />
@@ -208,19 +212,19 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
             展示信息：三页弹窗（玩法 / 免责声明 / 致谢）。开合归本页，
             页码是弹窗自己的事，随它一起卸载 —— 每次打开都从第一页开始。
           */}
-          <IconButton icon="info" label="游戏信息" onClick={() => setInfoOpen(true)} />
+          <IconButton icon="info" label={t('start.gameInfo')} onClick={() => setInfoOpen(true)} />
           {/*
             战绩统计：进入独立奖杯屏查看单机历史走势与组合正确率。
             必须在 GitHub 之前 —— 外链永远收尾。
           */}
-          <IconButton icon="trophy" label="战绩统计" onClick={onRecords} />
+          <IconButton icon="trophy" label={t('start.recordsTitle')} onClick={onRecords} />
           {/*
             GitHub 入口。走 href 让它渲染成 <a>：读屏播报「GitHub 仓库，链接」
             而不是「按钮」，新标签打开由 IconButton 内部钉死。
           */}
           <IconButton
             icon="github"
-            label="GitHub 仓库"
+            label={t('start.githubRepo')}
             href="https://github.com/Sallyn0225/shinycolors-song-guess"
           />
         </ToolRail>
@@ -232,7 +236,7 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
       </div>
 
       {/* 组二「怎么开始」。这一页的动作集只有这三条 */}
-      <section className="sc-entrylist mt-7 flex flex-col sm:mt-6" aria-label="选择难度">
+      <section className="sc-entrylist mt-7 flex flex-col sm:mt-6" aria-label={t('start.soloMode')}>
         {DIFFICULTIES.map((d, i) => {
           const p = DIFFICULTY_PRESETS[d]
           return (
@@ -250,24 +254,26 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
                   className="block text-2xs font-semibold text-primary"
                   style={{ letterSpacing: 'var(--tracking-title)' }}
                 >
-                  {KANA[d]}
+                  {t(d === 'easy' ? 'start.easyKana' : 'start.hardKana')}
                 </span>
                 <span
                   className="sc-title block font-bold text-ink"
                   style={{ letterSpacing: 'var(--tracking-tight)' }}
                 >
-                  {p.label}
+                  {t(d === 'easy' ? 'start.easyLabel' : 'start.hardLabel')}
                 </span>
-                <span className="jp-wrap mt-1 block text-sm text-ink-sub">{BLURB[d]}</span>
+                <span className="jp-wrap mt-1 block text-sm text-ink-sub">
+                  {t(d === 'easy' ? 'start.easyBlurb' : 'start.hardBlurb')}
+                </span>
               </span>
               {/* 这四个数是选难度的唯一依据，窄屏也不能藏 —— 压成基线一行，见 .sc-metaline。
                   gap-6 拿掉了：它在窄屏被 .sc-metaline 的 column-gap 接管，
                   桌面本来就被 sm:gap-7 覆盖，留着只会让层序看不清 */}
               <dl className="sc-metaline flex shrink-0 sm:gap-7">
-                <Stat label="題数" value={p.questionCount} align="center" size="sm" />
-                <Stat label="片段" value={`${p.clipSeconds}s`} align="center" size="sm" />
-                <Stat label="限时" value={`${p.answerSeconds}s`} align="center" size="sm" />
-                <Stat label="重听" value={p.replays} align="center" size="sm" />
+                <Stat label={t('start.questionCount')} value={p.questionCount} align="center" size="sm" />
+                <Stat label={t('start.clipSeconds')} value={`${p.clipSeconds}s`} align="center" size="sm" />
+                <Stat label={t('start.timeLimit')} value={`${p.answerSeconds}s`} align="center" size="sm" />
+                <Stat label={t('start.replays')} value={p.replays} align="center" size="sm" />
               </dl>
             </EntryBar>
           )
@@ -300,12 +306,7 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
               送り札 / お手つき 挪走 —— 它们是玩起来才用得上的机制。
             */}
             <span className="jp-wrap mt-1 block text-sm opacity-95">
-              听伴奏抢牌的 1v1 歌牌对决，场上还混有无对应牌的
-              <b lang="ja" className="font-bold text-accent-lit">
-                空札
-              </b>
-              {' '}
-              陷阱 —— 误触受罚。先清空<span lang="ja">自陣</span>者获胜。
+              {t('start.versusDesc')}
             </span>
           </span>
           {/*
@@ -338,7 +339,7 @@ export function Start({ onStart, onVersus, onRecords, busy, error }: Props) {
       <div className="anim-appear mt-14 sm:mt-6" style={{ animationDelay: '340ms' }}>
         <VolumeControl />
         <p className="jp-wrap mt-5 text-xs text-ink-faint sm:mt-3" style={{ maxWidth: '60ch' }}>
-          点击任意模式即可开始。建议佩戴耳机游玩（蓝牙耳机可能存在微小延迟）。设置会自动保存在当前设备中。
+          {t('start.tip')}
         </p>
       </div>
 

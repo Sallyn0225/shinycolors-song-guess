@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { sfx } from '../sfx'
 
 /** 作者的个人链接聚合页 */
@@ -14,6 +15,7 @@ const AUTHOR_URL = 'https://linktr.ee/sallyn0225'
  * 两处都改的时候记得对齐，别让短版比长版说得多。
  */
 export function Footer() {
+  const { t } = useTranslation()
   return (
     <footer className="anim-appear mt-10 sm:mt-6" style={{ animationDelay: '400ms' }}>
       {/*
@@ -23,7 +25,7 @@ export function Footer() {
       */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 text-xs text-ink-faint">
         <p className="jp-wrap">
-          非官方粉丝作品 · 与 BANDAI NAMCO Entertainment 及 283Production 无关联
+          {t('footer.shortDisclaimer')}
         </p>
         <p className="latin">
           unofficial fanart{' '}

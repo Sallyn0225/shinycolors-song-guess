@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { RoomView } from '@scg/shared'
 
 import { socket } from '../net/ws'
@@ -20,6 +21,7 @@ interface Props {
  * 列表订阅的 effect 在房间里也照跑。
  */
 export function Room({ initialRoom, onLeave }: Props) {
+  const { t } = useTranslation()
   const [room, setRoom] = useState<RoomView>(initialRoom)
   const [error, setError] = useState<string | null>(null)
   const [closed, setClosed] = useState(false)
@@ -68,7 +70,7 @@ export function Room({ initialRoom, onLeave }: Props) {
           className="text-2xs font-semibold text-ink-sub"
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {isPublic ? '公开房间' : '私人房间'}
+          {isPublic ? t('room.publicRoom') : t('room.privateRoom')}
         </span>
       </div>
 
@@ -81,12 +83,10 @@ export function Room({ initialRoom, onLeave }: Props) {
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="jp-wrap min-w-0 flex-1 text-sm text-ink-sub">
-          {isPublic
-            ? '公开房间已展示在大厅列表中，任何人都可以加入；也可以直接复制房间码发送给好友。'
-            : '私人房间不会显示在大厅列表中，需要将房间码分享给好友加入。'}
+          {isPublic ? t('room.publicDesc') : t('room.privateDesc')}
         </p>
         <Button variant="ghost" size="sm" onClick={copyCode} className="shrink-0">
-          {copied ? '已复制' : '复制房间码'}
+          {copied ? t('common.copied') : t('room.copyCode')}
         </Button>
       </div>
 
@@ -96,8 +96,8 @@ export function Room({ initialRoom, onLeave }: Props) {
             <span className="glass-lit cut-bar flex items-center gap-3 px-8 py-4">
               <Presence online={!!p?.online} />
               <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
-                {p ? p.nickname : '等待对手加入…'}
-                {i === 0 && <span className="ml-2 text-xs font-normal text-ink-faint">（你）</span>}
+                {p ? p.nickname : t('room.waitingGuest')}
+                {i === 0 && <span className="ml-2 text-xs font-normal text-ink-faint">（{t('common.you')}）</span>}
               </span>
               {p?.rttMs != null && <span className="latin text-xs text-ink-faint">{p.rttMs}ms</span>}
               {p?.ready && (
@@ -105,7 +105,7 @@ export function Room({ initialRoom, onLeave }: Props) {
                   className="text-xs font-bold text-correct"
                   style={{ letterSpacing: 'var(--tracking-base)' }}
                 >
-                  已准备
+                  {t('room.ready')}
                 </span>
               )}
             </span>
@@ -114,7 +114,7 @@ export function Room({ initialRoom, onLeave }: Props) {
       </div>
 
       <p className="mt-6 text-xs leading-relaxed text-ink-faint">
-        双方延迟公开显示，抢牌判定以实际音频起播后的反应时间为准，不受网络延迟波动影响。
+        {t('room.latencyNotice')}
       </p>
 
       {closed ? (
@@ -131,11 +131,11 @@ export function Room({ initialRoom, onLeave }: Props) {
                 { '--ring': '1px', '--ring-color': 'var(--color-primary)' } as React.CSSProperties
               }
             />
-            房间等待超时，已自动解散。
+            {t('room.timeoutDismissed')}
           </p>
           <div className="mt-4">
             <Button variant="primary" size="lg" full onClick={onLeave}>
-              回到大厅
+              {t('room.backToLobby')}
             </Button>
           </div>
         </div>
@@ -149,7 +149,7 @@ export function Room({ initialRoom, onLeave }: Props) {
               disabled={!other}
               onClick={() => socket.send({ t: 'ready', ready: !me?.ready })}
             >
-              {!other ? '等待对手…' : me?.ready ? '取消准备' : '准备'}
+              {!other ? t('room.waitingGuest') : me?.ready ? t('room.cancelReady') : t('room.setReady')}
             </Button>
           </div>
 
@@ -176,7 +176,7 @@ export function Room({ initialRoom, onLeave }: Props) {
             className="tap-line mt-4 self-start text-xs text-ink-faint transition-colors hover:text-primary"
             style={{ letterSpacing: 'var(--tracking-base)' }}
           >
-            离开房间
+            {t('room.leaveRoom')}
           </button>
         </>
       )}
