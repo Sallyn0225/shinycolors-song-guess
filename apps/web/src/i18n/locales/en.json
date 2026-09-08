@@ -21,6 +21,9 @@
     "pageNext": "Next",
     "pageStatus": "Page {{current}} / {{total}}: {{title}}"
   },
+  "meta": {
+    "title": "Shiny Colors Song Guess"
+  },
   "start": {
     "title": "Song for Prism Song Guessing",
     "tagline": "THE IDOLM@STER SHINY COLORS",

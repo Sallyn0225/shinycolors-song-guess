@@ -21,6 +21,9 @@
     "pageNext": "次のページ",
     "pageStatus": "全 {{total}} ページ中 {{current}} ページ：{{title}}"
   },
+  "meta": {
+    "title": "シャイニーカラーズ 曲当て"
+  },
   "start": {
     "title": "Song for Prism 楽曲当てクイズ",
     "tagline": "THE IDOLM@STER SHINY COLORS",

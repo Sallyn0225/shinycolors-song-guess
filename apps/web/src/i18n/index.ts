@@ -50,8 +50,17 @@ i18n
     },
   })
 
+export function setDocumentTitle(lang: string) {
+  if (typeof document !== 'undefined') {
+    document.title = i18n.getFixedT(lang)('meta.title')
+  }
+}
+
+setDocumentTitle(initialLang)
+
 i18n.on('languageChanged', (lng) => {
   setHtmlLang(lng)
+  setDocumentTitle(lng)
   try {
     localStorage.setItem(STORAGE_KEY, lng)
   } catch {
