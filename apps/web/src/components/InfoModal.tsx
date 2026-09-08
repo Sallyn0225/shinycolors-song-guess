@@ -9,6 +9,13 @@ interface Props {
   onClose: () => void
 }
 
+/** 三页的固定三语抬头。正文每页结构差太多，各自一个小节组件在文件下方 */
+const PAGES: { kana: string; latin: string; title: string }[] = [
+  { kana: 'アソビカタ', latin: 'HOW TO PLAY', title: '玩法' },
+  { kana: '免責事項', latin: 'DISCLAIMER', title: '免责声明' },
+  { kana: 'カンシャ', latin: 'CREDITS', title: '致谢' },
+]
+
 /** 致谢清单。链接是自绘 <a>，click 音得手动补 —— 与 ui/Button 内部那条规矩对齐 */
 const CREDITS: { name: string; url: string }[] = [
   {
@@ -169,12 +176,7 @@ export function InfoModal({ onClose }: Props) {
 
   // 页头。noUncheckedIndexedAccess 给数组取值挂 undefined —— page 被按钮
   // disabled 挡在界内，真越界也只是这几行字渲染为空，不会崩
-  const pages = [
-    { kana: 'アソビカタ', latin: 'HOW TO PLAY', title: t('info.tabs.rules') },
-    { kana: '免責事項', latin: 'DISCLAIMER', title: t('info.tabs.disclaimer') },
-    { kana: 'カンシャ', latin: 'CREDITS', title: t('info.tabs.credits') },
-  ]
-  const current = pages[page]
+  const current = PAGES[page]
 
   return (
     <Overlay label={t('info.modalTitle')}>
@@ -218,7 +220,7 @@ export function InfoModal({ onClose }: Props) {
               换页属于「看文字变化才知道」的事，按无障碍基线得挂 live region。
             */}
             <span aria-hidden className="flex items-center" style={{ gap: 'calc(6 * var(--u))' }}>
-              {pages.map((_, i) => (
+              {PAGES.map((_, i) => (
                 <span
                   key={i}
                   className="block"
@@ -234,14 +236,14 @@ export function InfoModal({ onClose }: Props) {
             <Button
               variant="glass"
               size="sm"
-              disabled={page === pages.length - 1}
+              disabled={page === PAGES.length - 1}
               onClick={() => setPage((p) => p + 1)}
             >
               {t('common.pageNext')}
             </Button>
           </div>
           <p className="sr-only" role="status" aria-live="polite">
-            {t('common.pageStatus', { current: page + 1, total: pages.length, title: current?.title })}
+            {t('common.pageStatus', { current: page + 1, total: PAGES.length, title: current?.title })}
           </p>
 
           <div className="mt-3">
