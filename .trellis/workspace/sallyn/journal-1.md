@@ -482,3 +482,47 @@ ingest 的两条设计约束是有代价换来的。**不进 `all`**：`all` 的
 ### Next Steps
 
 - VPS：docker compose pull && docker compose up -d，再 rsync 本地 assets/（240MB）——用户用 ssh 凭证自行处理
+
+
+## Session 18: VPS 换镜像与曲库素材增量同步
+<!-- trellis-session: v=2 fp=334eb3c07b4cad71 -->
+
+**Date**: 2026-09-10
+**Task**: VPS 换镜像与曲库素材增量同步
+**Package**: prepare-audio
+**Branch**: `main`
+
+### Summary
+
+闭合 09-10 上线任务的遗留项：VPS（283guess.hmhnk.top）换镜像 + 同步曲库素材。
+
+素材走**增量**而不是整包重传：本地 240MB，但线上 243 首的 1458 个切片与 243 张缩略图都没变，真正缺的只有 174 个新切片 + 29 张新缩略图 + 两个 manifest，26.9MB，省掉 89% 的传输。判定方式是双向集合比对（本地清单 scp 上去、在远端做 `[ -e ]` 逐条探测 + `comm -23` 反向检查线上有没有多余文件），比在本机拉远端 `ls` 更稳——第一次就是这么踩的：PowerShell 用 ASCII 写文件名清单，把日文曲名打成 `?`，于是 272 张缩略图全被判成「线上没有」。第二个坑是 Windows 清单是 CRLF，bash 读到的是带 \r 的路径，远端一样全判「不存在」。两个坑的共同教训：**文件名清单跨平台传，要让它出仓库一次都别经过有损编码**。
+
+打包也换了一次工具：Windows 自带的 bsdtar 处理日文文件名直接失败（`Can't convert a path to a wchar_t string`），174 个 ASCII 名的切片进去了、29 张日文名的缩略图没有。改用 .NET 的 System.Formats.Tar TarWriter 一次成功。传输后做的是**逐文件 sha256 对照**（本机算、远端 `sha256sum -c`），206 个文件全中，不是只看文件数。
+
+VPS 侧流程：备份现有两个 manifest 与 compose 到 ~/scg-backup-20260910-161751（留作回滚）→ 解包 → 哈希校验 → `docker compose pull && up -d`。镜像 sha256 90a9d888（Actions 于 08:08:55Z 构建的那版），容器 healthy。验证：/api/health 243→272、新切片文件在只读挂载里且仍是 151504B 规范 mtime、29 张新缩略图与老缩略图都 200 image/webp、单机整局走通（切片路由 audio/ogg 151504B no-store）、公网侧 12 题里新曲已进选项池（Lights on me / Sweet Boozy / 月とネオンと薄紅と / 最上級パンチライン）、老曲照常。公网 index.html 是 no-cache，bundle 里含 272/1632。
+
+一处值得记的观察：删掉 Lobby.tsx 那个失效 import 之后本地重新构建，bundle 哈希与改动前一模一样（index-B1LhN74a.js）——未被引用的 import 本来就被摇掉了，所以那个「清理」对产物零影响。这类改动值不值得单独提交，是审美问题不是性能问题。
+
+顺带把 compose 文件也同步过去了（VPS 那份停在 9-02，注释还写着 216MB）。临时脚本与 tar 包在本地与远端都已删除，仓库根目录没有残留。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `47b26ef` | chore(release): bump version to 0.2.2 |
+
+### Testing
+
+- [OK] 远端 206 个文件 sha256 逐一对照本机通过；opus 1632 / thumb 272 / public 272 首 / private 1632 切片
+- [OK] docker compose ps healthy；/api/health 243→272；公网 https://283guess.hmhnk.top/api/health 返回 272
+- [OK] 公网侧 12 题选项池里出现 4 首新曲，老曲仍在；新老缩略图均 200 image/webp；单机切片路由 audio/ogg 151504B no-store
+- [OK] 增量传输 26.9MB / 17s，线上无多余文件（comm 反向检查为 0）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 确认新曲在实机听着正常后，可清空回收站里的 2.12GB 源素材与 VPS 上的 ~/scg-backup-20260910-161751
