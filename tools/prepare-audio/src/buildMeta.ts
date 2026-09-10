@@ -1,6 +1,6 @@
 import type { ScannedSong, SongMeta } from './types.js'
-import { loadTables, resolveUnit, type UnitTables } from './resolveUnit.js'
-import { normalizeName, variantGroupKey } from './util/text.js'
+import { loadTables, memberOf, resolveUnit, type UnitTables } from './resolveUnit.js'
+import { variantGroupKey } from './util/text.js'
 
 /**
  * 生成显示用艺术家名。
@@ -21,10 +21,7 @@ function displayArtistFor(song: ScannedSong, res: ReturnType<typeof resolveUnit>
       return res.performers.join('・')
     }
     const ch = res.performers[0] as string
-    const unitId = t.characterToUnit.get(normalizeName(ch))
-    const member = unitId
-      ? t.unitById.get(unitId)?.members.find((m) => normalizeName(m.character) === normalizeName(ch))
-      : undefined
+    const member = memberOf(t, ch)
     return member ? `${member.character} (CV.${member.cv})` : ch
   }
   if (res.units.length > 0) {

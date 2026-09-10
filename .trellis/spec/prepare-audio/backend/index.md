@@ -1,6 +1,6 @@
 # @scg/prepare-audio Guidelines
 
-> `tools/prepare-audio` — a Node CLI that turns `songs/` (233 off-vocal mp3s) into
+> `tools/prepare-audio` — a Node CLI that turns `songs/` (272 off-vocal mp3s) into
 > `assets/` (slices, thumbs, two manifests). It runs offline; it is not part of the server.
 
 ---
@@ -10,6 +10,7 @@
 ```
 src/index.ts        the CLI: parseArgs, one stage* function per stage, dispatch, selfCheck
 src/scan.ts         walk songs/, ffprobe ID3, produce ScannedSong
+src/ingest.ts       material admission: a staging dir + data/ingest.json → songs/ (writes songs/)
 src/resolveUnit.ts  decide who performs each song (9-rule fallback chain)
 src/buildMeta.ts    scan + resolve → SongMeta, confusable groups
 src/analyze.ts      one ffmpeg pass → loudness + silence intervals
@@ -24,10 +25,10 @@ src/util/           proc (spawn/concurrency), cache (StageCache/Progress), ffpro
 src/pipeline.ts     re-run resolve / rebuild manifests without re-encoding
 ```
 
-14 tests, in `planSlices.test.ts` and `slice.test.ts`.
+24 tests, in `planSlices.test.ts`, `slice.test.ts` and `ingest.test.ts`.
 
 Run it with `pnpm assets <stage>` from the repo root (`pnpm assets all` for a full build).
-Stages: `scan analyze slice covers manifest audit review preview stress all`.
+Stages: `scan analyze slice covers manifest ingest audit review preview stress all`.
 
 ---
 

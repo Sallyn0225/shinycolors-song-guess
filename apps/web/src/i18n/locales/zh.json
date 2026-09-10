@@ -352,7 +352,7 @@
     "weakTitle": "WEAKEST · 易错曲目榜",
     "weakThreshold": "上榜阈值 ≥ {{min}} 次",
     "weakEmptyTitle": "暂无达到上榜阈值的易错曲目",
-    "weakEmptyDesc": "曲库规模共 243 首，每首曲目需至少作答 {{min}} 次后才会计入易错榜。多打几局后便会在此显示。",
+    "weakEmptyDesc": "曲库规模共 272 首，每首曲目需至少作答 {{min}} 次后才会计入易错榜。多打几局后便会在此显示。",
     "accuracy": "正确率 {{pct}}%",
     "statsLine": "出题 {{seen}} · 错 {{wrong}}",
     "allUnitSolo": "全体 / 独立曲",

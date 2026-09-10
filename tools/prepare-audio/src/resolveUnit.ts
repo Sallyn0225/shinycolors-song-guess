@@ -42,6 +42,18 @@ export interface UnitTables {
   overrides: Overrides
 }
 
+/**
+ * 角色名 → `units.json` 里的成员条目（含 CV 名与代表色）。
+ *
+ * 两处消费：buildMeta 拼 `角色名 (CV.声优名)` 显示名，ingest 拼写进 mp3 的 artist 标签。
+ * 名字比对一律走 normalizeName()（半角/全角括号、名字中间空格的差异都在这层吃掉）。
+ */
+export function memberOf(t: UnitTables, character: string): UnitMember | undefined {
+  const unitId = t.characterToUnit.get(normalizeName(character))
+  if (!unitId) return undefined
+  return t.unitById.get(unitId)?.members.find((m) => normalizeName(m.character) === normalizeName(character))
+}
+
 async function readJson<T>(file: string): Promise<T> {
   return JSON.parse(await fs.readFile(path.join(DATA_DIR, file), 'utf8')) as T
 }
@@ -88,7 +100,7 @@ function fromPerformers(t: UnitTables, performers: string[]): { units: string[];
 /**
  * 决议一首歌的演唱者。
  *
- * 背景：ID3 `artist` 语义不可靠——233 首里有 96 首填的是**作曲/编曲者**而非演唱者
+ * 背景：ID3 `artist` 语义不可靠——272 首里有 96 首填的是**作曲/编曲者**而非演唱者
  * （判据：artist 与 lrc 的『作曲 :』行重合）。album 才是修复它的钥匙。
  *
  * 优先级由高到低。每条规则命中即返回，并记录 source 供审计。

@@ -11,7 +11,6 @@ import {
   type RoomVisibility,
 } from '@scg/shared'
 
-import { LIBRARY } from '../features/library'
 import { RoomCard } from '../components/RoomCard'
 import { LanguageSwitch } from '../components/LanguageSwitch'
 import { audio } from '../audio'

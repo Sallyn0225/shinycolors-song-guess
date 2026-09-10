@@ -352,7 +352,7 @@
     "weakTitle": "WEAKEST · Difficult Tracks",
     "weakThreshold": "Ranking Threshold ≥ {{min}} Times",
     "weakEmptyTitle": "No tracks meet the threshold yet",
-    "weakEmptyDesc": "With 243 tracks in the library, each track must appear at least {{min}} times to be ranked. Play a few more matches to see it here.",
+    "weakEmptyDesc": "With 272 tracks in the library, each track must appear at least {{min}} times to be ranked. Play a few more matches to see it here.",
     "accuracy": "Accuracy {{pct}}%",
     "statsLine": "Seen {{seen}} · Missed {{wrong}}",
     "allUnitSolo": "All Units / Solo",

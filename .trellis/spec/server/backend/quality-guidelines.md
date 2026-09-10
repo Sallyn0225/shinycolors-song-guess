@@ -8,13 +8,13 @@
 ## Verification
 
 ```bash
-pnpm --filter @scg/server test        # vitest run — 108 tests
+pnpm --filter @scg/server test        # vitest run — 114 tests
 pnpm --filter @scg/server typecheck   # tsc --noEmit
 pnpm -r test && pnpm -r typecheck     # before reporting done
 ```
 
 The tests require built assets: `Catalog.load()` reads `assets/manifest.*.json`, and
-`app.test.ts` asserts `/api/health` reports **243** songs. If the catalog is missing, run
+`app.test.ts` asserts `/api/health` reports **272** songs. If the catalog is missing, run
 `pnpm assets all` first — a failure here is an environment problem, not a code problem.
 
 There is no `vitest.config.ts`; vitest runs on defaults and collects `src/**/*.test.ts`.

@@ -1,6 +1,10 @@
 # 素材（源音源，1.7GB，不入库）
 songs/
 
+# 待上线素材的暂存区（原样 WAV + 封面，约 2GB，不入库）。
+# 走 `pnpm assets ingest` 规范化进 songs/ 之后再进流水线，见 tools/prepare-audio/data/ingest.json
+闪猜歌即将上线曲目/
+
 # 构建产物（切片 ~200MB + 封面 ~15MB，不入库）
 assets/
 

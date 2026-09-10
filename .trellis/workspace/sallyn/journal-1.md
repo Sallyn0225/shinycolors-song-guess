@@ -386,3 +386,143 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 16: 上线 29 首新曲（HOPEFUL FE@THERS 28 首 solo + 泡沫に染まる）
+<!-- trellis-session: v=2 fp=4cd126c6fe19072e -->
+
+**Date**: 2026-09-10
+**Task**: 上线 29 首新曲（HOPEFUL FE@THERS 28 首 solo + 泡沫に染まる）
+**Package**: prepare-audio
+**Branch**: `main`
+
+### Summary
+
+把「闪猜歌即将上线曲目/」里的 29 首伴奏上线成可玩曲目：28 首来自 2026-09-16 发售的三张 HOPEFUL FE@THERS（LACA-25301/302/303，批次里的三张 jpg 就是专辑封，据此定位到官方页与曲目表），1 首是 シャニソン 2026-08-01 的夏季乐曲「泡沫に染まる」（8 人、每个常设组合各一人）。曲库 243→272 首、切片 1458→1632 个，全部 6 段、L0 无降级。
+
+最大的发现是这批素材的形态：29 个文件是**无任何标签的 WAV**（format.tags 与 stream.tags 全空），曲名/演唱者/专辑只存在于文件名与人脑里，而 `scan()` 的输入契约是「每目录恰好 1 个 mp3 + 1 个 jpg + 有 ID3 title」。两条路——放宽 scan 接受 wav，或在前面补一层规范化——选了后者：切片最终是 80kbps mono Opus，320kbps CBR mp3 的插入损失远低于该阈值，而「所有 mp3 同形」这条隐含前提（含 `slice.ts` 里 `-map 0:a:0` 跳过内嵌封面流那条注释的前提）值钱得多。于是有了 `ingest` 这个新 stage：人只判断曲名/演唱者/专辑（写进 data/ingest.json），转码/命名/ID3 写入/完整性校验归工具。
+
+ingest 的两条设计约束是有代价换来的。**不进 `all`**：`all` 的语义是 songs/ → assets/，而 ingest 的产物是 songs/ 本身，塞进去等于「重建曲库」隐含改写曲库源。**规划期整批拒绝**：`planIngest()` 在「源目录里有未列入的 wav」时直接不执行——漏一首曲子不会以任何方式显形，曲库只会静默少一首，没人会去数 272 和 271 的差别。同组的另五条（源文件/封面缺失、角色名不在 units.json、character 与 performers 二选一、曲名重复或带 (Off Vocal) 后缀、album key 不存在）同理，一条坏数据只挡它自己、不牵连同批其它曲目（有单测钉住）。
+
+验证的核心是 sliceId 稳定性：构建前把 manifest.private 的 songId→sliceId[] 抽成快照**写到仓库外**（它就是答案表，asset-secrecy 明令不得入库），构建后逐条 diff → 旧 243 首**零变化**，174 条新 id 全是新的。这同时验证了「扩容量级不碰老曲」：不 bump STAGE_VERSIONS、不 --force，analyze 缓存命中 243/272、slice 跳过 1458/1632，零重编码。防作弊自检 min=max=151504B、跨度 0B，新曲切片与老曲字节数完全相同，大小旁路没有因为扩容被打开。
+
+数字清扫这次一次做完（历史上 233/234/244 三个值在同仓不同文件里漂移过）：LIBRARY 272/1632、app.test.ts 断言、records.ts 两处注释、Records.tsx 屏上文案、PRODUCT/NOTICE/DEPLOY/PROGRESS、docker-compose 注释、prepare-audio 六处源码注释与 albums.json、六份 spec；并订正 PROGRESS 里停在 2026-09-03 的测试计数 304→412。剩三条 grep 命中是有意保留的历史叙述（library.ts 的「原本写死 234 首」、PROGRESS 增量耗时行、Backdrop 的颜色分量）。
+
+规划里写错两处，按实测落笔：以为要靠 normalizeName() 兜住 `関根 瞳` 这种带空格署名，实测 units.json 里是无空格写法、带空格的是现役旧署名；批次封面是专辑封（9/9/10 首共用三张），查过现役曲库有 67 组缩略图字节完全相同，共用封面是既有常态而非本次引入。另发现 assets/audit-ratings.json 有 1 条 sliceId 已失效，不在本次快照里、是该本地草稿本来的陈旧条目，未动。
+
+顺带把 buildMeta 里的「角色→CV 成员」查找提成 resolveUnit.ts#memberOf()，让 ingest 与显示名生成共用同一次查找（否则 CV 表会有第二份读法）。审查中发现一处**既有死代码未动**、留给用户决定：apps/web/src/screens/Lobby.tsx:13 的 `import { LIBRARY }` 从 a29320e 起就没再被用过。
+
+人工验收由用户在本机完成：:5179 实机走查（首页数据组 272/1632、窄屏不溢出、新曲专辑封显示、新曲名在牌面不裁）+ :5178 抽检台试听确认 29 首无人声。服务已关，无残留进程。遗留：线上 VPS 的 assets/ 同步属部署动作。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9210fb9` | chore(task): 09-10 上线新曲任务的规划产物与取证 |
+| `10825d5` | feat(prepare-audio): 新增 ingest 环节，把上线暂存区的音源规范化进 songs/ |
+| `47ecfc8` | chore(web,server): 曲库规模同步为 272 首 / 1632 切片 |
+| `06e5834` | docs: 同步扩容后的曲库数字与体积 |
+| `31c4bdb` | docs(spec): 记录 ingest 环节与「规划期必须拒绝漏列 wav」的判据 |
+| `e68bb77` | chore(task): 记录新曲上线的验收结果与人工确认 |
+| `d03666b` | chore(task): archive 09-10-upcoming-tracks-ingest |
+
+### Testing
+
+- [OK] pnpm -r typecheck 5/5 干净；pnpm -r test 412 passed（shared 17 / game-core 62 / web 195 / server 114 / prepare-audio 24）
+- [OK] pnpm assets all：analyze 缓存命中 243/272、slice 跳过 1458/1632、selfCheck 字节数 151504 min=max 跨度 0B、assertPublicManifestClean 通过
+- [OK] sliceId 快照 diff：旧 243 首零变化、新 174 条全新增；assets/slices 1632 个 opus、assets/thumb 272 张
+- [OK] pnpm assets stress：简单 3000 题 / 困难 6000 题无重复选项、答案始终在选项内，曲库覆盖 100% / 98%
+- [OK] 端到端抽题：单机 82 轮、1v1 22 局后 29 首新曲全部覆盖；PORT=5199 下 /api/health=272、/api/clip 返回 200 audio/ogg 151504B no-store
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 线上 VPS 的 assets/ 同步（部署动作，需访问凭证）
+
+
+## Session 17: 删除上线暂存目录与失效导入，发布 v0.2.2
+<!-- trellis-session: v=2 fp=2f7919824402a438 -->
+
+**Date**: 2026-09-10
+**Task**: 删除上线暂存目录与失效导入，发布 v0.2.2
+**Package**: prepare-audio
+**Branch**: `main`
+
+### Summary
+
+小尾巴一轮：删掉大厅里失效的 LIBRARY 导入（a29320e 改版把大厅的「从 243 首里抽 30 首」换成「从曲库中随机抽取」之后，那个 import 就再没被用过，全文件只出现 1 次），并把上线暂存目录「闪猜歌即将上线曲目/」（29 个 WAV + 4 张封面，2.12GB）**移入回收站**（不是永久删除；删之前逐条核对 29 首都在 songs/Page26 里、且 manifest 里 29 首都在）。
+
+删目录引出一个必须一起修的问题：批次表是留档不是待办清单。源目录清掉之后 `pnpm assets ingest` 会在已消费的批次上永远抛 ENOENT，逼人删掉留档才能让 CLI 跑通。改为新增 `ingest.ts#dirExists()`，源目录不存在时报「该批次应已消费，跳过」并计入汇总，不算失败。这里有个要点：**未列入 wav 的拒绝检查必须保留在「源目录存在」这条分支内**——两者都是「源目录里的东西」，但一个是漏歌（必须拦）、一个是已消费（必须放过）。已写入 pipeline-guidelines spec。
+
+版本 0.2.2：六个 package.json 统一 bump，提交 → 推 main → 打 tag → 推 tag → 发 release。release 正文照 v0.2.1 的格式（💡 本次更新重点 + 📝 全部更新与对应提交，按分类列 commit hash），另加一条自建实例的提醒：仓库不含音频，拉代码后要重新同步 assets/ 才会真的可玩。CI 与 Build and push image（main 与 v0.2.2 两条）全部 success。
+
+顺带发现仓库有一个外部 PR #1「Add i18n support and complete localization for user-facing text」（mitian233），当前 CONFLICTING —— 大概率与本次升级后的文案/常量冲突有关，未介入。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `40124da` | chore: 删掉大厅里失效的 LIBRARY 导入，ingest 容忍已消费的批次 |
+| `47b26ef` | chore(release): bump version to 0.2.2 |
+
+### Testing
+
+- [OK] pnpm -r typecheck 5/5 干净；prepare-audio 24 tests passed
+- [OK] pnpm assets ingest 在已消费批次上输出「源目录不存在——该批次应已消费，跳过」并正常退出 0
+- [OK] 删目录前核对：29 首 WAV 全部在 songs/Page26（29 个目录、每个 2 个文件）且全部在 manifest 里
+- [OK] GitHub Actions：CI success、Build and push image 的 main 与 v0.2.2 两条都 success
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- VPS：docker compose pull && docker compose up -d，再 rsync 本地 assets/（240MB）——用户用 ssh 凭证自行处理
+
+
+## Session 18: VPS 换镜像与曲库素材增量同步
+<!-- trellis-session: v=2 fp=334eb3c07b4cad71 -->
+
+**Date**: 2026-09-10
+**Task**: VPS 换镜像与曲库素材增量同步
+**Package**: prepare-audio
+**Branch**: `main`
+
+### Summary
+
+闭合 09-10 上线任务的遗留项：VPS（283guess.hmhnk.top）换镜像 + 同步曲库素材。
+
+素材走**增量**而不是整包重传：本地 240MB，但线上 243 首的 1458 个切片与 243 张缩略图都没变，真正缺的只有 174 个新切片 + 29 张新缩略图 + 两个 manifest，26.9MB，省掉 89% 的传输。判定方式是双向集合比对（本地清单 scp 上去、在远端做 `[ -e ]` 逐条探测 + `comm -23` 反向检查线上有没有多余文件），比在本机拉远端 `ls` 更稳——第一次就是这么踩的：PowerShell 用 ASCII 写文件名清单，把日文曲名打成 `?`，于是 272 张缩略图全被判成「线上没有」。第二个坑是 Windows 清单是 CRLF，bash 读到的是带 \r 的路径，远端一样全判「不存在」。两个坑的共同教训：**文件名清单跨平台传，要让它出仓库一次都别经过有损编码**。
+
+打包也换了一次工具：Windows 自带的 bsdtar 处理日文文件名直接失败（`Can't convert a path to a wchar_t string`），174 个 ASCII 名的切片进去了、29 张日文名的缩略图没有。改用 .NET 的 System.Formats.Tar TarWriter 一次成功。传输后做的是**逐文件 sha256 对照**（本机算、远端 `sha256sum -c`），206 个文件全中，不是只看文件数。
+
+VPS 侧流程：备份现有两个 manifest 与 compose 到 ~/scg-backup-20260910-161751（留作回滚）→ 解包 → 哈希校验 → `docker compose pull && up -d`。镜像 sha256 90a9d888（Actions 于 08:08:55Z 构建的那版），容器 healthy。验证：/api/health 243→272、新切片文件在只读挂载里且仍是 151504B 规范 mtime、29 张新缩略图与老缩略图都 200 image/webp、单机整局走通（切片路由 audio/ogg 151504B no-store）、公网侧 12 题里新曲已进选项池（Lights on me / Sweet Boozy / 月とネオンと薄紅と / 最上級パンチライン）、老曲照常。公网 index.html 是 no-cache，bundle 里含 272/1632。
+
+一处值得记的观察：删掉 Lobby.tsx 那个失效 import 之后本地重新构建，bundle 哈希与改动前一模一样（index-B1LhN74a.js）——未被引用的 import 本来就被摇掉了，所以那个「清理」对产物零影响。这类改动值不值得单独提交，是审美问题不是性能问题。
+
+顺带把 compose 文件也同步过去了（VPS 那份停在 9-02，注释还写着 216MB）。临时脚本与 tar 包在本地与远端都已删除，仓库根目录没有残留。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `47b26ef` | chore(release): bump version to 0.2.2 |
+
+### Testing
+
+- [OK] 远端 206 个文件 sha256 逐一对照本机通过；opus 1632 / thumb 272 / public 272 首 / private 1632 切片
+- [OK] docker compose ps healthy；/api/health 243→272；公网 https://283guess.hmhnk.top/api/health 返回 272
+- [OK] 公网侧 12 题选项池里出现 4 首新曲，老曲仍在；新老缩略图均 200 image/webp；单机切片路由 audio/ogg 151504B no-store
+- [OK] 增量传输 26.9MB / 17s，线上无多余文件（comm 反向检查为 0）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 确认新曲在实机听着正常后，可清空回收站里的 2.12GB 源素材与 VPS 上的 ~/scg-backup-20260910-161751

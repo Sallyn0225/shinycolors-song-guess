@@ -352,7 +352,7 @@
     "weakTitle": "WEAKEST · 苦手な楽曲ワースト",
     "weakThreshold": "集計基準 ≥ {{min}} 回",
     "weakEmptyTitle": "集計基準を満たす苦手曲はありません",
-    "weakEmptyDesc": "曲庫全 243 曲中、各曲最低 {{min}} 回以上出題されると苦手曲として集計されます。何回かプレイするとここに表示されます。",
+    "weakEmptyDesc": "曲庫全 272 曲中、各曲最低 {{min}} 回以上出題されると苦手曲として集計されます。何回かプレイするとここに表示されます。",
     "accuracy": "正解率 {{pct}}%",
     "statsLine": "出題 {{seen}} · 誤答 {{wrong}}",
     "allUnitSolo": "全体曲・ソロ曲",
