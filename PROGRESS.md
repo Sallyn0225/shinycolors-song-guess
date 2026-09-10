@@ -13,13 +13,14 @@
 
 | 模块 | 状态 | 测试 |
 |---|---|---|
-| `tools/prepare-audio` 素材流水线 | ✅ 完成 | 14 |
-| `packages/shared` 协议与可调参数 | ✅ 完成 | 13 |
+| `tools/prepare-audio` 素材流水线（含素材准入 `ingest`） | ✅ 完成 | 24 |
+| `packages/shared` 协议与可调参数 | ✅ 完成 | 17 |
 | `packages/game-core` 纯规则引擎 | ✅ 完成 | 62 |
-| `apps/server` 单机 API + 联机 WS + 房间列表 | ✅ 完成 | 102 |
-| `apps/web` 单机 + 联机 1v1 UI | ✅ 可玩 | 113 |
+| `apps/server` 单机 API + 联机 WS + 房间列表 | ✅ 完成 | 114 |
+| `apps/web` 单机 + 联机 1v1 UI | ✅ 可玩 | 195 |
 
-**304 个测试全过，全仓 `tsc --noEmit` 干净。**
+**412 个测试全过，全仓 `tsc --noEmit` 干净。**（后四列的计数是 2026-09-10 实测；
+此前本表停在 2026-09-03 的 304，是几次改动只加测试没回头改表的遗留，本次一并订正。）
 
 计划里 v2 的四项已全部做完：**玩家自选送り札**、**断线重连 UI**、**公网部署加固**、**AAC 兜底**。
 v3 加了**公开房间列表**：建房可命名、可选公开/私人，公开房进大厅列表可直接点进去，
@@ -73,11 +74,13 @@ pnpm assets audit      # 起本地控制台 :5178（切片试听 + 归属编辑�
 pnpm assets preview --only hard   # 打印一轮真实出题，看干扰项质量
 pnpm assets stress     # 用真实曲库跑 300 轮，检查出题不退化
 
+pnpm assets ingest     # 素材准入：把「闪猜歌即将上线曲目/」按 data/ingest.json 规范化进 songs/
 pnpm assets slice --with-aac-fallback   # 额外生成 AAC 副本（老 Safari 兜底）
 pnpm assets slice --rotate-ids          # 换掉全部 sliceId，只 rename 不重编码
 ```
 
-后两条跑完都要跟一句 `pnpm assets manifest`，否则服务端还在用旧的映射。
+`ingest` 是唯一**写 `songs/`** 的 stage，所以不在 `all` 里：`all` 的语义始终是 `songs/` → `assets/`。
+`slice` 那两条跑完都要跟一句 `pnpm assets manifest`，否则服务端还在用旧的映射。
 
 ---
 
@@ -87,7 +90,9 @@ pnpm assets slice --rotate-ids          # 换掉全部 sliceId，只 rename 不�
 tools/prepare-audio/     songs/ → 切片 + 封面 + manifest
   data/units.json          9 个组合 + 全 28 名偶像（角色/CV/代表色）
   data/albums.json         album → 组合的规则表
-  data/overrides.json      人工核验的逐曲归属（18 条）
+  data/overrides.json      人工核验的逐曲归属（24 条）
+  data/ingest.json         素材准入表（暂存区 → songs/ 的曲名/演唱者/专辑判定）
+  src/ingest.ts            素材准入：转码 + 命名 + ID3 写入 + 批次完整性校验
   src/planSlices.ts        切片位置选择（纯函数，最该单测的地方）
   src/resolveUnit.ts       演唱者决议链
   src/devserver.ts         :5178 的双页控制台
@@ -204,11 +209,11 @@ apps/web/
 
 - **26 首歌的音频在嵌套子目录里**（下载器把曲名里的 `/` 当成了路径分隔符），最深 9 层、全路径 403 字符。**必须递归找 mp3**，且**绝不能从 mp3 的父目录名推曲名**——会得到艺术家碎片。
 - **元数据以 ID3 tag 为准**，不要解析目录名。有两个曲名被文件系统净化过（`1/3` → `1_3`、`Tokyo自由系*ガール` → `_`），ID3 能无损还原。
-- **全部 234 个 mp3 内嵌 mjpeg 封面流**，ffmpeg 必须 `-map 0:a:0`。
+- **全部 272 个 mp3 内嵌 mjpeg 封面流**，ffmpeg 必须 `-map 0:a:0`。
 - **`-map_metadata -1 -fflags +bitexact` 不能省**——否则 ffmpeg 会把源 ID3 的曲名复制进 Opus 头，等于把答案写在切片文件里。
 - **切片 mtime 必须统一**——构建顺序就是曲名字典序，按 mtime 排一遍就能还原整张对照表。HTTP 层也要禁 `Last-Modified`、用内容哈希 ETag。
 - **响度必须在 mono 降混后测**。输出是 `-ac 1`，立体声测出的响度差 1~1.5 dB（实测 stereo `-8.7` vs mono `-10.1`）。
-- **`-vbr off`（硬 CBR）不能改成 VBR**——现在 1404 个切片字节数完全相同（151504B），VBR 下会有 ±3.5KB 差异，足以标识曲目。
+- **`-vbr off`（硬 CBR）不能改成 VBR**——现在 1632 个切片字节数完全相同（151504B），VBR 下会有 ±3.5KB 差异，足以标识曲目。
 - **AAC 副本必须补 `free` box 到统一大小**。ffmpeg 的原生 aac 编码器**没有真正的 CBR**——实测 15s/96k 的文件在 184~198KB 之间浮动，等于把 `-vbr off` 挡掉的旁路又开了回来。做法是编完在文件尾追加一个 MP4 `free` box 补到 `SLICE.aacPadToBytes`（208000B）。`free` 是规范里明确可跳过的 box，实测追加后 ffmpeg 解出来仍是 15.000s。自检对 aac 要求字节数**唯一**（不是「接近」），超出常量会直接报错让你调大它。
 - **mp4 容器天然带 `major_brand` / `handler_name` 这类 tag**，与曲目无关，自检的白名单里已排除；别把它们当成泄漏去「修」。
 
@@ -304,9 +309,9 @@ apps/web/
 
 ## 曲库元数据的可靠性
 
-`ID3 artist` 语义不可靠——234 首里 **96 首**填的是作曲/编曲者或声优本名，不是演唱组合。判据很硬：`artist` 与 `.lrc` 的 `作曲 :` 行重合。
+`ID3 artist` 语义不可靠——272 首里 **96 首**填的是作曲/编曲者或声优本名，不是演唱组合。判据很硬：`artist` 与 `.lrc` 的 `作曲 :` 行重合。（96 这个分子是原始素材的历史统计；2026-09-10 上线的 29 首新曲由 `ingest` 直接写入演唱者署名，不在其中。）
 
-修复靠 album：`CANVAS` 和 `ECHOES` 都是角色歌 CD 系列，两个系列的卷号→组合编号完全一致（01 イルミネ … 08 コメティック）。加上 `COLORFUL FE@THERS -XXX-`、`円環` 的 artist 按 `/` 拆分、声优→角色表，**覆盖率 234/234 = 100%**。
+修复靠 album：`CANVAS` 和 `ECHOES` 都是角色歌 CD 系列，两个系列的卷号→组合编号完全一致（01 イルミネ … 08 コメティック）。加上 `COLORFUL FE@THERS -XXX-`、`円環` 的 artist 按 `/` 拆分、声优→角色表，**覆盖率 272/272 = 100%**。
 
 决议优先级（`resolveUnit.ts`）：
 ```
@@ -329,17 +334,21 @@ overrides.json > artist 精确匹配 > artist 按 / 拆分 > artist 含 (CV. > �
 
 ---
 
-## 素材实况（全库 243 首实测）
+## 素材实况（全库 272 首实测）
 
 | 项 | 值 |
 |---|---|
-| 曲目数 | 243，曲名无重复，MD5 无字节级重复 |
+| 曲目数 | 272，曲名无重复，MD5 无字节级重复 |
 | 时长 | 134.8 ~ 378.1 秒（**跨度 2.8 倍，所以切片偏移必须按比例而非固定秒数**） |
-| 响度 | mono integrated −14.2 ~ −7.5 LUFS；true peak **全部 > 0 dBFS**（削顶母带） |
+| 响度 | mono integrated −18.5 ~ −7.5 LUFS；true peak −0.6 ~ +5.6 dBFS |
 | 归一化 | 目标 −16 LUFS，**全部是衰减，不需要 limiter** |
-| 切片 | 1458 个（243 × 6），15s / 64kbps 单声道 Opus，**每个都是 151504 字节** |
-| 产物体积 | 切片 211 MB + 缩略图 1.9 MB |
-| 构建耗时 | 分析 27.7s + 切片 31.9s + 封面 4.2s ≈ 1~2 分钟（12 路并发） |
+| 切片 | 1632 个（272 × 6），15s / 64kbps 单声道 Opus，**每个都是 151504 字节** |
+| 产物体积 | 切片 236 MB + 缩略图 2.1 MB（assets/ 合计 240 MB） |
+| 构建耗时 | 2026-09-10 增量（+29 首）：分析 4.9s（243 命缓存）+ 切片 6.7s（1458 跳过）+ 封面 0.7s；冷构建仍是 1~2 分钟量级（12 路并发） |
+
+> 上表在 2026-09-10 上线 29 首新曲（HOPEFUL FE@THERS 28 首 solo + 泡沫に染まる）后重测。
+> 响度的下界与 true peak 的下界都因新素材而变宽（−14.2 → −18.5 LUFS、`全部 > 0` → −0.6 dBFS）：
+> 新素材是另一条母带链路，不是流水线行为变了。
 
 抽检结果（171 个切片，覆盖 129 首）：**一听就认出 80%、想一下能认 19%、完全认不出 2%**。6 秒档下 0% 认不出——计划里排第一的风险「无人声伴奏可能根本认不出」已排除。
 

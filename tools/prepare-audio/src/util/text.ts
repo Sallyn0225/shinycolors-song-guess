@@ -29,7 +29,7 @@ export function normalizeTitle(s: string): string {
 }
 
 /**
- * ID3 title 尾部的 ' (Off Vocal)'。现役 233 首全都有后缀。
+ * ID3 title 尾部的 ' (Off Vocal)'。现役 272 首全都有后缀。
  *
  * 曾经混进来一首没有后缀的 `リフレクトサイン (2022 Ver.)`——缺后缀正是它有人声的信号，
  * 已从 songs/ 剔除。后缀在这里保持**可选**，只做容错：素材命名不规范时不至于让整条

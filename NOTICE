@@ -45,8 +45,8 @@ holder of "THE iDOLM@STER SHINY COLORS".
 
 以下内容**不包含在本仓库中**，也不会以任何形式提供下载：
 
-* `songs/` —— 音源。约 1.7 GB 的商业发行 off vocal 音源。
-* `assets/` —— 由 `songs/` 构建出的派生物：1464 个 15 秒音频切片、
+* `songs/` —— 音源。约 2.0 GB 的商业发行 off vocal 音源。
+* `assets/` —— 由 `songs/` 构建出的派生物：1632 个 15 秒音频切片、
   封面与缩略图、曲库 manifest。
 
 因此**克隆本仓库无法直接运行游戏**。你需要自备合法取得的音源，
