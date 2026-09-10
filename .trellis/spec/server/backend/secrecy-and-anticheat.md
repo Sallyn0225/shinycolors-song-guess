@@ -23,7 +23,7 @@ only mapping that can turn a clip back into an answer.
 `CatalogSong` into a response. Use it. The same discipline applies to `soloSessions.ts`:
 `serveQuestion()` returns options and a token and explicitly **not** `answerIndex`.
 
-Duration is the subtle one. With 233 songs, a duration is very nearly a unique identifier,
+Duration is the subtle one. With 272 songs, a duration is very nearly a unique identifier,
 so it is a real oracle and stays private.
 
 ---

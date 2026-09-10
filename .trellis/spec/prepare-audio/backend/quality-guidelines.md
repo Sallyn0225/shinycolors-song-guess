@@ -1,6 +1,6 @@
 # Quality Guidelines
 
-> 14 tests, all on the two pure modules. Everything else is verified by running the build
+> 24 tests, all on the three pure modules. Everything else is verified by running the build
 > and reading what it prints.
 
 ---
@@ -8,15 +8,19 @@
 ## Verification
 
 ```bash
-pnpm --filter @scg/prepare-audio test        # vitest run — 14 tests
+pnpm --filter @scg/prepare-audio test        # vitest run — 24 tests
 pnpm --filter @scg/prepare-audio typecheck   # tsc --noEmit
 pnpm -r test && pnpm -r typecheck            # before reporting done
 ```
 
-Tests do **not** require `songs/`, `ffmpeg`, or a built `assets/`. `planSlices.test.ts` and
-`slice.test.ts` cover the pure parts — slice planning under the degrade ladder, and id
-generation / padding arithmetic. Keep new tests in that category; a test that shells out to
-ffmpeg is not a unit test and will not run on a fresh clone.
+Tests do **not** require `songs/`, `ffmpeg`, or a built `assets/`. `planSlices.test.ts`,
+`slice.test.ts` and `ingest.test.ts` cover the pure parts — slice planning under the degrade
+ladder, id generation / padding arithmetic, and ingest planning (credit derivation from
+`units.json` + the six batch validations). Keep new tests in that category; a test that
+shells out to ffmpeg is not a unit test and will not run on a fresh clone.
+`ingest.test.ts` reads `data/ingest.json` itself and feeds `planIngest()` a synthetic file
+list, so the real batch table's character names are checked on every CI run without the 2GB
+staging directory existing.
 
 No `vitest.config.ts` — defaults, `src/**/*.test.ts`, tests beside their module.
 
@@ -28,6 +32,7 @@ No `vitest.config.ts` — defaults, `src/**/*.test.ts`, tests beside their modul
 |---|---|
 | `planSlices` — every rung of the ladder, `degradeLevel` | `analyze` numbers on real audio |
 | `newSliceId` distribution, `padAac` arithmetic | ffmpeg flag behaviour |
+| `planIngest` — credit derivation, the six batch validations | the actual transcodes (`ingest` re-probes every output) |
 | `similarity` neighbour ranking | performer resolution coverage |
 | `manifest` boundary assertion (pure over a JSON string) | encode success rate |
 
@@ -67,6 +72,7 @@ CBR and padding actually deliver.
   paths through `win32Long()`?
 - Does a new loop over songs collect failures and set `process.exitCode`, rather than
   throwing on the first bad file?
+- Does a new stage that produces a *library input* (not an asset) stay out of `all`?
 - Did a new field reach `manifest.public.json`? Add it to `forbidden` or remove it.
 - Is a new empty `catch {}` annotated with what covers the case?
 

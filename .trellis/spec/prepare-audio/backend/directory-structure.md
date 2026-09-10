@@ -9,12 +9,13 @@
 
 ```
 tools/prepare-audio/
-  data/               overrides.json and the seiyuu/unit tables (hand-maintained)
+  data/               overrides.json, ingest.json and the seiyuu/unit tables (hand-maintained)
   src/
     index.ts          CLI entry — #!/usr/bin/env tsx, `bin: { scg-assets }`
     config.ts         every path constant + every tunable, one file
     types.ts          ScannedSong → SongMeta → AnalysisResult → SliceSpec
     <stage>.ts        scan, analyze, planSlices, slice, covers, manifest, review, preview
+    ingest.ts         the one stage that writes songs/ (staging dir → mp3 + jpg + ID3)
     resolveUnit.ts    performer resolution; buildMeta.ts wires scan + resolve
     similarity.ts     neighbour precomputation
     pipeline.ts       cache paths + the two "don't re-encode" re-entry points
@@ -49,7 +50,7 @@ path silently until the next run.
 `index.ts` is 617 lines and deliberately monolithic:
 
 ```ts
-const STAGES = ['scan','analyze','slice','covers','manifest','audit','review','preview','stress','all'] as const
+const STAGES = ['scan','analyze','slice','covers','manifest','ingest','audit','review','preview','stress','all'] as const
 type Stage = (typeof STAGES)[number]
 
 function parseArgs(argv: string[]): Args   // hand-rolled, no commander/yargs
@@ -69,6 +70,9 @@ Conventions to follow when adding a stage:
   argument-parsing dependency for one flag.
 - `--only <substring>` and `--force` are expected to work on any stage that processes songs;
   `applyOnly()` is the shared helper.
+- A stage whose input is *not* `songs/` (like `ingest`) still lives here when it shares the
+  package's tables and conventions — but it must not be chained into `all`, and its own
+  input flag (`--batch`) is fine to add the same hand-rolled way.
 
 Stage functions live in `index.ts`; the *work* lives in the stage module. `stageSlice`
 orchestrates, caches, reports and self-checks; `slice.ts` knows how to encode one file.
@@ -96,3 +100,10 @@ read the "unresolved" list it prints, edit `overrides.json`, then use
 `pipeline.ts#reresolve` / `rebuildManifests` — which re-derive metadata and rewrite the
 manifests **without re-encoding audio**. Preserve that property in anything new: metadata
 corrections must never cost an hour of ffmpeg.
+
+`data/ingest.json` is the other hand-maintained input, one level earlier: for each batch it
+records source path → title / performer(s) / album / cover. Those four are the judgement
+calls a human makes; everything mechanical (transcoding, naming, ID3, batch completeness)
+belongs to `src/ingest.ts`. Performer *names* are not free text — write the character as
+`units.json` spells it, and the CV name comes from that single table. A character that does
+not resolve is a planning-time error, never a silently unresolved song.

@@ -34,7 +34,7 @@ From `slice.ts#encodeSlice`, with the reason for each:
 - **`-vbr off`** (hard CBR) — makes every slice essentially the same byte count. The cost is
   slightly worse quality on complex passages, which is why the bitrate is 80k rather than
   64k. Without it, size alone identifies the track.
-- **`-map 0:a:0`** — all 233 mp3s embed an mjpeg cover stream; without an explicit audio map
+- **`-map 0:a:0`** — all 272 mp3s embed an mjpeg cover stream; without an explicit audio map
   the encode errors out. Not secrecy, but equally non-optional.
 - **`-ss` before `-i`** with `-t` (not `-to`) — input seek, >2× faster, and still sample
   accurate because `-accurate_seek` is on by default.
@@ -44,7 +44,7 @@ From `slice.ts#encodeSlice`, with the reason for each:
 
 The AAC fallback (`encodeSliceAac`) mirrors all of it, and adds `-movflags +faststart`. It
 needs `padAac()` afterwards because ffmpeg's native aac encoder has no true CBR: measured
-sizes drift between 184–198 KB, which across 1398 slices is very nearly a unique
+sizes drift between 184–198 KB, which across 1632 slices is very nearly a unique
 fingerprint. `padAac` appends an MP4 `free` box — explicitly skippable per spec, harmless to
 every decoder — up to `SLICE.aacPadToBytes`. If a file exceeds that constant, `padAac`
 **throws** rather than shipping an uneven file; raise the constant and rerun.
@@ -56,7 +56,7 @@ every decoder — up to `SLICE.aacPadToBytes`. If a file exceeds that constant, 
 `newSliceId()` produces 20 Crockford-base32 characters (~100 bits) from `randomBytes`.
 
 The rejected alternative was `HMAC(secret, songId:index)`. Random wins on two counts: there
-is no key to leak (a leaked key would let an attacker recompute all 1398 ids offline), and
+is no key to leak (a leaked key would let an attacker recompute all 1632 ids offline), and
 **rotation is a rename**. `--rotate-ids` regenerates ids, renames the files and rewrites the
 manifest in seconds without re-encoding, which is what makes "rotate periodically to break
 any table an attacker has accumulated" actually practical.
@@ -122,7 +122,7 @@ that clients have cached.
 
 **Never write that mapping into a tracked file.** `.gitignore` excludes `assets/` but
 *includes* `.trellis/tasks/`, so a scratch JSON dropped in a task directory to hold "the
-sliceIds I'm about to delete" will happily carry the full 1398-entry answer table into the
+sliceIds I'm about to delete" will happily carry the full 1632-entry answer table into the
 repository. Keep such scratch files outside version control and delete them when done.
 
 ---

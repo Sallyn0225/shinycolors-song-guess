@@ -41,7 +41,7 @@ if (failures.length > 0) { print them; process.exitCode = 1 }
 report lists every failure, and the **exit code is 1** so a script or CI notices.
 
 This is the required shape for anything iterating over the library. One unreadable mp3 must
-not cost the other 233 songs their encode.
+not cost the other 272 songs their encode.
 
 ---
 
@@ -72,7 +72,7 @@ session.
 
 `padAac` is worth singling out. It could truncate, skip, or warn; it throws, because an
 unpadded file is exactly the leak the padding exists to prevent, and a warning in a
-1398-file run scrolls past.
+1632-file run scrolls past.
 
 ---
 

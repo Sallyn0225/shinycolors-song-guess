@@ -1,7 +1,7 @@
 # Pipeline Guidelines
 
 > Stages are cached by source content and stage version, degrade instead of failing, and
-> report progress on one line. All three are what make a 233-song rebuild survivable.
+> report progress on one line. All three are what make a 272-song rebuild survivable.
 
 ---
 
@@ -21,7 +21,7 @@ the three changes, so:
 - swapping the source mp3 invalidates that song only;
 - **bumping one stage's version in `STAGE_VERSIONS` invalidates that stage only.** That is
   why the versions are a per-stage record rather than a single global number — changing the
-  slice planner must not force a re-analysis of 233 files.
+  slice planner must not force a re-analysis of 272 files.
 
 When you change a stage's algorithm, bump its version in
 `tools/prepare-audio/src/config.ts#STAGE_VERSIONS` in the same commit. Forgetting is the
@@ -40,12 +40,24 @@ analyze  one ffmpeg pass per song → loudness + silences        [StageCache]
 slice    planSlices → encode opus (+ aac) → normalizeMtimes → selfCheck   [StageCache]
 covers   source jpg → thumb webp                                  [StageCache]
 manifest analyses + specs → manifest.public/private.json + boundary assertion
+ingest   staging dir + data/ingest.json → songs/（唯一写 songs/ 的 stage，不进 all）
 audit    serve the local audit page
 review   risk report → REVIEW_MD / REVIEW_JSON
 preview  generateSoloRound against the built catalog
 stress   repeated preview, to catch rare distractor failures
 all      the above, chained in memory
 ```
+
+`ingest` sits *before* the pipeline's arrow: its output is `songs/`, which every other stage
+treats as given. Two consequences worth keeping:
+
+- **It is not part of `all`.** `all` means `songs/` → `assets/`; a "rebuild the library"
+  command that silently rewrites the library's sources is not reproducible reasoning.
+- **Planning is all-or-nothing per batch.** `planIngest()` refuses the whole batch when a
+  listed source or cover is missing, when a `character` is not in `units.json`, or — the one
+  that matters — when the staging directory holds a `.wav` the batch does not list. A
+  forgotten track has no downstream symptom: the library is just quietly one song smaller.
+  Do not relax that check into a warning.
 
 Each stage can be run alone and will load what it needs from cache
 (`loadMeta()` re-runs `scan` if `.cache/scan.json` is missing). Keep that property: a stage
@@ -64,6 +76,12 @@ vocal track sails through every stage and lands in the catalog, where it sings t
 the player. One did (`リフレクトサイン (2022 Ver.)`, removed 2026-08-30). If you find
 yourself relaxing a rule in `util/text.ts` to accommodate one odd file, check whether the
 file is the bug.
+
+`ingest` is the mechanical half of that admission step, not a replacement for the human
+half. It guarantees the *shape* (mp3 + jpg + ID3 + the library's naming), derives the artist
+credit from `units.json` so a typo cannot become a silently unresolved song, and re-probes
+every output to confirm the tags it meant to write are the tags on disk. Whether the audio
+is really off-vocal stays a listening decision (`pnpm assets audit`, :5178).
 
 ---
 
@@ -92,7 +110,7 @@ The default limit is `defaultConcurrency()`: `min(availableParallelism(), 12)`, 
 
 The 12 is measured, not guessed — the comment records that 8→16 workers gained only 8%
 because the bottleneck is memory bandwidth and I/O rather than CPU. Do not raise it without
-re-measuring, and do not use `Promise.all` over 233 ffmpeg invocations.
+re-measuring, and do not use `Promise.all` over 272 ffmpeg invocations.
 
 File-system fan-out (stat, utimes) uses a higher limit (32) since it is not CPU-bound.
 
@@ -104,9 +122,9 @@ There is no logger. Output is `process.stdout.write` with a `[stage]` prefix and
 text, and long jobs use the `Progress` class from `util/cache.ts`:
 
 ```
-[scan] 233 首，耗时 12.3s
-[analyze] 缓存命中 233/233
-[slice] ████████████░░░░░░░░░░░░ 640/1398 eta 88s 失败 0
+[scan] 272 首，耗时 12.3s
+[analyze] 缓存命中 272/272
+[slice] ████████████░░░░░░░░░░░░ 640/1632 eta 88s 失败 0
 [slice] ⚠ 记得跟一句 pnpm assets manifest，否则服务端还在用旧 id
 ```
 
