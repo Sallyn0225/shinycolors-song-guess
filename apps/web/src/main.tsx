@@ -5,6 +5,7 @@ import { ambience } from './ambience'
 import App from './App'
 import { audio } from './audio'
 import './index.css'
+import './i18n'
 import { loadAudioPrefs } from './prefs'
 import { sfx } from './sfx'
 

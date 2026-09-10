@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { ambience } from '../ambience'
 import { audio } from '../audio'
@@ -41,6 +42,7 @@ const SLANT = `polygon(${CUT} 0, 100% 0, calc(100% - ${CUT}) 100%, 0 100%)`
 const HIT_H = 44
 
 export function VolumeControl({ className = '' }: { className?: string }) {
+  const { t } = useTranslation()
   const [level, setLevel] = useState(() => audio.volume)
   const [muted, setMuted] = useState(() => audio.isMuted)
 
@@ -104,7 +106,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
           className={`text-2xs ${muted ? 'text-ink-faint' : 'latin tnum text-ink-sub'}`}
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          {muted ? <span lang="ja">ミュート</span> : `${pct}%`}
+          {muted ? t('volume.muted') : `${pct}%`}
         </span>
       </div>
 
@@ -120,7 +122,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
             if (!next.muted) preview()
           }}
           aria-pressed={muted}
-          aria-label={muted ? '取消静音' : '静音'}
+          aria-label={muted ? t('volume.unmuted') : t('volume.muted')}
           className="tap-line shrink-0 text-primary transition-colors duration-300 ease-[var(--ease-prism)] hover:text-accent-ink"
         >
           <Icon name={muted ? 'mute' : 'volume'} size="calc(21 * var(--u))" />
@@ -188,7 +190,7 @@ export function VolumeControl({ className = '' }: { className?: string }) {
               onPointerUp={preview}
               onKeyUp={preview}
               aria-labelledby="vol-label"
-              aria-valuetext={muted ? '已静音' : `${pct}%`}
+              aria-valuetext={muted ? t('volume.muted') : `${pct}%`}
               className="sc-range absolute inset-0 block w-full cursor-pointer opacity-0"
               style={{ ['--thumb-w' as string]: THUMB_W }}
             />

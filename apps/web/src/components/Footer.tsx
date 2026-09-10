@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { sfx } from '../sfx'
 
 /** 作者的个人链接聚合页 */
@@ -14,6 +15,7 @@ const AUTHOR_URL = 'https://linktr.ee/sallyn0225'
  * 两处都改的时候记得对齐，别让短版比长版说得多。
  */
 export function Footer() {
+  const { t } = useTranslation()
   return (
     <footer className="anim-appear mt-10 sm:mt-6" style={{ animationDelay: '400ms' }}>
       {/*
@@ -23,10 +25,10 @@ export function Footer() {
       */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 text-xs text-ink-faint">
         <p className="jp-wrap">
-          非官方粉丝作品 · 与 BANDAI NAMCO Entertainment 及 283Production 无关联
+          {t('footer.shortDisclaimer')}
         </p>
         <p className="latin">
-          unofficial fanart{' '}
+          {t('footer.unofficialFanart')}{' '}
           {/*
             站内文字链接的既有写法：下划线常驻 + primary，hover 换 accent-ink。
             与 InfoModal 的致谢链接同款，自绘 <a> 的 click 音也照样手动补一声。
@@ -39,7 +41,7 @@ export function Footer() {
             className="font-semibold text-primary underline decoration-primary-lt underline-offset-4 transition-colors hover:text-accent-ink hover:decoration-accent-ink"
           >
             @SallynP
-            <span className="sr-only">（在新标签页打开）</span>
+            <span className="sr-only">{t('common.externalLink')}</span>
           </a>
         </p>
       </div>

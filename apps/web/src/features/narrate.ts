@@ -1,4 +1,7 @@
 import type { PlayerId, RoundResultView, TapVerdict } from '@scg/shared'
+import type { TFunction } from 'i18next'
+
+import i18n from '../i18n'
 
 /** 算「取到了」的判定 */
 const GOOD: TapVerdict[] = ['correct', 'tie', 'clamped']
@@ -22,8 +25,10 @@ export function narrateRound(
   result: RoundResultView,
   names: Record<PlayerId, string>,
   me: PlayerId,
+  translate: TFunction = i18n.getFixedT('zh'),
 ): Narration {
-  const label = (p: PlayerId) => (p === me ? '你' : names[p])
+  const t = translate
+  const label = (p: PlayerId) => (p === me ? t('common.you') : names[p])
   const taps = result.taps
   const good = taps.filter((t) => GOOD.includes(t.verdict))
   const faults = taps.filter((t) => FAULT.includes(t.verdict))
@@ -32,7 +37,7 @@ export function narrateRound(
 
   const faultLine = faults.length
     ? faults
-        .map((f) => `${label(f.player)} ${f.verdict === 'too_early' ? '抢跑' : 'お手つき'}`)
+        .map((f) => `${label(f.player)} ${f.verdict === 'too_early' ? t('karuta.tooEarly') : t('karuta.otetsuki')}`)
         .join('，')
     : ''
 
@@ -40,18 +45,18 @@ export function narrateRound(
   if (result.kind === 'karafuda') {
     if (faults.length === 0) {
       return {
-        headline: '空札 —— 都忍住了',
-        detail: taps.length ? '有人出手但已超时，不计失误' : '场上没有这张牌，不出手才是对的',
+        headline: t('narrate.karafudaSafeHeadline'),
+        detail: taps.length ? t('narrate.karafudaSafeLate') : t('narrate.karafudaSafeNone'),
         tone: 'good',
       }
     }
     if (faults.length === 2) {
-      return { headline: '空札 —— 双方都お手つき', detail: '互相送一张，净变化为零', tone: 'neutral' }
+      return { headline: t('narrate.karafudaBothFault'), detail: t('narrate.karafudaBothFaultDetail'), tone: 'neutral' }
     }
     const f = faults[0]!
     return {
-      headline: `空札 —— ${label(f.player)}お手つき`,
-      detail: `${label(f.player === me ? me : f.player)}被送一张牌`,
+      headline: t('narrate.karafudaFault', { name: label(f.player) }),
+      detail: t('narrate.karafudaFaultDetail', { name: label(f.player === me ? me : f.player) }),
       tone: f.player === me ? 'bad' : 'good',
     }
   }
@@ -59,20 +64,20 @@ export function narrateRound(
   // ── 场上札 ──────────────────────────────────────────
   if (!result.winner) {
     if (taps.length === 0) {
-      return { headline: '无人取得', detail: '这张牌留在场上，之后还会再读', tone: 'neutral' }
+      return { headline: t('narrate.noWinner'), detail: t('narrate.cardRemains'), tone: 'neutral' }
     }
     if (faults.length === 2) {
-      return { headline: '双方都点错了', detail: `${faultLine}，互相送一张`, tone: 'neutral' }
+      return { headline: t('narrate.bothWrong'), detail: t('narrate.bothWrongDetail', { faults: faultLine }), tone: 'neutral' }
     }
     if (faults.length === 1) {
       const f = faults[0]!
       return {
-        headline: `${label(f.player)}点错了`,
-        detail: `${faultLine}；正确的那张仍在场上`,
+        headline: t('narrate.oneWrong', { name: label(f.player) }),
+        detail: t('narrate.oneWrongDetail', { faults: faultLine }),
         tone: f.player === me ? 'bad' : 'good',
       }
     }
-    return { headline: '无人取得', detail: tooLate.length ? '出手已超时' : '这张牌留在场上', tone: 'neutral' }
+    return { headline: t('narrate.noWinner'), detail: tooLate.length ? t('narrate.tooLate') : t('narrate.cardRemains'), tone: 'neutral' }
   }
 
   const winner = result.winner
@@ -82,8 +87,8 @@ export function narrateRound(
 
   if (isTie) {
     return {
-      headline: `同時 —— 判给${label(winner)}`,
-      detail: `两边差不到判定阈值，牌归其所在领地的一方；双方都不算お手つき`,
+      headline: t('narrate.tieHeadline', { name: label(winner) }),
+      detail: t('narrate.tieDetail'),
       tone: mine ? 'good' : 'bad',
     }
   }
@@ -93,14 +98,14 @@ export function narrateRound(
   const okuri = result.transfers.find((t) => t.cause === 'okuri')
 
   const parts: string[] = []
-  if (winTap) parts.push(`${winTap.reactionMs}ms`)
-  if (winTap && other) parts.push(`快 ${Math.abs(other.reactionMs - winTap.reactionMs)}ms`)
-  if (fromEnemy) parts.push(okuri ? '取敵陣，送出一张' : '取敵陣')
-  else parts.push('取自陣')
+  if (winTap) parts.push(t('narrate.reactionMs', { ms: winTap.reactionMs }))
+  if (winTap && other) parts.push(t('narrate.fasterBy', { ms: Math.abs(other.reactionMs - winTap.reactionMs) }))
+  if (fromEnemy) parts.push(okuri ? t('narrate.takeEnemyAndSend') : t('narrate.takeEnemy'))
+  else parts.push(t('narrate.takeOwn'))
   if (faultLine) parts.push(faultLine)
 
   return {
-    headline: `${label(winner)}取得`,
+    headline: t('narrate.takenBy', { name: label(winner) }),
     detail: parts.join(' · '),
     tone: mine ? 'good' : 'bad',
   }

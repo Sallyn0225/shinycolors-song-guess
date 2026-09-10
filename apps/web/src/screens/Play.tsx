@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   api,
@@ -31,6 +32,7 @@ type Phase = 'loading' | 'countdown' | 'answering' | 'revealed' | 'error'
 const TIMED_OUT = -1
 
 export function Play({ session, onFinish, onQuit }: Props) {
+  const { t } = useTranslation()
   const [index, setIndex] = useState(0)
   const [question, setQuestion] = useState<QuestionView | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
@@ -93,7 +95,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           fallbackOf(q.clipToken),
         )
       } catch {
-        setError('音频加载失败，可以重听或直接作答')
+        setError(t('play.audioFailed'))
       }
     },
     [session.sessionId, session.clipSeconds, fallbackOf],
@@ -284,7 +286,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           getRemaining={getRemaining}
           creases={creases}
           mode="top"
-          label={`本题剩余时间，共 ${session.answerSeconds} 秒`}
+          label={t('play.timeRemainingTotal', { seconds: session.answerSeconds })}
         />
         {phase === 'answering' && (
           <div
@@ -295,7 +297,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
               getMsLeft={getMsLeft}
               totalSeconds={session.answerSeconds}
               size={56}
-              label="本题剩余时间"
+              label={t('play.timeRemaining')}
             />
           </div>
         )}
@@ -309,7 +311,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
         按 phase 挂卸会在每次揭晓、每道题切换时抽掉一行，.sc-vfit 布局随之跳动。
         mt-3 起步让开 PrismRail 的折痕（bottom:-1px 往下伸 12u）。
       */}
-      <ClipRail getRemaining={getClipRemaining} label="片段播放剩余时间" className="mt-3" />
+      <ClipRail getRemaining={getClipRemaining} label={t('play.clipRemaining')} className="mt-3" />
 
       {/* ── 揭晓：曲名与演唱者 ────────────────────────────── */}
       <div
@@ -317,7 +319,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
         aria-live="polite"
         className="sc-revealslot mt-3 flex items-center gap-4 sm:mt-4"
       >
-        {phase === 'loading' && <p className="text-sm text-ink-faint">载入中…</p>}
+        {phase === 'loading' && <p className="text-sm text-ink-faint">{t('common.loading')}</p>}
         {phase === 'revealed' && result && (
           <>
             <span className="cut-shadow-sm anim-appear shrink-0">
@@ -358,13 +360,13 @@ export function Play({ session, onFinish, onQuit }: Props) {
                   color: result.correct ? 'var(--color-correct)' : 'var(--color-wrong)',
                 }}
               >
-                {result.correct ? '正解' : '不正解'}
+                {result.correct ? t('play.correct') : t('play.incorrect')}
               </span>
               {result.correct && (
                 <span className="latin block text-sm text-correct">
                   +{result.score.total}
                   {result.score.speed > 0 && (
-                    <span className="ml-2 text-ink-faint">速度 +{result.score.speed}</span>
+                    <span className="ml-2 text-ink-faint">{t('play.speedBonus', { speed: result.score.speed })}</span>
                   )}
                 </span>
               )}
@@ -378,7 +380,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           洗住它们，开播瞬间只揭掉覆盖层，页面不跳动，视线也不用换位置 */}
       <section
         className="sc-options mt-2 flex flex-col"
-        aria-label="选项"
+        aria-label={t('play.optionsLabel')}
       >
         {question?.options.map((o, i) => (
           <OptionBar
@@ -395,7 +397,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           <ReadyCountdown
             seconds={3}
             onDone={() => countdownDoneRef.current?.()}
-            label="即将开始"
+            label={t('play.startingSoon')}
           />
         )}
       </section>
@@ -412,21 +414,21 @@ export function Play({ session, onFinish, onQuit }: Props) {
             屏幕上只剩一行 alert，玩家除了退出无事可做 */}
         {phase === 'error' && (
           <Button variant="primary" size="lg" onClick={() => setReload((n) => n + 1)}>
-            重试本题
+            {t('play.retryQuestion')}
             <Icon name="replay" size="calc(17 * var(--u))" />
           </Button>
         )}
         {phase === 'answering' && (
           <Button variant="outline" size="lg" onClick={() => void replay()} disabled={replaysLeft <= 0}>
             <Icon name="replay" size="calc(17 * var(--u))" />
-            重听
+            {t('play.replay')}
             <span className="latin">({replaysLeft})</span>
             <span className="ml-1 hidden text-xs text-ink-faint sm:inline">R</span>
           </Button>
         )}
         {phase === 'revealed' && (
           <Button variant="primary" size="lg" onClick={next} autoFocus className="anim-appear">
-            {index + 1 >= session.total ? '查看结算' : '下一题'}
+            {index + 1 >= session.total ? t('play.viewResult') : t('play.nextQuestion')}
             <Icon name="next" size="calc(17 * var(--u))" />
             {/* 0.85 不是手感：白字乘 0.70 压在 --grad-brand-ink 上，
                 渐变中点 4.43:1、下缘 3.85:1，12px 正文两处都不达标；
@@ -440,7 +442,7 @@ export function Play({ session, onFinish, onQuit }: Props) {
           className="tap-line ml-auto text-xs text-ink-faint transition-colors hover:text-primary"
           style={{ letterSpacing: 'var(--tracking-base)' }}
         >
-          退出本局
+          {t('play.quitMatch')}
         </button>
       </div>
     </main>
