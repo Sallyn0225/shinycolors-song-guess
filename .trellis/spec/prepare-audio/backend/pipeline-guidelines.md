@@ -58,6 +58,12 @@ treats as given. Two consequences worth keeping:
   that matters — when the staging directory holds a `.wav` the batch does not list. A
   forgotten track has no downstream symptom: the library is just quietly one song smaller.
   Do not relax that check into a warning.
+- **A batch entry is a record, not a to-do.** Once the material is in `songs/`, the staging
+  directory gets deleted (it is ~2GB per batch and `.gitignore`d) — but the `data/ingest.json`
+  entry stays, because it is the only record of where that material came from and which
+  performer/album calls were made. So a missing staging directory is *not* an error:
+  `stageIngest` reports "该批次应已消费，跳过". The one thing that must never become a
+  warning is the unlisted-`.wav` check above, and that only runs when the directory exists.
 
 Each stage can be run alone and will load what it needs from cache
 (`loadMeta()` re-runs `scan` if `.cache/scan.json` is missing). Keep that property: a stage

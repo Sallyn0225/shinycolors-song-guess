@@ -10,7 +10,6 @@ import {
   type RoomVisibility,
 } from '@scg/shared'
 
-import { LIBRARY } from '../features/library'
 import { RoomCard } from '../components/RoomCard'
 import { audio } from '../audio'
 import { socket } from '../net/ws'

@@ -212,6 +212,19 @@ async function fileExists(p: string): Promise<boolean> {
 }
 
 /**
+ * 目录是否存在且确实是目录。
+ *
+ * 用于「批次是否已消费」的判定：源目录被清空之后，批次表里的那一条应当继续留档
+ * （它记录了这批素材从哪来、判定了什么），而不是逼着人删掉留档才能让 CLI 跑通。
+ */
+export async function dirExists(p: string): Promise<boolean> {
+  return fs
+    .stat(p)
+    .then((s) => s.isDirectory())
+    .catch(() => false)
+}
+
+/**
  * 转码一条任务：WAV + 封面 jpg → mp3（ID3v2.3）+ 同名 jpg。
  *
  * 参数与曲库既有曲目对齐：320kbps CBR / 44.1kHz / stereo / 内嵌 mjpeg 封面流。

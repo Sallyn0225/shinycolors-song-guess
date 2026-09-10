@@ -80,6 +80,8 @@ pnpm assets slice --rotate-ids          # 换掉全部 sliceId，只 rename 不�
 ```
 
 `ingest` 是唯一**写 `songs/`** 的 stage，所以不在 `all` 里：`all` 的语义始终是 `songs/` → `assets/`。
+批次素材进完 `songs/` 之后，暂存目录就可以清掉（一批约 2GB），`data/ingest.json` 里的登记条目要留着
+——它是「这批素材从哪来、判定了什么」的唯一记录，源目录不存在时 `ingest` 会按「已消费」跳过。
 `slice` 那两条跑完都要跟一句 `pnpm assets manifest`，否则服务端还在用旧的映射。
 
 ---

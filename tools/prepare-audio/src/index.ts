@@ -13,7 +13,7 @@ import {
 } from './config.js'
 import { scan } from './scan.js'
 import { buildMeta } from './buildMeta.js'
-import { listSourceFiles, loadIngestBatches, planIngest, runIngest } from './ingest.js'
+import { dirExists, listSourceFiles, loadIngestBatches, planIngest, runIngest } from './ingest.js'
 import { analyzeSong, gainForTrack } from './analyze.js'
 import { planSlices } from './planSlices.js'
 import { aacPath, encodeSlice, encodeSliceAac, newSliceId, slicePath, specsFor } from './slice.js'
@@ -538,9 +538,23 @@ async function stageIngest(args: Args): Promise<void> {
   const failures: string[] = []
   let encoded = 0
   let skipped = 0
+  let consumed = 0
 
   for (const batch of batches) {
-    const files = await listSourceFiles(path.join(REPO_ROOT, batch.sourceDir))
+    const sourceDir = path.join(REPO_ROOT, batch.sourceDir)
+
+    // 批次表是**留档**，不是待办清单：源目录被清掉（素材已进 songs/ 之后就该清）时
+    // 这里不是错误。真正的「漏了一首」在源目录还在时由 planIngest 拦（未列入的 wav）。
+    // 少了这条，`pnpm assets ingest` 会在任何已消费的批次上永远抛 ENOENT。
+    if (!(await dirExists(sourceDir))) {
+      consumed++
+      process.stdout.write(
+        `[ingest] 批次 ${batch.id} 的源目录不存在（${batch.sourceDir}）——该批次应已消费，跳过\n`,
+      )
+      continue
+    }
+
+    const files = await listSourceFiles(sourceDir)
     const plan = planIngest({ batch, tables, files, repoRoot: REPO_ROOT, songsRoot: SONGS_ROOT })
 
     if (plan.problems.length > 0) {
@@ -562,7 +576,9 @@ async function stageIngest(args: Args): Promise<void> {
     failures.push(...res.failures)
   }
 
-  process.stdout.write(`[ingest] 转码 ${encoded} 首，跳过已存在 ${skipped} 首\n`)
+  process.stdout.write(
+    `[ingest] 转码 ${encoded} 首，跳过已存在 ${skipped} 首，源目录已清空的批次 ${consumed} 个\n`,
+  )
   if (failures.length > 0) {
     process.stdout.write(`[ingest] ⚠ 失败 ${failures.length} 首：\n`)
     for (const f of failures) process.stdout.write(`  ${f}\n`)
