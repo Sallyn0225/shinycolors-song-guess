@@ -1,0 +1,231 @@
+{
+  "_comment": "素材准入表：暂存区里的原样音源 → songs/ 认的形状。人只判断这里写下的三件事——曲名、演唱者、专辑；转码参数、目录名、ID3 写入、完整性校验由 src/ingest.ts 负责。character 与 performers 二选一：单人曲写 character，合同曲写 performers（顺序即署名顺序）。角色名必须与 units.json 的写法一致，查不到会在规划期直接报错。缺失的 wav（源目录里有、这里没列）同样会让 ingest 拒绝执行——漏一首曲子不会以任何方式显形。",
+  "batches": [
+    {
+      "id": "hopeful-feathers-2026-09",
+      "sourceDir": "闪猜歌即将上线曲目",
+      "page": "闪彩off vocal无重复_Page26",
+      "_comment": "2026-09-16 发售的三张 HOPEFUL FE@THERS（LACA-25301/302/303）各取新 solo 曲，外加 シャニソン 2026-08-01 的夏季乐曲「泡沫に染まる」。三张专辑里那三首 re-arrange（プラニスフィア ～planisphere～ -9 colors- / リフレクトサイン -9 colors- / SOLAR WAY -10 colors-）不在本批次：原曲已在曲库。取证见 .trellis/tasks/09-10-upcoming-tracks-ingest/research/batch-provenance.md。",
+      "albums": {
+        "stella": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Stella-",
+        "luna": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Luna-",
+        "sol": "THE IDOLM@STER SHINY COLORS HOPEFUL FE@THERS -Sol-",
+        "utakata": "THE IDOLM@STER SHINY COLORS Song for Prism 泡沫に染まる"
+      },
+      "tracks": [
+        {
+          "file": "solo2 inst/Team.Stella/櫻木真乃 MAGICAL FOREST.wav",
+          "title": "MAGICAL FOREST",
+          "album": "stella",
+          "character": "櫻木真乃",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/月岡恋鐘 恋するクオリア.wav",
+          "title": "恋するクオリア",
+          "album": "stella",
+          "character": "月岡恋鐘",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/小宮果穂 ハグルマヒマワリ.wav",
+          "title": "ハグルマヒマワリ",
+          "album": "stella",
+          "character": "小宮果穂",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/園田智代子 ナイススパイス研究会.wav",
+          "title": "ナイススパイス研究会",
+          "album": "stella",
+          "character": "園田智代子",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/大崎甘奈 どっちみちLOVE.wav",
+          "title": "どっちみちLOVE",
+          "album": "stella",
+          "character": "大崎甘奈",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/芹沢あさひ ワタシグラビティ.wav",
+          "title": "ワタシグラビティ",
+          "album": "stella",
+          "character": "芹沢あさひ",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/樋口円香 ダミーガール.wav",
+          "title": "ダミーガール",
+          "album": "stella",
+          "character": "樋口円香",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/緋田美琴 Crying Diamond.wav",
+          "title": "Crying Diamond",
+          "album": "stella",
+          "character": "緋田美琴",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Stella/鈴木羽那 Imaginary.wav",
+          "title": "Imaginary",
+          "album": "stella",
+          "character": "鈴木羽那",
+          "cover": "solo2 inst/Team.Stella/LACA-25301.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/風野灯織 Embers glow.wav",
+          "title": "Embers glow",
+          "album": "luna",
+          "character": "風野灯織",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/田中摩美々 正解な不正解.wav",
+          "title": "正解な不正解",
+          "album": "luna",
+          "character": "田中摩美々",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/三峰結華 最上級パンチライン.wav",
+          "title": "最上級パンチライン",
+          "album": "luna",
+          "character": "三峰結華",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/幽谷霧子 カラースプレーとうさぎさん.wav",
+          "title": "カラースプレーとうさぎさん",
+          "album": "luna",
+          "character": "幽谷霧子",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/杜野凛世 月とネオンと薄紅と.wav",
+          "title": "月とネオンと薄紅と",
+          "album": "luna",
+          "character": "杜野凛世",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/大崎甜花 Odette.wav",
+          "title": "Odette",
+          "album": "luna",
+          "character": "大崎甜花",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/和泉愛依 Hold on me.wav",
+          "title": "Hold on me",
+          "album": "luna",
+          "character": "和泉愛依",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/福丸小糸 Here for you.wav",
+          "title": "Here for you",
+          "album": "luna",
+          "character": "福丸小糸",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Luna/斑鳩ルカHELL-O.wav",
+          "title": "HELL-O",
+          "album": "luna",
+          "character": "斑鳩ルカ",
+          "cover": "solo2 inst/Team.Luna/LACA-25302.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/八宮めぐる Take Ur Time.wav",
+          "title": "Take Ur Time",
+          "album": "sol",
+          "character": "八宮めぐる",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/白瀬咲耶 Lights on me.wav",
+          "title": "Lights on me",
+          "album": "sol",
+          "character": "白瀬咲耶",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/西城樹里 パラボラ.wav",
+          "title": "パラボラ",
+          "album": "sol",
+          "character": "西城樹里",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/有栖川夏葉 Be-witched.wav",
+          "title": "Be-witched",
+          "album": "sol",
+          "character": "有栖川夏葉",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/桑山千雪 Sweet Boozy.wav",
+          "title": "Sweet Boozy",
+          "album": "sol",
+          "character": "桑山千雪",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/黛冬優子 ガガリズム.wav",
+          "title": "ガガリズム",
+          "album": "sol",
+          "character": "黛冬優子",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/浅倉透 Paradox.wav",
+          "title": "Paradox",
+          "album": "sol",
+          "character": "浅倉透",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/市川雛菜 ハートフルデイ ハートフルミー.wav",
+          "title": "ハートフルデイ ハートフルミー",
+          "album": "sol",
+          "character": "市川雛菜",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/七草にちか Unstoppable.wav",
+          "title": "Unstoppable",
+          "album": "sol",
+          "character": "七草にちか",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "solo2 inst/Team.Sol/郁田はるき HSV色空間.wav",
+          "title": "HSV色空間",
+          "album": "sol",
+          "character": "郁田はるき",
+          "cover": "solo2 inst/Team.Sol/LACA-25303.jpg"
+        },
+        {
+          "file": "泡沫に染まる 風野灯織 月岡恋鐘 園田智代子 大崎甘奈 芹沢あさひ 浅倉透 七草にちか 斑鳩ルカ.wav",
+          "title": "泡沫に染まる",
+          "album": "utakata",
+          "performers": [
+            "風野灯織",
+            "月岡恋鐘",
+            "園田智代子",
+            "大崎甘奈",
+            "芹沢あさひ",
+            "浅倉透",
+            "七草にちか",
+            "斑鳩ルカ"
+          ],
+          "cover": "泡沫に染まる.jpg"
+        }
+      ]
+    }
+  ]
+}

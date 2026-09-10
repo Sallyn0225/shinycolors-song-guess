@@ -2,9 +2,18 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-import { ASSETS_ROOT, CACHE_DIR, CANONICAL_MTIME, STAGE_VERSIONS, defaultConcurrency } from './config.js'
+import {
+  ASSETS_ROOT,
+  CACHE_DIR,
+  CANONICAL_MTIME,
+  REPO_ROOT,
+  SONGS_ROOT,
+  STAGE_VERSIONS,
+  defaultConcurrency,
+} from './config.js'
 import { scan } from './scan.js'
 import { buildMeta } from './buildMeta.js'
+import { listSourceFiles, loadIngestBatches, planIngest, runIngest } from './ingest.js'
 import { analyzeSong, gainForTrack } from './analyze.js'
 import { planSlices } from './planSlices.js'
 import { aacPath, encodeSlice, encodeSliceAac, newSliceId, slicePath, specsFor } from './slice.js'
@@ -26,6 +35,8 @@ const STAGES = [
   'slice',
   'covers',
   'manifest',
+  // ingest 不进 all：它的产物是 songs/ 本身（素材准入），而 all 的语义是 songs/ → assets/
+  'ingest',
   'audit',
   'review',
   'preview',
@@ -39,6 +50,8 @@ interface Args {
   concurrency: number
   force: boolean
   only: string | null
+  /** 只处理某个 ingest 批次；省略则处理 data/ingest.json 里的全部批次 */
+  batch: string | null
   /** 重新生成全部 sliceId。用于「换 id 打断攻击者积累的对照表」——只需 rename，不重新编码 */
   rotateIds: boolean
   /** 额外生成一份 AAC 副本，给 Safari 18.4 以前的版本兜底 */
@@ -60,6 +73,7 @@ function parseArgs(argv: string[]): Args {
     concurrency: Number(get('--concurrency') ?? defaultConcurrency()),
     force: argv.includes('--force'),
     only: get('--only'),
+    batch: get('--batch'),
     rotateIds: argv.includes('--rotate-ids'),
     withAac: argv.includes('--with-aac-fallback'),
   }
@@ -499,6 +513,67 @@ async function stageCovers(args: Args): Promise<void> {
   }
 }
 
+/**
+ * 素材准入：把 `data/ingest.json` 里登记的暂存区音源规范化进 `songs/`。
+ *
+ * 与其它 stage 的两点不同：
+ *  - 它**写 songs/**（其它 stage 只读 songs/、只写 assets/），所以不进 `all`；
+ *  - 规划期校验不过就整批不执行——「漏列一首 wav」这种错一旦放过，曲库只会静默少一首，
+ *    没有任何下游信号会提示。
+ */
+async function stageIngest(args: Args): Promise<void> {
+  const all = await loadIngestBatches()
+  const batches = args.batch ? all.filter((b) => b.id === args.batch) : all
+
+  if (batches.length === 0) {
+    process.stdout.write(`[ingest] ⚠ 没有匹配的批次${args.batch ? `：${args.batch}` : ''}\n`)
+    process.stdout.write(
+      `[ingest]    可用批次：${all.map((b) => b.id).join(' / ') || '(data/ingest.json 里还没有批次)'}\n`,
+    )
+    process.exitCode = 1
+    return
+  }
+
+  const tables = await loadTables()
+  const failures: string[] = []
+  let encoded = 0
+  let skipped = 0
+
+  for (const batch of batches) {
+    const files = await listSourceFiles(path.join(REPO_ROOT, batch.sourceDir))
+    const plan = planIngest({ batch, tables, files, repoRoot: REPO_ROOT, songsRoot: SONGS_ROOT })
+
+    if (plan.problems.length > 0) {
+      process.stdout.write(`\n[ingest] ✗ 批次 ${batch.id} 规划期校验未过，本次不写入任何文件：\n`)
+      for (const p of plan.problems) process.stdout.write(`    ${p}\n`)
+      process.exitCode = 1
+      continue
+    }
+
+    const needle = args.only?.toLowerCase()
+    const jobs = needle ? plan.jobs.filter((j) => j.title.toLowerCase().includes(needle)) : plan.jobs
+    process.stdout.write(
+      `\n[ingest] 批次 ${batch.id}：登记 ${batch.tracks.length} 首 → songs/${batch.page}/，本次处理 ${jobs.length} 首\n`,
+    )
+
+    const res = await runIngest(jobs, { concurrency: args.concurrency, force: args.force })
+    encoded += res.encoded
+    skipped += res.skipped
+    failures.push(...res.failures)
+  }
+
+  process.stdout.write(`[ingest] 转码 ${encoded} 首，跳过已存在 ${skipped} 首\n`)
+  if (failures.length > 0) {
+    process.stdout.write(`[ingest] ⚠ 失败 ${failures.length} 首：\n`)
+    for (const f of failures) process.stdout.write(`  ${f}\n`)
+    process.exitCode = 1
+    return
+  }
+  if (encoded > 0) {
+    process.stdout.write(`[ingest] 下一步：pnpm assets scan（确认曲目数、结构问题与演唱者决议覆盖率）\n`)
+  }
+}
+
 async function stageManifest(args: Args): Promise<void> {
   const songs = await loadMeta(args)
   const tables = await loadTables()
@@ -583,6 +658,9 @@ async function main(): Promise<void> {
       break
     case 'manifest':
       await stageManifest(args)
+      break
+    case 'ingest':
+      await stageIngest(args)
       break
     case 'audit':
       await serveDevConsole()
