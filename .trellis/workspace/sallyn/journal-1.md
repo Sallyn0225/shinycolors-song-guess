@@ -441,3 +441,44 @@ ingest 的两条设计约束是有代价换来的。**不进 `all`**：`all` 的
 ### Next Steps
 
 - 线上 VPS 的 assets/ 同步（部署动作，需访问凭证）
+
+
+## Session 17: 删除上线暂存目录与失效导入，发布 v0.2.2
+<!-- trellis-session: v=2 fp=2f7919824402a438 -->
+
+**Date**: 2026-09-10
+**Task**: 删除上线暂存目录与失效导入，发布 v0.2.2
+**Package**: prepare-audio
+**Branch**: `main`
+
+### Summary
+
+小尾巴一轮：删掉大厅里失效的 LIBRARY 导入（a29320e 改版把大厅的「从 243 首里抽 30 首」换成「从曲库中随机抽取」之后，那个 import 就再没被用过，全文件只出现 1 次），并把上线暂存目录「闪猜歌即将上线曲目/」（29 个 WAV + 4 张封面，2.12GB）**移入回收站**（不是永久删除；删之前逐条核对 29 首都在 songs/Page26 里、且 manifest 里 29 首都在）。
+
+删目录引出一个必须一起修的问题：批次表是留档不是待办清单。源目录清掉之后 `pnpm assets ingest` 会在已消费的批次上永远抛 ENOENT，逼人删掉留档才能让 CLI 跑通。改为新增 `ingest.ts#dirExists()`，源目录不存在时报「该批次应已消费，跳过」并计入汇总，不算失败。这里有个要点：**未列入 wav 的拒绝检查必须保留在「源目录存在」这条分支内**——两者都是「源目录里的东西」，但一个是漏歌（必须拦）、一个是已消费（必须放过）。已写入 pipeline-guidelines spec。
+
+版本 0.2.2：六个 package.json 统一 bump，提交 → 推 main → 打 tag → 推 tag → 发 release。release 正文照 v0.2.1 的格式（💡 本次更新重点 + 📝 全部更新与对应提交，按分类列 commit hash），另加一条自建实例的提醒：仓库不含音频，拉代码后要重新同步 assets/ 才会真的可玩。CI 与 Build and push image（main 与 v0.2.2 两条）全部 success。
+
+顺带发现仓库有一个外部 PR #1「Add i18n support and complete localization for user-facing text」（mitian233），当前 CONFLICTING —— 大概率与本次升级后的文案/常量冲突有关，未介入。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `40124da` | chore: 删掉大厅里失效的 LIBRARY 导入，ingest 容忍已消费的批次 |
+| `47b26ef` | chore(release): bump version to 0.2.2 |
+
+### Testing
+
+- [OK] pnpm -r typecheck 5/5 干净；prepare-audio 24 tests passed
+- [OK] pnpm assets ingest 在已消费批次上输出「源目录不存在——该批次应已消费，跳过」并正常退出 0
+- [OK] 删目录前核对：29 首 WAV 全部在 songs/Page26（29 个目录、每个 2 个文件）且全部在 manifest 里
+- [OK] GitHub Actions：CI success、Build and push image 的 main 与 v0.2.2 两条都 success
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- VPS：docker compose pull && docker compose up -d，再 rsync 本地 assets/（240MB）——用户用 ssh 凭证自行处理
