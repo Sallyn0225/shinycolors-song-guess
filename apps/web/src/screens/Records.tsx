@@ -472,7 +472,7 @@ export function Records({ onBack }: Props) {
                         暂无达到上榜阈值的易错曲目
                       </p>
                       <p className="jp-wrap mx-auto mt-1.5 text-ink-faint" style={{ maxWidth: '44ch' }}>
-                        曲库规模共 243 首，每首曲目需至少作答 {SONG_MIN} 次后才会计入易错榜。多打几局后便会在此显示。
+                        曲库规模共 272 首，每首曲目需至少作答 {SONG_MIN} 次后才会计入易错榜。多打几局后便会在此显示。
                       </p>
                     </div>
                   ) : (

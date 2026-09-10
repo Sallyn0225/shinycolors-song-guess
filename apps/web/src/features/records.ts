@@ -13,7 +13,7 @@ export const SEEN_MAX = 50
 /** 组合榜上榜的最小出现次数。低于此阈值显示「样本不足」，避免 1 战全胜霸榜 */
 export const UNIT_MIN = 5
 
-/** 单曲易错榜上榜的最小出现次数。曲库 243 首，设为 3 可避免偶尔失误直接登顶 */
+/** 单曲易错榜上榜的最小出现次数。曲库 272 首，设为 3 可避免偶尔失误直接登顶 */
 export const SONG_MIN = 3
 
 export interface Tally {
@@ -45,7 +45,7 @@ export interface Records {
   seen: string[]
   /**
    * 曲名与所属组合的快照。两档共用，避免存两遍。
-   * 体积估算：243 首全部出现时 titles 约 15KB，modes 约 15KB，
+   * 体积估算：272 首全部出现时 titles 约 17KB，modes 约 15KB，
    * 整体约 30KB 出头，对 5MB 的 localStorage 完全安全，无需裁剪。
    */
   titles: Record<string, { title: string; unit: string | null }>

@@ -20,7 +20,7 @@ const manifestPath = fileURLToPath(
 )
 
 /**
- * `assets/` 是 1.7GB 商业音源的派生物，不入库也不该入库（见 NOTICE），
+ * `assets/` 是 2.0GB 商业音源的派生物，不入库也不该入库（见 NOTICE），
  * 所以 CI 上没有这个文件，而本地开发机上有。
  *
  * 这一组断言的**全部价值**在于拿这张手写表去对真实曲库：把 manifest 换成一份入库的
