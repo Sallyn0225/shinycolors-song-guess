@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
-- **Last Active**: 2026-09-03
+- **Total Sessions**: 16
+- **Last Active**: 2026-09-10
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~388 | Active |
+| `journal-1.md` | ~443 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-09-10 | 上线 29 首新曲（HOPEFUL FE@THERS 28 首 solo + 泡沫に染まる） | `9210fb9`, `10825d5`, `47ecfc8`, `06e5834`, `31c4bdb`, `e68bb77`, `d03666b` | `main` |
 | 15 | 2026-09-03 | 联机歌牌音效：程序化合成替换素材包 | `3b53d2d`, `0b7d939`, `7536d03`, `4868f23` | `main` |
 | 14 | 2026-09-03 | 断线重连找回与放弃重连 | `9f18c9c`, `3cbaac7`, `77e9a4e` | `feat/reconnect-recovery` |
 | 13 | 2026-09-03 | PVP 主动退出流程与 peerLeft 契约 | `489970c`, `ff0b97e`, `173eae8` | `main` |
